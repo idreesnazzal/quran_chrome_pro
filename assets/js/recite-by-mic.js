@@ -657,12 +657,35 @@ function stripRepeatedPrefix(words) {
   return words;
 }
 
+/* Live feedback for the browser recogniser. Seen on a real Chrome: it
+ * starts, detects speech, then returns EMPTY transcripts for recitation, and
+ * the panel stayed silent. Now the reader always sees what is happening, and
+ * after ~8 s of heard-but-empty speech the app offers the Quran model. */
+var HEAR = { speechAt: 0, words: false, timer: null, offered: false };
+function lwPanel(text) { var el = HAS_DOM && document.getElementById('dockSpeechText'); if (el) el.textContent = text; }
+function hearSpeechStart() {
+  if (!HEAR.words) lwPanel('🔊 أسمع صوتًا... أحاول التعرف على الكلمات');
+  if (HEAR.speechAt) return;
+  HEAR.speechAt = Date.now();
+  clearTimeout(HEAR.timer);
+  HEAR.timer = setTimeout(function () {
+    if (!S.active || S.ears !== 'browser' || HEAR.words || HEAR.offered) return;
+    HEAR.offered = true;
+    lwPanel('⚠️ التعرف العام في المتصفح يسمع صوتك لكنه لا يُرجع أي كلمات للتلاوة. اضغط 🧠 لتفعيل النموذج القرآني الدقيق.');
+    var b = document.getElementById('dockEarsBtn');
+    if (b) b.classList.add('loading');            // pulse the button
+    try { showToast('المتصفح لا يلتقط التلاوة — جرّب النموذج القرآني 🧠'); } catch (e) {}
+    if (lwSupported() && earsPref() !== 'quran') setTimeout(onEarsButton, 400);
+  }, 8000);
+}
+
 function onSpeechResult(ev) {
   var interim = [];
   try {
     for (var i = ev.resultIndex; i < ev.results.length; i++) {
       var r = ev.results[i];
       var toks = tokenize(r[0].transcript);
+      if (toks.length) HEAR.words = true;
       if (r.isFinal) {
         if (i < S.finalIdx) continue;        // already committed
         S.finalIdx = i + 1;
@@ -699,6 +722,7 @@ function startVoiceRecitation() {
   }
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1; UI.autoPage = -1;
   S.active = true; S.heard = []; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
+  clearTimeout(HEAR.timer); HEAR.speechAt = 0; HEAR.words = false; HEAR.offered = false;
   sv('isVoiceReciteActive', true);
   try { updateVoiceReciteUI(true); } catch (e) {}
   setStatus('ابدأ التلاوة من أي موضع...');
@@ -721,7 +745,9 @@ function browserStart(SR) {
       S.running = true; S.finalIdx = 0; S.lastFinal = []; // indexes restart per session
       try { hideMicDisconnectedWarning(); } catch (e) {}
       try { updateVoiceReciteUI(true); } catch (e) {}
+      if (!HEAR.words && !HEAR.offered) lwPanel('🎙️ الميكروفون يعمل — ابدأ التلاوة');
     };
+    rec.onspeechstart = hearSpeechStart;
     rec.onresult = onSpeechResult;
     rec.onerror = function (e) {
       var err = e && e.error;
@@ -731,6 +757,13 @@ function browserStart(SR) {
         stopVoiceRecitation();
       } else if (err === 'network') {
         try { showMicDisconnectedWarning('network'); } catch (x) {}
+        lwPanel('⚠️ التعرف الصوتي للمتصفح يحتاج اتصالًا بالإنترنت (خوادم Google). النموذج القرآني 🧠 يعمل دون إنترنت.');
+      } else if (err === 'audio-capture') {
+        lwPanel('⚠️ لم يُعثر على ميكروفون. تأكد من توصيله ومن اختياره في إعدادات المتصفح.');
+      } else if (err === 'language-not-supported') {
+        lwPanel('⚠️ المتصفح لا يدعم التعرف على العربية هنا. اضغط 🧠 لتفعيل النموذج القرآني.');
+      } else if (err) {
+        lwPanel('⚠️ خطأ في التعرف الصوتي: ' + err);
       }
     };
     rec.onend = function () {
@@ -1016,6 +1049,7 @@ function lwBlock(b) {
       LW.voiced = true; LW.silenceMs = 0; LW.seg = LW.preroll.slice(); LW.preroll = [];
       LW.segId++; LW.segs[LW.segId] = { committed: 0, lastHyp: [] };
       LW.lastInterimAt = Date.now(); lwWave(true);
+      if (!S.heard.length) lwPanel('🔊 أسمعك... النموذج القرآني يكتب الكلمات');
     }
     return;
   }
