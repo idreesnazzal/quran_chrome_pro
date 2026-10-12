@@ -1,0 +1,46 @@
+text
+  ok   word count per ayah == data split on spaces (all 6,236)
+  ok   normaliser: hamza/ta marbuta/maqsura/tashkeel
+  ok   muqattaat spelled out -> text token
+  ok   digits dropped, not words
+following
+  ok   clean across a surah boundary (1:5 -> 2:2)
+  ok     ...and showed the basmala/1st ayah of al-Baqarah on the way
+  ok   same with 20% drops + 10% inserts + spelling
+  ok   short ayah mid-stream: 18:3 shown while crossing 18:2 -> 18:4
+  ok   one-word ayah: مدهامتان 55:64 shown between 55:63 and 55:65
+  ok   one common word never jumps over an ayah (18:5 + الارض -/-> 18:7)
+  ok   merged يايها lands on «ايها»… then الناس (2:21 word 3)
+  ok   split يا ايها ends on the same word
+  ok   restart 3 words back, then continue (2:32)
+  ok   word stuttered 3 times
+  ok   whole ayah repeated (memorising) -> back at 112:1
+  ok   Android cumulative re-sends never move the highlight backwards
+  ok   interim revised 3x before each final: no flip-flop
+jumps
+  ok   forward jump al-Baqarah -> al-Mulk
+  ok     ...without flip-flop
+  ok   review jump backwards 18:42 -> 18:37 is followed
+  ok   one odd word inside a locked recitation: no jump
+mutashabihat
+  ok   Rahman locked: 55:15 -> refrain is 55:16 (not 55:13) -> 55:17
+  ok   Rahman 55:24 -> 55:25
+  ok   cold «فباي الاء ربكما تكذبان» alone: no guess
+  ok     ...then disambiguating words decide: 55:35
+openers
+  ok   isti'adha + basmala + al-Kahf -> 18:1
+  ok     ...never showed 1:1 or 16:98
+  ok   basmala + «الحمد لله رب العالمين» -> al-Fatiha 1:2
+  ok   basmala + «براءة من الله» -> 9:1
+  ok   16:98 itself, recited in context, IS followed
+  ok   muqatta'at of al-Baqarah spelled out -> 2:2
+  ok   muqatta'at of al-Baqarah as a word -> 2:2
+  ok   muqatta'at of al-Baqarah dropped -> 2:2
+  ok   «صدق الله العظيم» after the last ayah: ignored, stays locked
+  ok   15 off-Quran words: no wrong position shown
+one-shot (simulator)
+  ok   cold single unique word «مدهامتان» -> 55:64
+  ok   cold single common word «قل» -> no answer
+  ok   multi-ayah query lands on the LAST recited ayah (112:2)
+
+38 passed, 0 failed

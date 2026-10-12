@@ -1,0 +1,950 @@
+/* ============================================================================
+ * Recite-by-Mic v3 — probabilistic recitation tracker
+ * ----------------------------------------------------------------------------
+ * WHY v3 (read before touching): v2 was a stack of special cases (basmala
+ * guard, isti'adha guard, opener strip, tie rules, drift counter, watchdog,
+ * re-anchor, pending-jump...). Each patched one screenshot and broke another.
+ * Its live input also duplicated words whenever Chrome revised an interim
+ * guess (overlap-join could not tell a revision from new speech).
+ *
+ * v3 replaces all of it with ONE model, the standard approach for following a
+ * known text (score following / lyrics tracking):
+ *
+ *   Hidden state  = position in the Quran read as ONE word sequence
+ *                   (77,797 words + a virtual basmala before each surah
+ *                   except 1 and 9). State g = "last recited word is g".
+ *   Transitions   = next word (dominant), skip 1..5 words (ASR deletions),
+ *                   repeat a word, restart a few words back / at the ayah
+ *                   start (tasmee' corrections), skip the basmala, two text
+ *                   words heard as one ASR token, garbage word (stay), and a
+ *                   rare TELEPORT to positions seeded by an inverted index
+ *                   (real jumps). Teleport mass is split across its seeds, so
+ *                   common words barely teleport and rare ones do (IDF for
+ *                   free).
+ *   Emission      = char-Levenshtein similarity between heard and text word.
+ *   Inference     = forward algorithm in log space with a beam (top-K
+ *                   states). The answer is the best state; CONFIDENCE is the
+ *                   real posterior mass near it, not a constant.
+ *
+ * What falls out without special cases:
+ *   - mutashabihat / refrains: belief stays split until a disambiguating word,
+ *     and the local sequential path wins because teleport is expensive;
+ *   - basmala at a surah start: it IS text before every surah, so the next
+ *     words pick the surah; no "teleport to page 1" bug;
+ *   - garbage ASR (melodic recitation through MSA acoustics): every candidate
+ *     scores badly, confidence drops, the UI holds instead of jumping.
+ * The only rule-based piece left is the opener filter (isti'adha and
+ * "sadaqa Allah al-azim" are not Quran text), a tiny streaming matcher.
+ *
+ * Live input: Web Speech results are consumed by RESULT INDEX. A final result
+ * is committed to the tracker exactly once; interim text is evaluated on a
+ * throw-away copy of the beam (peek) for instant display and never mutates
+ * state, so a revised guess can never leave duplicates behind.
+ * Only one source of "ears" is active at a time (browser OR server Whisper).
+ *
+ * Tests + benchmark (old vs new, real 6,236-ayah corpus):
+ *   node tests/run_tests.js        node tests/benchmark.js
+ * ========================================================================== */
+(function (G) {
+'use strict';
+
+var RECITE_VERSION = '3.0.0-hmm';
+
+var CFG = {
+  BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
+  PRUNE: 20,             // drop states this far (log) below the best
+  T_NEXT: 0.80,          // P(next word)
+  T_SKIP: [0, 0, 0.06, 0.02, 0.008, 0.005, 0.004], // index = distance d (2..6)
+  T_MERGE: 0.04,         // two text words heard as one token
+  T_REPEAT: 0.03,        // same word again
+  T_BACK: 0.035,         // restart 1..8 words back (spread)
+  T_AYAH_START: 0.015,   // restart at the beginning of the current ayah
+  T_GARBAGE: 0.08,       // heard word is not Quran text: stay
+  T_BASMALA_SKIP: 0.35,  // surah end -> next surah's first word, no basmala
+  TELEPORT: 0.006,       // total mass for jumping anywhere (split over seeds); tuned:
+                         // 0.0002..0.01 no false jumps, 0.03 starts jumping on off-Quran speech
+  SEED_BIGRAM_MAX: 400,  // bigram postings longer than this are uninformative
+  SEED_UNIGRAM_MAX: 160,
+  FUZZY_SEED_SIM: 0.80,
+  E_SLOPE: 5.0,          // emission log-ratio = clamp(E_SLOPE*(sim-E_MID))
+  E_MID: 0.55,
+  E_MAX: 2.25,
+  E_MIN: -4.0,           // unrelated word: advancing on it must lose to 'garbage, stay'
+  SHOW_CONF: 0.45,       // min posterior to move the highlight
+  JUMP_CONF: 0.75,       // min posterior to move the highlight more than 8 words
+  WEAK_SIM: 0.5,         // highlight never moves onto a word the last heard word does not resemble
+  TURN_CONF: 0.80,       // posterior that turns the page immediately
+  TURN_CONF_2: 0.55,     // ...or this, on two consecutive updates
+  DEBUG: false,
+  whisper: { enabled: false, endpoint: '', chunkSeconds: 4, lang: 'ar' }
+};
+
+/* ------------------------------ text ---------------------------------- */
+function normalizeArabic(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/[ً-ٰٟۖ-ۭ]/g, '') // tashkeel, dagger alif, Uthmani marks
+    .replace(/[إأآٱ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[ـ‌‍]/g, '')
+    .replace(/[ئؤ]/g, 'ء')
+    .replace(/[^؀-ۿ\s]/g, ' ')
+    .replace(/[٠-٩۰-۹]/g, ' ')          // Arabic-Indic digits
+    .replace(/[،؛؟٪-٭۔]/g, ' ') // Arabic punctuation
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Spelled-out muqatta'at as speech engines write them -> the text token.
+var MUQ = [
+  ['كاف ها يا عين صاد', 'كهيعص'], ['الف لام ميم صاد', 'المص'],
+  ['الف لام ميم را', 'المر'], ['الف لام ميم', 'الم'], ['الف لام را', 'الر'],
+  ['عين سين قاف', 'عسق'], ['طا سين ميم', 'طسم'], ['طا سين', 'طس'],
+  ['حا ميم', 'حم'], ['طا ها', 'طه'], ['يا سين', 'يس'],
+  ['طاها', 'طه'], ['ياسين', 'يس'], ['حاميم', 'حم'], ['طاسين', 'طس'],
+  ['قاف', 'ق'], ['نون', 'ن'], ['صاد', 'ص']
+].map(function (e) { return [normalizeArabic(e[0]).split(' '), normalizeArabic(e[1])]; });
+
+function tokenize(text) {
+  var n = normalizeArabic(text);
+  if (!n) return [];
+  var t = n.split(' ');
+  var out = [];
+  for (var i = 0; i < t.length;) {
+    var hit = null;
+    for (var m = 0; m < MUQ.length && !hit; m++) {
+      var ph = MUQ[m][0];
+      if (i + ph.length > t.length) continue;
+      var ok = true;
+      for (var k = 0; k < ph.length; k++) if (t[i + k] !== ph[k]) { ok = false; break; }
+      if (ok) hit = MUQ[m];
+    }
+    if (hit) { out.push(hit[1]); i += hit[0].length; }
+    else { out.push(t[i]); i++; }
+  }
+  return out;
+}
+
+function lev(a, b) {
+  var m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  var prev = new Array(n + 1), cur = new Array(n + 1), j, i;
+  for (j = 0; j <= n; j++) prev[j] = j;
+  for (i = 1; i <= m; i++) {
+    cur[0] = i;
+    var ca = a.charCodeAt(i - 1);
+    for (j = 1; j <= n; j++) {
+      var v = prev[j] + 1, ins = cur[j - 1] + 1, sub = prev[j - 1] + (ca === b.charCodeAt(j - 1) ? 0 : 1);
+      if (ins < v) v = ins;
+      if (sub < v) v = sub;
+      cur[j] = v;
+    }
+    var tmp = prev; prev = cur; cur = tmp;
+  }
+  return prev[n];
+}
+
+function wordSim(a, b) {
+  if (a === b) return 1;
+  var m = Math.max(a.length, b.length);
+  if (!m) return 0;
+  if (Math.abs(a.length - b.length) > Math.max(2, Math.min(a.length, b.length))) return 0;
+  return 1 - lev(a, b) / m;
+}
+
+/* ------------------------------ corpus -------------------------------- */
+var BASMALA = normalizeArabic('بسم الله الرحمن الرحيم').split(' ');
+
+/* ayahs: QURAN_DATA.ayahs rows [sura, aya, page, suraName, text, ...] */
+function buildCorpus(ayahs) {
+  var words = [], ayahOf = [], wordOf = [], virt = [];
+  var ayahFirst = new Int32Array(ayahs.length), ayahLast = new Int32Array(ayahs.length);
+  var ayahList = [];
+  var surahEndBeforeBasmala = {}; // position of a surah's last word -> its next surah's first real word
+  for (var i = 0; i < ayahs.length; i++) {
+    var r = ayahs[i];
+    var sura = r[0], aya = r[1];
+    if (aya === 1 && sura !== 1 && sura !== 9) {
+      var before = words.length - 1;
+      for (var b = 0; b < BASMALA.length; b++) {
+        words.push(BASMALA[b]); ayahOf.push(i); wordOf.push(-1); virt.push(1);
+      }
+      if (before >= 0) surahEndBeforeBasmala[before] = words.length; // first real word follows
+    }
+    var clean = String(r[4] || '').replace(/\(\d+\)\s*$/, '').trim();
+    var ws = normalizeArabic(clean).split(' ').filter(Boolean);
+    ayahFirst[i] = words.length;
+    for (var w = 0; w < ws.length; w++) {
+      words.push(ws[w]); ayahOf.push(i); wordOf.push(w); virt.push(0);
+    }
+    ayahLast[i] = words.length - 1;
+    ayahList.push({ idx: i, sura: sura, aya: aya, page: r[2], suraName: r[3],
+      rawText: r[4], cleanText: clean, normText: ws.join(' '), words: ws, wordCount: ws.length });
+  }
+  var L = words.length;
+  var uni = new Map(), bi = new Map();
+  for (var p = 0; p < L; p++) {
+    var a = uni.get(words[p]); if (!a) { a = []; uni.set(words[p], a); } a.push(p);
+    if (p > 0) {
+      var key = words[p - 1] + ' ' + words[p];
+      var c = bi.get(key); if (!c) { c = []; bi.set(key, c); } c.push(p);
+    }
+  }
+  var byLen = [];
+  uni.forEach(function (_, tok) {
+    var l = tok.length;
+    (byLen[l] || (byLen[l] = [])).push(tok);
+  });
+  return { words: words, ayahOf: ayahOf, wordOf: wordOf, virt: virt, L: L,
+    ayahFirst: ayahFirst, ayahLast: ayahLast, ayahs: ayahList,
+    uni: uni, bi: bi, byLen: byLen, basmalaSkip: surahEndBeforeBasmala,
+    simCache: new Map(), seedCache: new Map() };
+}
+
+/* ------------------------------ model --------------------------------- */
+function lse(a, b) {
+  if (a === -Infinity) return b;
+  if (b === -Infinity) return a;
+  return a > b ? a + Math.log1p(Math.exp(b - a)) : b + Math.log1p(Math.exp(a - b));
+}
+
+function simCached(C, h, t) {
+  if (h === t) return 1;
+  var k = h + '\u0001' + t;
+  var v = C.simCache.get(k);
+  if (v === undefined) {
+    v = wordSim(h, t);
+    if (C.simCache.size > 200000) C.simCache.clear();
+    C.simCache.set(k, v);
+  }
+  return v;
+}
+
+var STEP_MEMO = null, STEP_H = null; // per-step memo: text word -> sim with the heard word
+function emis(C, h, q) {
+  var t = C.words[q], s;
+  if (STEP_H === h) { s = STEP_MEMO.get(t); if (s === undefined) { s = wordSim(h, t); STEP_MEMO.set(t, s); } }
+  else s = simCached(C, h, t);
+  var e = CFG.E_SLOPE * (s - CFG.E_MID);
+  return e > CFG.E_MAX ? CFG.E_MAX : (e < CFG.E_MIN ? CFG.E_MIN : e);
+}
+
+function seedsFor(C, h, hPrev) {
+  if (hPrev) {
+    var b = C.bi.get(hPrev + ' ' + h);
+    if (b && b.length <= CFG.SEED_BIGRAM_MAX) return b;
+  }
+  return unigramSeeds(C, h);
+}
+
+/* exact postings, or (unseen spelling) a fuzzy expansion through the
+ * length-bucketed vocabulary; cached per heard word */
+function unigramSeeds(C, h) {
+  var hit = C.seedCache.get(h);
+  if (hit) return hit;
+  var out = [];
+  var u = C.uni.get(h);
+  if (u) { if (u.length <= CFG.SEED_UNIGRAM_MAX) out = u; }
+  else {
+    var acc = [];
+    for (var l = Math.max(1, h.length - 2); l <= h.length + 2; l++) {
+      var bucket = C.byLen[l];
+      if (!bucket) continue;
+      for (var i = 0; i < bucket.length; i++) {
+        if (wordSim(h, bucket[i]) >= CFG.FUZZY_SEED_SIM) {
+          var ps = C.uni.get(bucket[i]);
+          if (ps.length <= CFG.SEED_UNIGRAM_MAX) acc = acc.concat(ps);
+        }
+      }
+    }
+    if (acc.length <= CFG.SEED_UNIGRAM_MAX * 2) out = acc;
+  }
+  if (C.seedCache.size > 50000) C.seedCache.clear();
+  C.seedCache.set(h, out);
+  return out;
+}
+
+var LOG = {};
+function logs() {
+  LOG.next = Math.log(CFG.T_NEXT);
+  LOG.skip = CFG.T_SKIP.map(function (p) { return p > 0 ? Math.log(p) : -Infinity; });
+  LOG.merge = Math.log(CFG.T_MERGE);
+  LOG.repeat = Math.log(CFG.T_REPEAT);
+  LOG.back = Math.log(CFG.T_BACK / 8);
+  LOG.ayahStart = Math.log(CFG.T_AYAH_START);
+  LOG.garbage = Math.log(CFG.T_GARBAGE);
+  LOG.bskip = Math.log(CFG.T_BASMALA_SKIP);
+  LOG.tele = Math.log(CFG.TELEPORT);
+}
+logs();
+
+/* One forward step: alpha (Map pos->log) + heard word -> new alpha.
+ * Pure: never mutates its input (peek relies on that). */
+function stepAlpha(C, alpha, h, hPrev) {
+  var nx = new Map();
+  var L = C.L, words = C.words;
+  STEP_H = h; STEP_MEMO = new Map();
+  function add(q, v) {
+    var o = nx.get(q);
+    nx.set(q, o === undefined ? v : lse(o, v));
+  }
+  var total = -Infinity;
+  alpha.forEach(function (a, g) {
+    total = lse(total, a);
+    // forward: next word and skips
+    for (var d = 1; d <= 6; d++) {
+      var q = g + d;
+      if (q >= L) break;
+      add(q, a + (d === 1 ? LOG.next : LOG.skip[d]) + emis(C, h, q));
+    }
+    // two text words fused into one heard token (يا ايها -> يايها)
+    if (g + 2 < L) {
+      var s2 = simCached(C, h, words[g + 1] + words[g + 2]);
+      var e2 = CFG.E_SLOPE * (s2 - CFG.E_MID);
+      e2 = e2 > CFG.E_MAX ? CFG.E_MAX : (e2 < CFG.E_MIN ? CFG.E_MIN : e2);
+      add(g + 2, a + LOG.merge + e2);
+    }
+    // surah end -> skip the next surah's basmala
+    var bs = C.basmalaSkip[g];
+    if (bs !== undefined && bs < L) add(bs, a + LOG.bskip + emis(C, h, bs));
+    if (g >= 0) {
+      add(g, a + LOG.repeat + emis(C, h, g));            // repeated word
+      for (var k = 1; k <= 8 && g - k >= 0; k++) {        // restart a few words back
+        add(g - k, a + LOG.back + emis(C, h, g - k));
+      }
+      var ai = C.ayahOf[g];
+      var f0 = C.ayahFirst[ai];
+      if (g - f0 > 8) add(f0, a + LOG.ayahStart + emis(C, h, f0)); // restart the ayah
+    }
+    add(g, a + LOG.garbage);                               // not Quran text
+  });
+  // teleport (real jumps), split over seeds
+  var seeds = seedsFor(C, h, hPrev);
+  if (seeds.length) {
+    var t = total + LOG.tele - Math.log(seeds.length);
+    for (var i = 0; i < seeds.length; i++) add(seeds[i], t + emis(C, h, seeds[i]));
+  }
+  // beam
+  var arr = [];
+  nx.forEach(function (v, q) { arr.push([q, v]); });
+  arr.sort(function (x, y) { return y[1] - x[1]; });
+  var best = arr.length ? arr[0][1] : 0;
+  var out = new Map();
+  for (var j = 0; j < arr.length && j < CFG.BEAM; j++) {
+    if (arr[j][1] < best - CFG.PRUNE) break;
+    out.set(arr[j][0], arr[j][1] - best); // renormalise: best = 0
+  }
+  out.rawBest = best; // log-gain of the best path on this word (lost detector)
+  return out;
+}
+
+function summarize(C, alpha) {
+  var bestQ = -1, bestV = -Infinity, total = -Infinity;
+  alpha.forEach(function (v, q) {
+    total = lse(total, v);
+    if (v > bestV) { bestV = v; bestQ = q; }
+  });
+  if (bestQ < 0) return null;
+  var near = -Infinity;
+  alpha.forEach(function (v, q) { if (Math.abs(q - bestQ) <= 3) near = lse(near, v); });
+  var conf = Math.exp(near - total);
+  var ai = C.ayahOf[bestQ];
+  return { pos: bestQ, ayahIdx: ai, wordIdx: C.wordOf[bestQ], basmala: !!C.virt[bestQ],
+    conf: conf, ayah: C.ayahs[ai] };
+}
+
+/* ------------------------------ opener filter ------------------------- */
+// Not Quran text, said around recitation. Patterns of <=2 words must match
+// exactly (a fuzzy «امين» would swallow «امن»); longer ones tolerate ASR noise.
+// «الله اكبر» also occurs inside 9:72 / 29:45: swallowing it there costs two
+// skipped words, which the model absorbs; NOT swallowing it elsewhere lets a
+// 2-word bigram teleport to 29:45.
+var OPENERS = [
+  'اعوذ بالله من الشيطان الرجيم',
+  'اعوذ بالله السميع العليم من الشيطان الرجيم',
+  'صدق الله العظيم',
+  'الله اكبر',
+  'امين'
+].map(function (s) { return normalizeArabic(s).split(' '); });
+
+function openerState(hold) { return { hold: hold ? hold.slice() : [] }; }
+
+/* push one word; returns words released to the tracker */
+function openerPush(st, w) {
+  st.hold.push(w);
+  var released = [];
+  for (;;) {
+    var n = st.hold.length;
+    if (!n) return released;
+    var full = false, prefix = false;
+    for (var o = 0; o < OPENERS.length; o++) {
+      var P = OPENERS[o];
+      if (n > P.length) continue;
+      var ok = true;
+      var need = P.length <= 2 ? 1 : 0.75;
+      for (var k = 0; k < n; k++) if (wordSim(st.hold[k], P[k]) < need) { ok = false; break; }
+      if (!ok) continue;
+      if (n === P.length) full = true; else prefix = true;
+    }
+    if (full) { st.hold = []; return released; }   // swallow the opener
+    if (prefix) return released;                    // wait for more words
+    released.push(st.hold.shift());                 // not an opener: release head
+  }
+}
+
+/* ------------------------------ tracker ------------------------------- */
+function Tracker(C) {
+  this.C = C;
+  this.reset();
+}
+Tracker.prototype.reset = function () {
+  this.peekCache = [];    // [{w, alpha, prev, hold, gains}] of the last peek
+  this.alpha = new Map();
+  this.opener = openerState();
+  this.prev = null;       // last word fed to the model
+  this.gains = [];        // recent best-path gains (lost detector)
+  this.steps = 0;
+};
+/* prior: ayah indexes the reader is likely to start at (current page...) */
+Tracker.prototype.setPrior = function (ayahIdxs, weight) {
+  var C = this.C, a = new Map(), lw = Math.log(weight || 1);
+  for (var i = 0; i < ayahIdxs.length; i++) {
+    var ai = ayahIdxs[i];
+    if (ai < 0 || ai >= C.ayahs.length) continue;
+    var f = C.ayahFirst[ai];
+    // a surah's first ayah: the reader may start with its basmala
+    if (C.ayahs[ai].aya === 1 && f >= 4 && C.virt[f - 1]) a.set(f - 5, lw);
+    a.set(f - 1, lw);
+  }
+  if (!a.size) a.set(-1, 0);
+  // merge into existing belief (manual page change mid-session keeps context)
+  if (this.alpha.size) {
+    this.alpha.forEach(function (v, q) { a.set(q, a.has(q) ? lse(a.get(q), v) : v); });
+  }
+  this.alpha = a;
+};
+Tracker.prototype.setPriorAt = function (ayahIdx, wordIdx) {
+  var C = this.C;
+  if (ayahIdx < 0 || ayahIdx >= C.ayahs.length) return;
+  this.alpha = new Map();
+  this.alpha.set(C.ayahFirst[ayahIdx] + Math.max(-1, wordIdx | 0) , 0);
+};
+Tracker.prototype._feed = function (alpha, w, prev) {
+  if (!alpha.size) alpha = new Map([[-1, 0]]);
+  return stepAlpha(this.C, alpha, w, prev);
+};
+/* commit words (final results) */
+Tracker.prototype.push = function (words) {
+  this.peekCache = [];
+  for (var i = 0; i < words.length; i++) {
+    var rel = openerPush(this.opener, words[i]);
+    for (var j = 0; j < rel.length; j++) {
+      var before = this.alpha;
+      var nx = this._feed(before, rel[j], this.prev);
+      this.gains.push(nx.rawBest);
+      if (this.gains.length > 6) this.gains.shift();
+      this.alpha = nx;
+      this.prev = rel[j];
+      this.steps++;
+    }
+  }
+  return this.result();
+};
+/* release words still held by the opener filter (end of a typed query) */
+Tracker.prototype.flush = function () {
+  var held = this.opener.hold;
+  this.opener.hold = [];
+  for (var i = 0; i < held.length; i++) {
+    var nx = this._feed(this.alpha, held[i], this.prev);
+    this.gains.push(nx.rawBest); if (this.gains.length > 6) this.gains.shift();
+    this.alpha = nx; this.prev = held[i]; this.steps++;
+  }
+  this.peekCache = [];
+};
+/* Evaluate tentative (interim) words on a copy; committed state untouched.
+ * Interims grow by a word and revise the last one or two, so the steps of
+ * the previous peek are reused up to the first differing word: each interim
+ * event costs ~1-3 model steps instead of re-running the whole utterance. */
+Tracker.prototype.peek = function (words) {
+  var cache = this.peekCache, k = 0;
+  while (k < words.length && k < cache.length && cache[k].w === words[k]) k++;
+  cache.length = k;
+  var base = k ? cache[k - 1] : { alpha: this.alpha, prev: this.prev,
+    hold: this.opener.hold, gains: this.gains };
+  var alpha = base.alpha, prev = base.prev, st = openerState(base.hold), gains = base.gains.slice();
+  for (var i = k; i < words.length; i++) {
+    var rel = openerPush(st, words[i]);
+    for (var j = 0; j < rel.length; j++) {
+      alpha = this._feed(alpha, rel[j], prev);
+      gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
+      prev = rel[j];
+    }
+    cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice() });
+  }
+  return this._result(alpha, gains, prev);
+};
+Tracker.prototype.result = function () { return this._result(this.alpha, this.gains, this.prev); };
+Tracker.prototype._result = function (alpha, gains, lastWord) {
+  var s = summarize(this.C, alpha);
+  if (!s) return null;
+  // how well the last heard word matches the tracked word (or the tracked
+  // word fused with its predecessor: يا ايها heard as يايها)
+  var C = this.C, sim = 0;
+  if (lastWord && s.pos >= 0) {
+    sim = wordSim(lastWord, C.words[s.pos]);
+    if (s.pos > 0) sim = Math.max(sim, wordSim(lastWord, C.words[s.pos - 1] + C.words[s.pos]));
+  }
+  s.lastSim = sim;
+  // lost detector: the best path has been explaining nothing for a while
+  // LOST = >=3 of the last 6 words explained badly, and not yet 2 good
+  // words in a row (hysteresis: one half-matching word must not un-lose)
+  var bad = 0, good = 0;
+  for (var i = 0; i < gains.length; i++) if (gains[i] < -1.0) bad++;
+  for (var j = gains.length - 1; j >= 0 && gains[j] >= 0.5; j--) good++;
+  s.lost = bad >= 3 && good < 2;
+  s.lastGain = gains.length ? gains[gains.length - 1] : 0;
+  return s;
+};
+
+/* =========================== browser glue ============================= */
+var HAS_DOM = typeof document !== 'undefined';
+var CORPUS = null, TRACKER = null;
+
+function gv(name, dflt) { // read an index.html global (let) safely
+  try { return (0, eval)(name); } catch (e) { return dflt; }
+}
+function sv(name, val) {
+  try { (0, eval)(name + '=' + JSON.stringify(val)); } catch (e) {}
+}
+function log() { if (CFG.DEBUG && G.console) console.log.apply(console, arguments); }
+
+function ayahRows() {
+  var d = gv('activeData', null);
+  if (d && d.length) return d;
+  return (G.QURAN_DATA && G.QURAN_DATA.ayahs) || [];
+}
+
+function buildVoiceRecitationIndex() {
+  if (CORPUS) return;
+  var rows = ayahRows();
+  if (!rows.length) return;
+  var t0 = Date.now();
+  CORPUS = buildCorpus(rows);
+  TRACKER = new Tracker(CORPUS);
+  sv('isVoiceIndexBuilt', true);
+  try { ayahVoiceIndex = CORPUS.ayahs; } catch (e) { G.ayahVoiceIndex = CORPUS.ayahs; }
+  log('[recite] corpus', CORPUS.L, 'positions in', Date.now() - t0, 'ms');
+}
+
+function visiblePages() {
+  if (gv('isDoublePageMode', false)) return [gv('currentRightPage', 1), gv('currentLeftPage', 2)];
+  return [gv('currentPage', 1)];
+}
+function ayahsOnPages(pages) {
+  var out = [];
+  for (var i = 0; i < CORPUS.ayahs.length; i++) if (pages.indexOf(CORPUS.ayahs[i].page) !== -1) out.push(i);
+  return out;
+}
+
+/* ---------- UI bridge: tracker result -> kept index.html UI ---------- */
+var UI = { lastPos: -1, lastAyah: -1, lastWord: -2, pendingPage: -1, autoPage: -1, raf: 0, queued: null };
+
+/* decide synchronously (testable in Node), paint on the next frame */
+function emit(res, transcript, tentative) {
+  if (!res) return;
+  API.lastResult = res;
+  var d = decide(res, tentative);
+  API.lastShown = d.m || API.lastShown;
+  if (!HAS_DOM) return;
+  // several speech events can land in one frame: a later "no change" must
+  // not swallow an earlier move that has not been painted yet
+  var pendingM = d.m || (UI.queued && UI.queued.d.m) || null;
+  UI.queued = { d: { m: pendingM, status: d.status }, transcript: transcript };
+  if (UI.raf) return;
+  var run = function () { UI.raf = 0; var q = UI.queued; UI.queued = null; if (q) paint(q.d, q.transcript); };
+  UI.raf = (G.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(run);
+}
+
+function setStatus(text) {
+  try { var el = document.getElementById('voiceStatusText'); if (el) el.textContent = text; } catch (e) {}
+}
+
+/* -> { status, m } ; m = what the highlight should show (null = hold) */
+function decide(res, tentative) {
+  if (res.lost) return { status: 'لم أتعرف على التلاوة بعد... تابع القراءة' };
+  if (res.conf < CFG.SHOW_CONF) return { status: 'أتحقق من الموضع...' };
+  var ay = res.ayah;
+  // page turn hysteresis: a confident result turns at once, a medium one
+  // must repeat on the next update (prevents flip-flopping between twins)
+  var pages = visiblePages();
+  if (pages.indexOf(ay.page) === -1) {
+    var ok = res.conf >= CFG.TURN_CONF || (res.conf >= CFG.TURN_CONF_2 && UI.pendingPage === ay.page);
+    UI.pendingPage = ay.page;
+    if (!ok) return { status: 'أتحقق من الموضع...' };
+    UI.autoPage = ay.page;
+  }
+  UI.pendingPage = -1;
+  var wordIdx = res.basmala ? -1 : res.wordIdx;
+  if (res.ayahIdx === UI.lastAyah && wordIdx === UI.lastWord) return { same: true };
+  // a word that matched nothing may not push the highlight forward (it is
+  // either noise or the start of a jump; the next real words decide)
+  if (UI.lastPos >= 0 && res.lastSim < CFG.WEAK_SIM) return { same: true };
+  // a far move (jump) needs a confident belief, not a 50/50 one
+  if (UI.lastPos >= 0 && Math.abs(res.pos - UI.lastPos) > 8 && res.conf < CFG.JUMP_CONF) return { status: 'أتحقق من الموضع...' };
+  UI.lastPos = res.pos;
+  var isJump = UI.lastAyah >= 0 && Math.abs(res.ayahIdx - UI.lastAyah) > 3;
+  UI.lastAyah = res.ayahIdx; UI.lastWord = wordIdx;
+  return { m: { bestIdx: res.ayahIdx, bestAyah: ay, activeWordIdx: wordIdx,
+    score: res.conf, baseScore: res.conf, confidence: Math.round(res.conf * 100),
+    isJump: isJump, tentative: !!tentative, basmala: res.basmala } };
+}
+
+function paint(d, transcript) {
+  showTranscript(transcript);
+  if (d.status) setStatus(d.status);
+  if (!d.m) return;
+  try { onVoiceAyahDetected(d.m, null); } catch (e) { log('ui err', e); }
+  if (!d.m.isJump) setStatus(d.m.basmala ? 'البسملة... تابع' : 'متابعة التسميع جارية... 🎙️');
+}
+
+function showTranscript(words) {
+  if (!words || !HAS_DOM) return;
+  var tail = words.slice(-25).join(' ');
+  if (words.length > 25) tail = '…' + tail;
+  ['voiceTranscriptText', 'dockSpeechText'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = '"' + tail + '"';
+  });
+}
+
+/* ---------- live session ---------- */
+var S = { active: false, heard: [], finalIdx: 0, lastFinal: [], rec: null, running: false,
+  restartT: null, ears: 'browser', userPage: -1 };
+
+function onUserPageCheck() {
+  // the reader turned the page by hand mid-session: they want to recite it
+  var p = gv('currentPage', 1);
+  if (p !== S.userPage) {
+    if (S.userPage !== -1 && p !== UI.autoPage) TRACKER.setPrior(ayahsOnPages(visiblePages()), 50);
+    S.userPage = p;
+  }
+}
+
+function commitWords(words) {
+  if (!words.length || !TRACKER) return;
+  onUserPageCheck();
+  S.heard = S.heard.concat(words).slice(-200);
+  emit(TRACKER.push(words), S.heard, false);
+}
+
+function tentativeWords(words) {
+  if (!TRACKER) return;
+  onUserPageCheck();
+  if (!words.length) return;
+  emit(TRACKER.peek(words), S.heard.concat(words), true);
+}
+
+/* Chrome on Android sometimes re-sends the previous final as the prefix of
+ * the next one; strip exactly that, nothing fuzzier. */
+function stripRepeatedPrefix(words) {
+  var p = S.lastFinal;
+  if (p.length && words.length >= p.length) {
+    for (var i = 0; i < p.length; i++) if (words[i] !== p[i]) return words;
+    return words.slice(p.length);
+  }
+  return words;
+}
+
+function onSpeechResult(ev) {
+  var interim = [];
+  try {
+    for (var i = ev.resultIndex; i < ev.results.length; i++) {
+      var r = ev.results[i];
+      var toks = tokenize(r[0].transcript);
+      if (r.isFinal) {
+        if (i < S.finalIdx) continue;        // already committed
+        S.finalIdx = i + 1;
+        var fresh = stripRepeatedPrefix(toks);
+        S.lastFinal = toks;
+        commitWords(fresh);
+      } else if (i >= S.finalIdx) {
+        interim = interim.concat(toks);
+      }
+    }
+  } catch (e) { log('result err', e); return; }
+  tentativeWords(interim);
+}
+
+function startVoiceRecitation() {
+  try { if (typeof openVoiceDock === 'function') openVoiceDock(); } catch (e) {}
+  buildVoiceRecitationIndex();
+  if (!TRACKER) { try { showToast('بيانات المصحف لم تُحمّل بعد'); } catch (e) {} return; }
+  var SR = G.SpeechRecognition || G.webkitSpeechRecognition;
+  var useServer = CFG.whisper.enabled && CFG.whisper.endpoint;
+  if (!SR && !useServer) {
+    try { showToast('المتصفح لا يدعم التعرف الصوتي المباشر، يمكنك استخدام لوحة المحاكاة'); } catch (e) {}
+    try { if (typeof toggleDockSim === 'function') toggleDockSim(); } catch (e) {}
+    return;
+  }
+  // fresh belief: the visible page(s), the highlighted ayah strongest
+  TRACKER.reset();
+  TRACKER.setPrior(ayahsOnPages(visiblePages()), 1);
+  var hl = gv('currentHighlightedAyah', null);
+  if (hl) {
+    for (var i = 0; i < CORPUS.ayahs.length; i++) {
+      if (CORPUS.ayahs[i].sura === hl.sura && CORPUS.ayahs[i].aya === hl.aya) { TRACKER.setPrior([i], 30); break; }
+    }
+  }
+  UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1; UI.autoPage = -1;
+  S.active = true; S.heard = []; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
+  sv('isVoiceReciteActive', true);
+  try { updateVoiceReciteUI(true); } catch (e) {}
+  setStatus('ابدأ التلاوة من أي موضع...');
+  if (useServer) { S.ears = 'server'; serverStart(); return; }   // ONE ears at a time
+  S.ears = 'browser';
+  browserStart(SR);
+}
+
+function browserStart(SR) {
+  if (!S.rec) {
+    var rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'ar-SA';
+    rec.maxAlternatives = 1;
+    rec.onstart = function () {
+      S.running = true; S.finalIdx = 0; S.lastFinal = []; // indexes restart per session
+      try { hideMicDisconnectedWarning(); } catch (e) {}
+      try { updateVoiceReciteUI(true); } catch (e) {}
+    };
+    rec.onresult = onSpeechResult;
+    rec.onerror = function (e) {
+      var err = e && e.error;
+      if (err === 'no-speech' || err === 'aborted') return;
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        try { showMicDisconnectedWarning('not-allowed'); } catch (x) {}
+        stopVoiceRecitation();
+      } else if (err === 'network') {
+        try { showMicDisconnectedWarning('network'); } catch (x) {}
+      }
+    };
+    rec.onend = function () {
+      S.running = false;
+      if (!S.active) { try { updateVoiceReciteUI(false); } catch (x) {} return; }
+      clearTimeout(S.restartT);
+      S.restartT = setTimeout(function () {
+        if (S.active && !S.running) {
+          try { S.rec.start(); } catch (err) {
+            if (err && err.name !== 'InvalidStateError') { try { showMicDisconnectedWarning('disconnect'); } catch (x) {} }
+          }
+        }
+      }, 250);
+    };
+    S.rec = rec;
+  }
+  try { S.rec.start(); }
+  catch (e) {
+    if (e && e.name === 'NotAllowedError') { try { showMicDisconnectedWarning('not-allowed'); } catch (x) {} }
+    else if (!e || e.name !== 'InvalidStateError') { try { showMicDisconnectedWarning('disconnect'); } catch (x) {} }
+  }
+}
+
+function stopVoiceRecitation() {
+  S.active = false;
+  sv('isVoiceReciteActive', false);
+  clearTimeout(S.restartT);
+  try { if (S.rec) S.rec.stop(); } catch (e) {}
+  serverStop();
+  try { updateVoiceReciteUI(false); } catch (e) {}
+}
+
+function toggleVoiceRecitation() {
+  if (S.active) stopVoiceRecitation(); else startVoiceRecitation();
+}
+
+/* ---------- server ears (server/recite_server.py, Whisper) ---------- */
+var SV = { rec: null, timer: null, stream: null, chunks: [] };
+function serverProbe() {
+  if (typeof fetch === 'undefined' || !HAS_DOM) return;
+  var base = (location.protocol === 'http:' && /^(127\.0\.0\.1|localhost)$/.test(location.hostname))
+    ? location.origin : 'http://127.0.0.1:8001';
+  fetch(base + '/health').then(function (r) { return r.json(); }).then(function (j) {
+    if (j && j.ok) {
+      CFG.whisper.enabled = true;
+      CFG.whisper.endpoint = base + '/recite-chunk';
+      try { console.info('[recite] Whisper server:', base, 'model:', j.model); } catch (e) {}
+      try { showToast('مخدم التسميع الدقيق متصل — سيُستخدم بدل التعرف الصوتي للمتصفح'); } catch (e) {}
+    }
+  }).catch(function () {});
+}
+function serverStart() {
+  if (!navigator.mediaDevices || typeof MediaRecorder === 'undefined') { browserStart(G.SpeechRecognition || G.webkitSpeechRecognition); return; }
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+    SV.stream = stream;
+    var mk = function () {
+      var r;
+      try { r = new MediaRecorder(stream, { mimeType: 'audio/webm' }); } catch (e) { r = new MediaRecorder(stream); }
+      r.ondataavailable = function (ev) { if (ev.data && ev.data.size) SV.chunks.push(ev.data); };
+      r.onstop = function () {     // take the batch only here (stop flushes async)
+        var batch = SV.chunks; SV.chunks = [];
+        if (batch.length) serverSend(batch);
+        if (S.active && S.ears === 'server') { SV.rec = mk(); SV.rec.start(); }
+      };
+      return r;
+    };
+    SV.rec = mk(); SV.rec.start();
+    SV.timer = setInterval(function () {
+      if (SV.rec && SV.rec.state === 'recording') SV.rec.stop();
+    }, Math.max(2, CFG.whisper.chunkSeconds) * 1000);
+    try { updateVoiceReciteUI(true); } catch (e) {}
+  }).catch(function () { try { showMicDisconnectedWarning('not-allowed'); } catch (e) {} });
+}
+var SEND_Q = Promise.resolve();
+function serverSend(batch) {
+  var blob = new Blob(batch, { type: 'audio/webm' });
+  var fd = new FormData();
+  fd.append('audio', blob, 'chunk.webm');
+  fd.append('lang', CFG.whisper.lang);
+  // serialise: chunks must reach the tracker in recording order
+  SEND_Q = SEND_Q.then(function () {
+    return fetch(CFG.whisper.endpoint, { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.text && S.active) commitWords(tokenize(j.text)); })
+      .catch(function () {});
+  });
+}
+function serverStop() {
+  clearInterval(SV.timer); SV.timer = null;
+  try { if (SV.rec && SV.rec.state === 'recording') SV.rec.stop(); } catch (e) {}
+  SV.rec = null;
+  try { if (SV.stream) SV.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+  SV.stream = null;
+}
+
+/* ---------- one-shot API (simulator, voice search) ---------- */
+function oneShot(text, priorAyahs) {
+  buildVoiceRecitationIndex();
+  if (!TRACKER) return null;
+  var toks = tokenize(text);
+  if (!toks.length) return null;
+  // a typed query is a SEARCH: jumping anywhere is the point, so teleport is
+  // cheap here (live following keeps the small value)
+  var keep = CFG.TELEPORT;
+  CFG.TELEPORT = 0.5; logs();
+  try {
+    var t = new Tracker(CORPUS);
+    t.setPrior(priorAyahs, 1);
+    t.push(toks);
+    t.flush(); // the query ends here: release words held by the opener filter
+    return t.result();
+  } finally { CFG.TELEPORT = keep; logs(); }
+}
+
+function simulateVoiceRecitation(text) {
+  if (!text) return null;
+  buildVoiceRecitationIndex();
+  if (!CORPUS) return null;
+  try { if (typeof openVoiceDock === 'function') openVoiceDock(); } catch (e) {}
+  var res = oneShot(text, ayahsOnPages(visiblePages()));
+  var toks = tokenize(text);
+  if (!res || res.lost || res.conf < CFG.SHOW_CONF) {
+    var ds = HAS_DOM && document.getElementById('dockSpeechText');
+    if (ds) ds.textContent = 'لم يتم العثور على موضع مطابق لـ "' + text + '"';
+    return null;
+  }
+  UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1;
+  var keep = CFG.TURN_CONF; CFG.TURN_CONF = 0; // a typed query turns the page at once
+  var d;
+  try { d = decide(res, false); } finally { CFG.TURN_CONF = keep; }
+  if (HAS_DOM) paint(d, toks);
+  return { bestIdx: res.ayahIdx, score: res.conf, confidence: Math.round(res.conf * 100),
+    sura: res.ayah.sura, aya: res.ayah.aya, page: res.ayah.page, suraName: res.ayah.suraName,
+    wordIdx: res.wordIdx };
+}
+
+/* compat: old signature, returns old result shape */
+function matchRecitedSpeech(text, anchorIdx) {
+  buildVoiceRecitationIndex();
+  if (!CORPUS) return null;
+  var res = oneShot(text, [Math.max(0, anchorIdx | 0)]);
+  if (!res || res.lost || res.conf < CFG.SHOW_CONF) return null;
+  return { bestIdx: res.ayahIdx, bestAyah: res.ayah, activeWordIdx: res.basmala ? -1 : res.wordIdx,
+    score: res.conf, baseScore: res.conf, confidence: Math.round(res.conf * 100),
+    isJump: Math.abs(res.ayahIdx - anchorIdx) > 3 };
+}
+
+function initVoiceRecitation() {
+  serverProbe();
+  try { console.info('[recite] engine v' + RECITE_VERSION); } catch (e) {}
+  if (!HAS_DOM) return;
+  function on(id, ev, fn) { var el = document.getElementById(id); if (el) el.addEventListener(ev, fn); }
+  on('voiceReciteToggleBtn', 'click', toggleVoiceRecitation);
+  on('floatingMicLauncher', 'click', function () {
+    try { openVoiceDock(); } catch (e) {}
+    if (!S.active) startVoiceRecitation();
+  });
+  on('dockMainToggleBtn', 'click', toggleVoiceRecitation);
+  on('dockMinimizeBtn', 'click', function () { try { minimizeVoiceDock(); } catch (e) {} });
+  on('dockToggleSimBtn', 'click', function () { try { toggleDockSim(); } catch (e) {} });
+  var sim = function () {
+    var inp = document.getElementById('dockSimInput');
+    var v = inp ? inp.value.trim() : '';
+    if (v) simulateVoiceRecitation(v);
+  };
+  on('dockSimSubmitBtn', 'click', sim);
+  on('dockSimInput', 'keydown', function (e) { if (e.key === 'Enter') sim(); });
+  try {
+    document.querySelectorAll('.dock-chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var p = chip.dataset.phrase;
+        if (!p) return;
+        var inp = document.getElementById('dockSimInput');
+        if (inp) inp.value = p;
+        simulateVoiceRecitation(p);
+      });
+    });
+  } catch (e) {}
+  var openTafsir = function () {
+    try {
+      var a = CORPUS && CORPUS.ayahs[gv('currentVoiceAnchorIdx', -1)];
+      if (a) openAyahTafsir(a.sura, a.aya);
+    } catch (e) {}
+  };
+  on('dockOpenTafsirBtn', 'click', openTafsir);
+  on('voiceOpenTafsirBtn', 'click', openTafsir);
+  on('dockAllowMicBtn', 'click', function () { try { requestMicPermissionAndReconnect(); } catch (e) {} });
+  on('dockDismissAlertBtn', 'click', function () { try { hideMicDisconnectedWarning(); } catch (e) {} });
+  on('voiceHudStopBtn', 'click', stopVoiceRecitation);
+  on('voiceTestSimBtn', 'click', function () { try { toggleVoiceSimDrawer(); } catch (e) {} });
+  on('simCloseBtn', 'click', function () { try { closeVoiceSimDrawer(); } catch (e) {} });
+}
+
+/* ------------------------------ exports ------------------------------- */
+var API = {
+  version: RECITE_VERSION, config: CFG, relog: logs,
+  normalize: normalizeArabic, tokenize: tokenize, wordSim: wordSim, levenshtein: lev,
+  buildCorpus: buildCorpus, Tracker: Tracker, openerState: openerState, openerPush: openerPush,
+  // live-path hooks (tests drive these with fake SpeechRecognition events)
+  _onSpeechResult: onSpeechResult, _session: S, _ui: UI, _decide: decide, lastShown: null,
+  buildIndex: buildVoiceRecitationIndex, match: matchRecitedSpeech,
+  simulate: simulateVoiceRecitation, start: startVoiceRecitation,
+  stop: stopVoiceRecitation, toggle: toggleVoiceRecitation,
+  corpus: function () { return CORPUS; }, tracker: function () { return TRACKER; }
+};
+G.ReciteByMic = API;
+G.normalizeArabic = normalizeArabic;
+G.buildVoiceRecitationIndex = buildVoiceRecitationIndex;
+G.matchRecitedSpeech = matchRecitedSpeech;
+G.startVoiceRecitation = startVoiceRecitation;
+G.stopVoiceRecitation = stopVoiceRecitation;
+G.toggleVoiceRecitation = toggleVoiceRecitation;
+G.initVoiceRecitation = initVoiceRecitation;
+G.simulateVoiceRecitation = simulateVoiceRecitation;
+G.setVoiceAnchor = function (idx) {
+  buildVoiceRecitationIndex();
+  if (TRACKER) { TRACKER.reset(); TRACKER.setPrior([idx], 1); }
+};
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+})(typeof window !== 'undefined' ? window : globalThis);

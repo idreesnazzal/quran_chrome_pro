@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+*.tmp
+# local-only backup of the pre-v3 page (kept on disk, not in history)
+index.backup-before-recite-rebuild.html

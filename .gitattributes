@@ -1,0 +1,4 @@
+* text=auto
+*.webp binary
+*.wasm binary
+*.onnx binary
