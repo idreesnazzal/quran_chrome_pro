@@ -855,7 +855,7 @@ function startVoiceRecitation() {
     }
   }
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1; UI.autoPage = -1;
-  S.active = true; S.heard = []; S.heardRaw = []; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
+  S.active = true; S.heard = []; S.heardRaw = []; S.noSpeech = 0; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
   clearTimeout(HEAR.timer); HEAR.speechAt = 0; HEAR.words = false; HEAR.offered = false;
   // diagnostics only if nothing arrives: a second capture next to Chrome's
   // recogniser is avoided while it works
@@ -879,17 +879,25 @@ function browserStart(SR) {
     rec.interimResults = true;
     rec.lang = 'ar-SA';
     rec.maxAlternatives = 1;
+    // Chrome 154+: `quality` defaults to "command" (short voice commands);
+    // recitation is long continuous speech -> "dictation"
+    try { if ('quality' in rec) rec.quality = 'dictation'; } catch (e) {}
     rec.onstart = function () {
       S.running = true; S.finalIdx = 0; S.lastFinal = []; // indexes restart per session
       try { hideMicDisconnectedWarning(); } catch (e) {}
       try { updateVoiceReciteUI(true); } catch (e) {}
-      if (!HEAR.words && !HEAR.offered) lwPanel('🎙️ الميكروفون يعمل' + (MIC.label ? ': ' + MIC.label : '') + ' — ابدأ التلاوة');
+      if (!HEAR.words && !HEAR.offered && !S.noSpeech) lwPanel('🎙️ الميكروفون يعمل' + (MIC.label ? ': ' + MIC.label : '') + ' — ابدأ التلاوة');
     };
     rec.onspeechstart = hearSpeechStart;
     rec.onresult = onSpeechResult;
     rec.onerror = function (e) {
       var err = e && e.error;
-      if (err === 'no-speech' || err === 'aborted') return;
+      if (err === 'no-speech') {   // say it instead of silently restarting
+        S.noSpeech = (S.noSpeech || 0) + 1;
+        if (!HEAR.words) lwPanel('⚠️ Chrome لم يسمع كلامًا (no-speech ×' + S.noSpeech + '). اقترب من الميكروفون، أو اضغط 🩺 لتسجيل تشخيص.');
+        return;
+      }
+      if (err === 'aborted') return;
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         try { showMicDisconnectedWarning('not-allowed'); } catch (x) {}
         stopVoiceRecitation();
@@ -1326,6 +1334,88 @@ function onEarsButton() {
   setEars('quran');
 }
 
+/* ---------- 🩺 diagnostic recording ----------
+ * Records 8 s from the default microphone (Chrome's normal processing, like
+ * the recogniser) while a FRESH Chrome recogniser listens, then saves the WAV
+ * and the full event log through the local server (_debug/rec_*.wav/json) so
+ * the real voice can be analysed offline. */
+function diagRun() {
+  if (!HAS_DOM || !navigator.mediaDevices) return;
+  if (S.active) stopVoiceRecitation();
+  var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  var log = { stamp: stamp, ua: navigator.userAgent, events: [], level: {} };
+  var t0 = Date.now(), DUR = 8000;
+  var ev = function (x) { log.events.push([Date.now() - t0, x]); };
+  try { openVoiceDock(); } catch (e) {}
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+    var tr = stream.getAudioTracks()[0];
+    log.track = { label: tr.label, settings: tr.getSettings() };
+    var AC = G.AudioContext || G.webkitAudioContext, ctx = new AC();
+    var src = ctx.createMediaStreamSource(stream);
+    var proc = ctx.createScriptProcessor(4096, 1, 1), chunks = [], peak = 0, sum = 0, n = 0;
+    proc.onaudioprocess = function (e) {
+      var d = e.inputBuffer.getChannelData(0), c = new Float32Array(d), en = 0;
+      for (var i = 0; i < c.length; i++) en += c[i] * c[i];
+      var rms = Math.sqrt(en / c.length); peak = Math.max(peak, rms); sum += rms; n++;
+      chunks.push(c);
+      var w = document.getElementById('dockAudioWave');
+      if (w) for (var b = 0; b < w.children.length; b++) { w.children[b].style.animation = 'none'; w.children[b].style.height = (4 + Math.min(20, rms * 300)) + 'px'; }
+    };
+    var sink = ctx.createGain(); sink.gain.value = 0;
+    src.connect(proc); proc.connect(sink); sink.connect(ctx.destination);
+    // a fresh recogniser, every event logged
+    var R = G.SpeechRecognition || G.webkitSpeechRecognition, r = null;
+    if (R) {
+      r = new R(); r.lang = 'ar-SA'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
+      try { if ('quality' in r) { r.quality = 'dictation'; log.quality = r.quality; } } catch (e) {}
+      ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'end', 'nomatch'].forEach(function (k) {
+        r.addEventListener(k, function () { ev(k); });
+      });
+      r.onerror = function (e) { ev('error:' + e.error + (e.message ? ' ' + e.message : '')); };
+      r.onresult = function (e) {
+        for (var i = e.resultIndex; i < e.results.length; i++) ev((e.results[i].isFinal ? 'FINAL ' : 'interim ') + e.results[i][0].transcript);
+      };
+      try { r.start(); } catch (e) { ev('start-threw:' + e.name); }
+    } else ev('no SpeechRecognition');
+    var left = DUR / 1000;
+    lwPanel('🩺 اقرأ آية الآن بصوت واضح... ' + left);
+    var iv = setInterval(function () { left--; if (left > 0) lwPanel('🩺 اقرأ آية الآن بصوت واضح... ' + left); }, 1000);
+    setTimeout(function () {
+      clearInterval(iv);
+      try { if (r) r.stop(); } catch (e) {}
+      setTimeout(function () {   // let the last results arrive
+        proc.disconnect(); stream.getTracks().forEach(function (x) { x.stop(); });
+        log.level = { meanRms: +(sum / Math.max(1, n)).toFixed(5), peakRms: +peak.toFixed(5), sampleRate: ctx.sampleRate };
+        var wav = encodeWav(chunks, ctx.sampleRate); ctx.close();
+        var heard = log.events.filter(function (x) { return /^FINAL|^interim/.test(x[1]); }).map(function (x) { return x[1]; });
+        var save = function (kind, body, type) {
+          return fetch('/debug-save?kind=' + kind + '&stamp=' + stamp, { method: 'POST', headers: { 'Content-Type': type }, body: body })
+            .then(function (x) { return x.json(); });
+        };
+        save('wav', wav, 'audio/wav').then(function () { return save('json', JSON.stringify(log, null, 1), 'application/json'); })
+          .then(function () {
+            lwPanel('🩺 حُفظ التسجيل (_debug/rec_' + stamp + '). مستوى الصوت الأعلى: ' + log.level.peakRms +
+              ' — ما سمعه Chrome: ' + (heard.length ? '«' + heard[heard.length - 1].replace(/^(FINAL|interim) /, '') + '»' : 'لا شيء') +
+              ' — الأحداث: ' + log.events.map(function (x) { return x[1].split(' ')[0]; }).join(', '));
+          })
+          .catch(function () { lwPanel('🩺 تعذّر الحفظ: افتح التطبيق عبر الخادم المحلي (Open Mushaf.cmd)'); });
+      }, 1500);
+    }, DUR);
+  }).catch(function (e) { lwPanel('🩺 تعذّر فتح الميكروفون: ' + (e && e.name)); });
+}
+
+function encodeWav(chunks, rate) {
+  var n = 0; chunks.forEach(function (c) { n += c.length; });
+  var buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), o = 0;
+  var str = function (s) { for (var i = 0; i < s.length; i++) v.setUint8(o++, s.charCodeAt(i)); };
+  str('RIFF'); v.setUint32(o, 36 + n * 2, true); o += 4; str('WAVE'); str('fmt ');
+  v.setUint32(o, 16, true); o += 4; v.setUint16(o, 1, true); o += 2; v.setUint16(o, 1, true); o += 2;
+  v.setUint32(o, rate, true); o += 4; v.setUint32(o, rate * 2, true); o += 4; v.setUint16(o, 2, true); o += 2;
+  v.setUint16(o, 16, true); o += 2; str('data'); v.setUint32(o, n * 2, true); o += 4;
+  chunks.forEach(function (c) { for (var i = 0; i < c.length; i++, o += 2) v.setInt16(o, Math.max(-1, Math.min(1, c[i])) * 32767, true); });
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
 /* ---------- one-shot API (simulator, voice search) ---------- */
 function oneShot(text, priorAyahs) {
   buildVoiceRecitationIndex();
@@ -1392,6 +1482,7 @@ function initVoiceRecitation() {
   on('dockMinimizeBtn', 'click', function () { try { minimizeVoiceDock(); } catch (e) {} });
   on('dockToggleSimBtn', 'click', function () { try { toggleDockSim(); } catch (e) {} });
   on('dockEarsBtn', 'click', onEarsButton);
+  on('dockDiagBtn', 'click', diagRun);
   lwButton();
   // chosen before and already downloaded: warm the model up in the background
   try { if (earsPref() === 'quran' && localStorage.getItem('recite_model_ok') === '1' && lwSupported()) lwLoad(null); } catch (e) {}
@@ -1435,7 +1526,7 @@ var API = {
   buildCorpus: buildCorpus, Tracker: Tracker, openerState: openerState, openerPush: openerPush,
   // live-path hooks (tests drive these with fake SpeechRecognition events)
   _onSpeechResult: onSpeechResult, _session: S, _lw: LW, _lwCfg: LW_CFG, setEars: setEars,
-  _mic: MIC,
+  _mic: MIC, diag: diagRun,
   _lwFeed: function (f32) { LW.rate = 16000; lwFeed(f32); }, _ui: UI, _decide: decide, lastShown: null,
   buildIndex: buildVoiceRecitationIndex, match: matchRecitedSpeech,
   simulate: simulateVoiceRecitation, start: startVoiceRecitation,

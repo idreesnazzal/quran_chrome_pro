@@ -151,6 +151,8 @@ class Handler(BaseHTTPRequestHandler):
             self._head_only = False
 
     def do_POST(self):
+        if self.path.startswith("/debug-save"):
+            return self._debug_save()
         if self.path.rstrip("/") != "/recite-chunk":
             self.send_response(404)
             self._cors()
@@ -215,6 +217,26 @@ class Handler(BaseHTTPRequestHandler):
                     fields[name] = _Field(io.BytesIO(part.get_payload(decode=True) or b""),
                                           part.get_filename() or "")
         return fields
+
+    def _debug_save(self):
+        """🩺 button in the recite panel: store the reader's test recording
+        (WAV) and the recogniser log under _debug/ for offline analysis.
+        Only listens on 127.0.0.1; files never leave this machine."""
+        import time
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        kind = "wav" if q.get("kind", ["wav"])[0] == "wav" else "json"
+        stamp = q.get("stamp", [time.strftime("%Y%m%d-%H%M%S")])[0]
+        stamp = "".join(ch for ch in stamp if ch.isalnum() or ch in "-_")[:40]
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        if length <= 0 or length > 30_000_000:
+            return self._json(400, {"error": "bad length"})
+        data = self.rfile.read(length)
+        folder = os.path.join(APP_ROOT, "_debug")
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, f"rec_{stamp}.{kind}")
+        with open(path, "wb") as fh:
+            fh.write(data)
+        return self._json(200, {"saved": os.path.relpath(path, APP_ROOT)})
 
     def _json(self, code, obj):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")

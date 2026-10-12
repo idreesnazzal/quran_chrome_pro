@@ -6,3 +6,6 @@ index.backup-before-recite-rebuild.html
 
 # converted tiny model (scripts/convert_tiny_model.py): not wired in yet
 assets/models/
+
+# reader's diagnostic recordings (🩺) stay local
+_debug/
