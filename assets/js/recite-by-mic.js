@@ -613,9 +613,12 @@ function showTranscript(words) {
   if (!words || !HAS_DOM) return;
   var tail = words.slice(-25).join(' ');
   if (words.length > 25) tail = '…' + tail;
+  // say WHO heard it: the reader could not tell Chrome's recogniser from the
+  // in-browser model (which mishears non-professional voices)
+  var src = S.ears === 'local' ? '🧠 النموذج القرآني (تجريبي): ' : (S.ears === 'server' ? '🖥️ الخادم: ' : '🎧 Chrome: ');
   ['voiceTranscriptText', 'dockSpeechText'].forEach(function (id) {
     var el = document.getElementById(id);
-    if (el) el.textContent = '"' + tail + '"';
+    if (el) el.textContent = src + '"' + tail + '"';
   });
 }
 
@@ -1129,8 +1132,8 @@ function lwButton() {
   var on = earsPref() === 'quran';
   b.classList.toggle('on', on);
   b.classList.toggle('loading', LW.loading);
-  b.title = on ? 'النموذج القرآني مفعّل (داخل المتصفح) — اضغط للعودة إلى التعرف العام'
-               : 'تفعيل النموذج القرآني الدقيق (يعمل داخل المتصفح، دون إنترنت بعد أول تحميل)';
+  b.title = on ? '🧠 النموذج القرآني التجريبي مفعّل — اضغط لإيقافه والعودة إلى تعرّف Chrome'
+               : 'تجريبي: النموذج القرآني داخل المتصفح (قد لا يفهم كل الأصوات؛ تعرّف Chrome هو الافتراضي)';
 }
 
 function lwLoad(done) {
@@ -1385,7 +1388,7 @@ function setEars(pref) {
 }
 
 function onEarsButton() {
-  if (earsPref() === 'quran') { setEars('browser'); try { showToast('عاد التسميع إلى التعرف العام للمتصفح'); } catch (e) {} return; }
+  if (earsPref() === 'quran') { setEars('browser'); lwPanel('🎧 عاد التسميع إلى تعرّف Chrome — تابع التلاوة'); try { showToast('🧠 أُوقف — التعرف الآن عبر Chrome'); } catch (e) {} return; }
   if (!lwSupported()) {
     try { showToast(location.protocol === 'file:' ? 'افتح التطبيق عبر الخادم المحلي (http://127.0.0.1:8001) لتفعيل النموذج القرآني'
                                                   : 'المتصفح لا يدعم تشغيل النموذج القرآني'); } catch (e) {}
@@ -1393,7 +1396,7 @@ function onEarsButton() {
   }
   var known = false;
   try { known = localStorage.getItem('recite_model_ok') === '1'; } catch (e) {}
-  if (!known && !G.confirm('سيُحمَّل النموذج القرآني (حوالي 100–120 ميغابايت) مرة واحدة فقط، ثم يعمل داخل المتصفح دون إنترنت ودون إرسال صوتك لأي جهة. متابعة؟')) return;
+  if (!known && !G.confirm('ميزة تجريبية: النموذج القرآني داخل المتصفح (حوالي 100–120 ميغابايت تُحمَّل مرة واحدة). مدرَّب على تلاوات القرّاء المحترفين وقد لا يفهم صوتك جيدًا؛ تعرّف Chrome يبقى الافتراضي. متابعة؟')) return;
   setEars('quran');
 }
 
