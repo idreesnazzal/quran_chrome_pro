@@ -676,7 +676,7 @@ function hearSpeechStart() {
   if (HEAR.speechAt) return;
   HEAR.speechAt = Date.now();
   clearTimeout(HEAR.timer);
-  HEAR.timer = setTimeout(offerQuranModel, 8000);
+  HEAR.timer = setTimeout(offerQuranModel, 25000);
 }
 
 function offerQuranModel() {
@@ -685,11 +685,10 @@ function offerQuranModel() {
   // input, and a silent mic is a microphone problem, not a recogniser one
   if (MIC.an && (MIC.silenceWarned || MIC.loudMs < 2000)) return;
   HEAR.offered = true;
-  lwPanel('⚠️ التعرف العام في المتصفح يسمع صوتك لكنه لا يُرجع أي كلمات للتلاوة. اضغط 🧠 لتفعيل النموذج القرآني الدقيق.');
+  lwPanel('⏳ لم تصل كلمات من Chrome بعد 25 ثانية. إن استمر ذلك جرّب 🧠 النموذج القرآني.');
   var b = document.getElementById('dockEarsBtn');
   if (b) b.classList.add('loading');            // pulse the button
-  try { showToast('المتصفح لا يلتقط التلاوة — جرّب النموذج القرآني 🧠'); } catch (e) {}
-  if (lwSupported() && earsPref() !== 'quran') setTimeout(onEarsButton, 400);
+  // no dialog: it interrupted a recogniser that is merely slow on this machine
 }
 
 /* ---------- microphone monitor (diagnostics) ----------
@@ -811,7 +810,35 @@ function micMonitorStop() {
   if (w) for (var b = 0; b < w.children.length; b++) { w.children[b].style.height = ''; w.children[b].style.animation = ''; }
 }
 
+/* timing log of the browser recogniser, saved locally by the server under
+ * _debug/session_*.json every 10 s and at stop (only when served by
+ * recite_server.py on 127.0.0.1). Used to measure Chrome's delay. */
+var EVLOG = { t0: 0, list: [], stamp: '', timer: null };
+function evlog(type, text) {
+  if (!EVLOG.t0) return;
+  EVLOG.list.push([Date.now() - EVLOG.t0, type, text || '']);
+  if (EVLOG.list.length > 3000) EVLOG.list.shift();
+}
+function evlogStart() {
+  EVLOG.t0 = Date.now(); EVLOG.list = [];
+  EVLOG.stamp = 'session-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  clearInterval(EVLOG.timer);
+  EVLOG.timer = setInterval(evlogSave, 10000);
+}
+function evlogSave() {
+  if (!EVLOG.t0 || !HAS_DOM || location.protocol !== 'http:' || !/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) return;
+  try {
+    fetch('/debug-save?kind=json&stamp=' + EVLOG.stamp, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ua: navigator.userAgent, ears: S.ears, events: EVLOG.list }) }).catch(function () {});
+  } catch (e) {}
+}
+function evlogStop() { evlogSave(); clearInterval(EVLOG.timer); EVLOG.t0 = 0; }
+
 function onSpeechResult(ev) {
+  try {
+    for (var k = ev.resultIndex; k < ev.results.length; k++)
+      evlog(ev.results[k].isFinal ? 'final' : 'interim', ev.results[k][0].transcript);
+  } catch (e) {}
   var interim = [], interimRaw = [];
   try {
     for (var i = ev.resultIndex; i < ev.results.length; i++) {
@@ -857,10 +884,10 @@ function startVoiceRecitation() {
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1; UI.autoPage = -1;
   S.active = true; S.heard = []; S.heardRaw = []; S.noSpeech = 0; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
   clearTimeout(HEAR.timer); HEAR.speechAt = 0; HEAR.words = false; HEAR.offered = false;
+  evlogStart();
   // diagnostics only if nothing arrives: a second capture next to Chrome's
   // recogniser is avoided while it works
   clearTimeout(MIC.lazyT);
-  MIC.lazyT = setTimeout(function () { if (S.active && !HEAR.words) micMonitorStart(); }, 6000);
   sv('isVoiceReciteActive', true);
   try { updateVoiceReciteUI(true); } catch (e) {}
   setStatus('ابدأ التلاوة من أي موضع...');
@@ -879,19 +906,22 @@ function browserStart(SR) {
     rec.interimResults = true;
     rec.lang = 'ar-SA';
     rec.maxAlternatives = 1;
-    // Chrome 154+: `quality` defaults to "command" (short voice commands);
-    // recitation is long continuous speech -> "dictation"
-    try { if ('quality' in rec) rec.quality = 'dictation'; } catch (e) {}
+    // (Chrome 154's `quality` is left at its default: the version that worked
+    //  on the reader's machine never set it)
     rec.onstart = function () {
       S.running = true; S.finalIdx = 0; S.lastFinal = []; // indexes restart per session
       try { hideMicDisconnectedWarning(); } catch (e) {}
       try { updateVoiceReciteUI(true); } catch (e) {}
+      evlog('start');
       if (!HEAR.words && !HEAR.offered && !S.noSpeech) lwPanel('🎙️ الميكروفون يعمل' + (MIC.label ? ': ' + MIC.label : '') + ' — ابدأ التلاوة');
     };
-    rec.onspeechstart = hearSpeechStart;
+    rec.onspeechstart = function () { evlog('speechstart'); hearSpeechStart(); };
+    rec.onaudiostart = function () { evlog('audiostart'); };
+    rec.onsoundstart = function () { evlog('soundstart'); };
     rec.onresult = onSpeechResult;
     rec.onerror = function (e) {
       var err = e && e.error;
+      evlog('error', err);
       if (err === 'no-speech') {   // say it instead of silently restarting
         S.noSpeech = (S.noSpeech || 0) + 1;
         if (!HEAR.words) lwPanel('⚠️ Chrome لم يسمع كلامًا (no-speech ×' + S.noSpeech + '). اقترب من الميكروفون، أو اضغط 🩺 لتسجيل تشخيص.');
@@ -913,6 +943,7 @@ function browserStart(SR) {
       }
     };
     rec.onend = function () {
+      evlog('end');
       S.running = false;
       if (!S.active) { try { updateVoiceReciteUI(false); } catch (x) {} return; }
       clearTimeout(S.restartT);
@@ -942,6 +973,7 @@ function stopVoiceRecitation() {
   lwStopCapture();
   micMonitorStop();
   clearTimeout(MIC.lazyT);
+  evlogStop();
   try { updateVoiceReciteUI(false); } catch (e) {}
 }
 

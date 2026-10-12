@@ -9,3 +9,6 @@ assets/models/
 
 # reader's diagnostic recordings (🩺) stay local
 _debug/
+
+# exact pre-rebuild app for side-by-side comparison
+_old_version/
