@@ -861,7 +861,28 @@ function onSpeechResult(ev) {
   tentativeWords(interim, interimRaw);
 }
 
+/* Chrome runs ONE speech recognition at a time for the whole browser.
+ * Seen on the reader's machine: two app tabs (each auto-restarting its
+ * recogniser) aborted each other about once a second, so no words ever
+ * arrived ("nothing appears", "massive delay"). Starting the mic here now
+ * tells every other tab of the app to stop. */
+var TAB_ID = Math.random().toString(36).slice(2);
+var TAB_BC = null;
+try {
+  if (typeof BroadcastChannel !== 'undefined') {
+    TAB_BC = new BroadcastChannel('recite-mic');
+    TAB_BC.onmessage = function (e) {
+      var m = e.data || {};
+      if (m.type === 'claim' && m.id !== TAB_ID && S.active) {
+        stopVoiceRecitation();
+        lwPanel('⏸️ أُوقف التسميع هنا لأنه بدأ في نافذة/تبويب آخر للتطبيق');
+      }
+    };
+  }
+} catch (e) {}
+
 function startVoiceRecitation() {
+  try { if (TAB_BC) TAB_BC.postMessage({ type: 'claim', id: TAB_ID }); } catch (e) {}
   try { if (typeof openVoiceDock === 'function') openVoiceDock(); } catch (e) {}
   buildVoiceRecitationIndex();
   if (!TRACKER) { try { showToast('بيانات المصحف لم تُحمّل بعد'); } catch (e) {} return; }
@@ -882,7 +903,7 @@ function startVoiceRecitation() {
     }
   }
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1; UI.autoPage = -1;
-  S.active = true; S.heard = []; S.heardRaw = []; S.noSpeech = 0; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
+  S.active = true; S.heard = []; S.heardRaw = []; S.noSpeech = 0; S.aborts = []; S.backoff = 0; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
   clearTimeout(HEAR.timer); HEAR.speechAt = 0; HEAR.words = false; HEAR.offered = false;
   evlogStart();
   // diagnostics only if nothing arrives: a second capture next to Chrome's
@@ -927,7 +948,16 @@ function browserStart(SR) {
         if (!HEAR.words) lwPanel('⚠️ Chrome لم يسمع كلامًا (no-speech ×' + S.noSpeech + '). اقترب من الميكروفون، أو اضغط 🩺 لتسجيل تشخيص.');
         return;
       }
-      if (err === 'aborted') return;
+      if (err === 'aborted') {
+        var now = Date.now();
+        S.aborts = (S.aborts || []).filter(function (t) { return now - t < 6000; });
+        S.aborts.push(now);
+        if (S.aborts.length >= 3) {
+          S.backoff = 3000;   // stop the ping-pong: wait before restarting
+          lwPanel('⚠️ التعرف الصوتي يُقطع باستمرار: تبويب آخر في Chrome يستخدم التعرف الصوتي (ربما نسخة أخرى من التطبيق). أغلق التبويبات الأخرى ثم أعد التشغيل.');
+        }
+        return;
+      }
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         try { showMicDisconnectedWarning('not-allowed'); } catch (x) {}
         stopVoiceRecitation();
@@ -947,13 +977,14 @@ function browserStart(SR) {
       S.running = false;
       if (!S.active) { try { updateVoiceReciteUI(false); } catch (x) {} return; }
       clearTimeout(S.restartT);
+      var wait = S.backoff || 250; S.backoff = 0;
       S.restartT = setTimeout(function () {
         if (S.active && !S.running && S.ears === 'browser') {
           try { S.rec.start(); } catch (err) {
             if (err && err.name !== 'InvalidStateError') { try { showMicDisconnectedWarning('disconnect'); } catch (x) {} }
           }
         }
-      }, 250);
+      }, wait);
     };
     S.rec = rec;
   }
