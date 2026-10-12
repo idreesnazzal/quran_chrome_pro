@@ -123,7 +123,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self._cors()
-        if ext in (".html", ".js", ".mjs", ".wasm"):
+        iso = "iso=1" in (parsed.query or "") or ext in (".js", ".mjs", ".wasm")
+        if ext in (".html", ".js", ".mjs", ".wasm") and (ext != ".html" or iso):
+            # opt-in (open http://127.0.0.1:8001/?iso=1): cross-origin isolation
+            # gives the in-browser model multi-threaded WASM. Off by default,
+            # matching the setup in which Chrome's recogniser worked.
             # cross-origin isolation -> SharedArrayBuffer -> multi-threaded
             # WASM for the in-browser Quran model (2-3x faster on CPU).
             # "credentialless" still lets fonts / recitation audio load.

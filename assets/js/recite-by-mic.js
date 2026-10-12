@@ -632,18 +632,26 @@ function onUserPageCheck() {
   }
 }
 
-function commitWords(words) {
+/* words = normalised tokens for the tracker; raw = the same words as the
+ * recogniser wrote them, for display (the normalised forms «يءمنون», «علي»,
+ * «الصلاه» read as wrong words). raw falls back to words when the counts
+ * differ (e.g. spelled-out muqatta'at merged into one token). */
+function rawFor(words, raw) { return raw && raw.length === words.length ? raw : words; }
+function rawSplit(text) { return String(text || '').trim().split(/\s+/).filter(Boolean); }
+
+function commitWords(words, raw) {
   if (!words.length || !TRACKER) return;
   onUserPageCheck();
   S.heard = S.heard.concat(words).slice(-200);
-  emit(TRACKER.push(words), S.heard, false);
+  S.heardRaw = (S.heardRaw || []).concat(rawFor(words, raw)).slice(-200);
+  emit(TRACKER.push(words), S.heardRaw, false);
 }
 
-function tentativeWords(words) {
+function tentativeWords(words, raw) {
   if (!TRACKER) return;
   onUserPageCheck();
   if (!words.length) return;
-  emit(TRACKER.peek(words), S.heard.concat(words), true);
+  emit(TRACKER.peek(words), (S.heardRaw || []).concat(rawFor(words, raw)), true);
 }
 
 /* Chrome on Android sometimes re-sends the previous final as the prefix of
@@ -664,40 +672,166 @@ function stripRepeatedPrefix(words) {
 var HEAR = { speechAt: 0, words: false, timer: null, offered: false };
 function lwPanel(text) { var el = HAS_DOM && document.getElementById('dockSpeechText'); if (el) el.textContent = text; }
 function hearSpeechStart() {
-  if (!HEAR.words) lwPanel('🔊 أسمع صوتًا... أحاول التعرف على الكلمات');
+  if (!HEAR.words && !MIC.silenceWarned && (!MIC.an || MIC.peak > 0.004)) lwPanel('🔊 أسمع صوتًا... أحاول التعرف على الكلمات');
   if (HEAR.speechAt) return;
   HEAR.speechAt = Date.now();
   clearTimeout(HEAR.timer);
-  HEAR.timer = setTimeout(function () {
-    if (!S.active || S.ears !== 'browser' || HEAR.words || HEAR.offered) return;
-    HEAR.offered = true;
-    lwPanel('⚠️ التعرف العام في المتصفح يسمع صوتك لكنه لا يُرجع أي كلمات للتلاوة. اضغط 🧠 لتفعيل النموذج القرآني الدقيق.');
-    var b = document.getElementById('dockEarsBtn');
-    if (b) b.classList.add('loading');            // pulse the button
-    try { showToast('المتصفح لا يلتقط التلاوة — جرّب النموذج القرآني 🧠'); } catch (e) {}
-    if (lwSupported() && earsPref() !== 'quran') setTimeout(onEarsButton, 400);
-  }, 8000);
+  HEAR.timer = setTimeout(offerQuranModel, 8000);
+}
+
+function offerQuranModel() {
+  if (!S.active || S.ears !== 'browser' || HEAR.words || HEAR.offered) return;
+  // the level meter is the judge: Chrome fires speechstart even on a silent
+  // input, and a silent mic is a microphone problem, not a recogniser one
+  if (MIC.an && (MIC.silenceWarned || MIC.loudMs < 2000)) return;
+  HEAR.offered = true;
+  lwPanel('⚠️ التعرف العام في المتصفح يسمع صوتك لكنه لا يُرجع أي كلمات للتلاوة. اضغط 🧠 لتفعيل النموذج القرآني الدقيق.');
+  var b = document.getElementById('dockEarsBtn');
+  if (b) b.classList.add('loading');            // pulse the button
+  try { showToast('المتصفح لا يلتقط التلاوة — جرّب النموذج القرآني 🧠'); } catch (e) {}
+  if (lwSupported() && earsPref() !== 'quran') setTimeout(onEarsButton, 400);
+}
+
+/* ---------- microphone monitor (diagnostics) ----------
+ * Runs alongside any ears while a session is on:
+ *   - shows WHICH microphone Chrome gave us (track label);
+ *   - drives the dock's wave bars from the real input level (proof the mic
+ *     hears you, independent of any recogniser);
+ *   - 6 s of pure silence -> warning + a picker of the audio inputs (Chrome
+ *     can stay bound to a disconnected Bluetooth headset and deliver silence);
+ *   - sound present but the browser recogniser returns no words -> offer the
+ *     Quran model (the onspeechstart path alone missed this).
+ * The chosen input (localStorage recite_mic) is used by the Quran model's
+ * capture; Chrome's own recogniser always uses Chrome's microphone setting. */
+var MIC = { stream: null, ctx: null, an: null, buf: null, raf: 0, peak: 0, started: 0,
+  loudMs: 0, lastT: 0, label: '', silenceWarned: false };
+
+function micConstraints(extra) {
+  var id = null;
+  try { id = localStorage.getItem('recite_mic'); } catch (e) {}
+  var a = extra || {};
+  if (id) a.deviceId = { exact: id };
+  return { audio: Object.keys(a).length ? a : true };
+}
+
+function micMonitorStart() {
+  micMonitorStop();
+  if (!HAS_DOM || CFG.testNoCapture || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  navigator.mediaDevices.getUserMedia(micConstraints({ echoCancellation: false, noiseSuppression: false,
+    autoGainControl: false })).then(function (stream) {
+    if (!S.active || HEAR.words) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+    MIC.stream = stream;
+    var tr = stream.getAudioTracks()[0];
+    MIC.label = (tr && tr.label) || 'ميكروفون غير معروف';
+    var AC = G.AudioContext || G.webkitAudioContext;
+    MIC.ctx = new AC();
+    MIC.an = MIC.ctx.createAnalyser(); MIC.an.fftSize = 1024;
+    MIC.ctx.createMediaStreamSource(stream).connect(MIC.an);
+    MIC.buf = new Float32Array(MIC.an.fftSize);
+    MIC.peak = 0; MIC.loudMs = 0; MIC.started = MIC.lastT = Date.now(); MIC.silenceWarned = false;
+    if (!HEAR.words) lwPanel('🎙️ الميكروفون: ' + MIC.label + ' — ابدأ التلاوة');
+    micLoop();
+  }).catch(function (err) {
+    var n = (err && err.name) || '';
+    if (n === 'OverconstrainedError' || n === 'NotFoundError') {   // saved mic is gone: back to default
+      try { localStorage.removeItem('recite_mic'); } catch (e) {}
+      lwPanel('⚠️ الميكروفون المحفوظ غير موجود — سيُستخدم الافتراضي');
+      setTimeout(function () { if (S.active) micMonitorStart(); }, 300);
+    } else {
+      lwPanel('⚠️ تعذّر فتح الميكروفون (' + n + '). اسمح بالميكروفون من 🔒 بجانب العنوان.');
+    }
+  });
+}
+
+function micLoop() {
+  if (!MIC.an || !S.active) return;
+  MIC.an.getFloatTimeDomainData(MIC.buf);
+  var e = 0;
+  for (var i = 0; i < MIC.buf.length; i++) e += MIC.buf[i] * MIC.buf[i];
+  var rms = Math.sqrt(e / MIC.buf.length), now = Date.now(), dt = now - MIC.lastT;
+  MIC.lastT = now;
+  if (rms > MIC.peak) MIC.peak = rms;
+  // live level on the dock's wave bars
+  var w = document.getElementById('dockAudioWave');
+  if (w) {
+    var lvl = Math.min(1, rms * 14), bars = w.children, shape = [0.55, 0.85, 1, 0.75, 0.6];
+    for (var b = 0; b < bars.length; b++) { bars[b].style.animation = 'none'; bars[b].style.height = (4 + 20 * lvl * shape[b % 5]) + 'px'; }
+  }
+  // sound present while the browser recogniser stays wordless -> offer the model
+  if (rms > 0.02) MIC.loudMs += dt;
+  if (S.ears === 'browser' && !HEAR.words && !HEAR.offered && MIC.loudMs > 8000) {
+    HEAR.speechAt = HEAR.speechAt || now;
+    offerQuranModel();
+  }
+  // 6 s of silence from the very start -> the mic is not delivering audio
+  if (!MIC.silenceWarned && now - MIC.started > 6000 && MIC.peak < 0.004) {
+    MIC.silenceWarned = true;
+    micSilenceWarning();
+  }
+  MIC.raf = (G.requestAnimationFrame || function (f) { return setTimeout(f, 50); })(micLoop);
+}
+
+function micSilenceWarning() {
+  var el = document.getElementById('dockSpeechText');
+  if (!el) return;
+  navigator.mediaDevices.enumerateDevices().then(function (list) {
+    var ins = list.filter(function (d) { return d.kind === 'audioinput'; });
+    el.innerHTML = '';
+    var msg = document.createElement('span');
+    msg.textContent = '⚠️ الميكروفون «' + MIC.label + '» لا يلتقط أي صوت. اختر ميكروفونًا آخر: ';
+    el.appendChild(msg);
+    var sel = document.createElement('select');
+    sel.style.cssText = 'margin:0 6px;max-width:260px;font:inherit';
+    var cur = MIC.stream && MIC.stream.getAudioTracks()[0] && MIC.stream.getAudioTracks()[0].getSettings().deviceId;
+    ins.forEach(function (d) {
+      var o = document.createElement('option');
+      o.value = d.deviceId; o.textContent = d.label || ('ميكروفون ' + d.deviceId.slice(0, 6));
+      if (d.deviceId === cur) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.onchange = function () {
+      try { localStorage.setItem('recite_mic', sel.value); } catch (e) {}
+      micMonitorStart();
+      if (S.ears === 'local') { lwStopCapture(); lwStartCapture(); }
+    };
+    el.appendChild(sel);
+    var hint = document.createElement('span');
+    hint.textContent = ' (التعرف العام للمتصفح يستخدم ميكروفون Chrome: 🔒 بجانب العنوان ← الميكروفون، أو chrome://settings/content/microphone)';
+    hint.style.cssText = 'opacity:.8;font-size:.85em';
+    el.appendChild(hint);
+  });
+}
+
+function micMonitorStop() {
+  try { if (MIC.raf) (G.cancelAnimationFrame || clearTimeout)(MIC.raf); } catch (e) {}
+  try { if (MIC.stream) MIC.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+  try { if (MIC.ctx) MIC.ctx.close(); } catch (e) {}
+  MIC.stream = MIC.ctx = MIC.an = null; MIC.raf = 0;
+  var w = HAS_DOM && document.getElementById('dockAudioWave');
+  if (w) for (var b = 0; b < w.children.length; b++) { w.children[b].style.height = ''; w.children[b].style.animation = ''; }
 }
 
 function onSpeechResult(ev) {
-  var interim = [];
+  var interim = [], interimRaw = [];
   try {
     for (var i = ev.resultIndex; i < ev.results.length; i++) {
       var r = ev.results[i];
       var toks = tokenize(r[0].transcript);
-      if (toks.length) HEAR.words = true;
+      var raw = rawFor(toks, rawSplit(r[0].transcript));
+      if (toks.length && !HEAR.words) { HEAR.words = true; micMonitorStop(); } // words flow: no diagnostics needed
       if (r.isFinal) {
         if (i < S.finalIdx) continue;        // already committed
         S.finalIdx = i + 1;
         var fresh = stripRepeatedPrefix(toks);
         S.lastFinal = toks;
-        commitWords(fresh);
+        commitWords(fresh, raw.slice(raw.length - fresh.length));
       } else if (i >= S.finalIdx) {
         interim = interim.concat(toks);
+        interimRaw = interimRaw.concat(raw);
       }
     }
   } catch (e) { log('result err', e); return; }
-  tentativeWords(interim);
+  tentativeWords(interim, interimRaw);
 }
 
 function startVoiceRecitation() {
@@ -721,8 +855,12 @@ function startVoiceRecitation() {
     }
   }
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1; UI.autoPage = -1;
-  S.active = true; S.heard = []; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
+  S.active = true; S.heard = []; S.heardRaw = []; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
   clearTimeout(HEAR.timer); HEAR.speechAt = 0; HEAR.words = false; HEAR.offered = false;
+  // diagnostics only if nothing arrives: a second capture next to Chrome's
+  // recogniser is avoided while it works
+  clearTimeout(MIC.lazyT);
+  MIC.lazyT = setTimeout(function () { if (S.active && !HEAR.words) micMonitorStart(); }, 6000);
   sv('isVoiceReciteActive', true);
   try { updateVoiceReciteUI(true); } catch (e) {}
   setStatus('ابدأ التلاوة من أي موضع...');
@@ -745,7 +883,7 @@ function browserStart(SR) {
       S.running = true; S.finalIdx = 0; S.lastFinal = []; // indexes restart per session
       try { hideMicDisconnectedWarning(); } catch (e) {}
       try { updateVoiceReciteUI(true); } catch (e) {}
-      if (!HEAR.words && !HEAR.offered) lwPanel('🎙️ الميكروفون يعمل — ابدأ التلاوة');
+      if (!HEAR.words && !HEAR.offered) lwPanel('🎙️ الميكروفون يعمل' + (MIC.label ? ': ' + MIC.label : '') + ' — ابدأ التلاوة');
     };
     rec.onspeechstart = hearSpeechStart;
     rec.onresult = onSpeechResult;
@@ -794,6 +932,8 @@ function stopVoiceRecitation() {
   try { if (S.rec) S.rec.stop(); } catch (e) {}
   serverStop();
   lwStopCapture();
+  micMonitorStop();
+  clearTimeout(MIC.lazyT);
   try { updateVoiceReciteUI(false); } catch (e) {}
 }
 
@@ -894,7 +1034,13 @@ var LW = { worker: null, ready: false, loading: false, device: '', dtype: '',
 var ENGINE_SRC = (HAS_DOM && document.currentScript && document.currentScript.src) || 'assets/js/recite-by-mic.js';
 
 function earsPref() {
-  try { return localStorage.getItem('recite_ears') || 'browser'; } catch (e) { return 'browser'; }
+  try {
+    if (localStorage.getItem('recite_ears_v') !== '2') {
+      localStorage.setItem('recite_ears_v', '2');
+      localStorage.setItem('recite_ears', 'browser');
+    }
+    return localStorage.getItem('recite_ears') || 'browser';
+  } catch (e) { return 'browser'; }
 }
 function lwSupported() {
   return HAS_DOM && typeof Worker !== 'undefined' && location.protocol !== 'file:' &&
@@ -972,8 +1118,8 @@ function lwOnMessage(ev) {
 function lwStartCapture() {
   lwResetSegments();
   if (CFG.testNoCapture) return; // tests push audio with ReciteByMic._lwFeed
-  navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true,
-    noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
+  navigator.mediaDevices.getUserMedia(micConstraints({ channelCount: 1, echoCancellation: false,
+    noiseSuppression: false, autoGainControl: true })).then(function (stream) {
     if (!S.active || S.ears !== 'local') { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
     LW.stream = stream;
     var AC = G.AudioContext || G.webkitAudioContext;
@@ -1032,6 +1178,7 @@ function lwPush(v) {
 }
 
 function lwWave(on) {
+  if (MIC.an) return; // the live level meter drives the bars
   var w = HAS_DOM && document.getElementById('dockAudioWave');
   if (w) w.classList.toggle('active', !!on);
 }
@@ -1082,7 +1229,7 @@ function lwEndSegment() {
   if (st && st.lastHyp.length && st.covered >= speechBlocks - LW_CFG.FINAL_SKIP_BLOCKS) {
     // the last interim pass already heard (almost) all of it: commit it now
     // instead of spending another model call (the queue is the latency)
-    if (st.lastHyp.length > st.committed && S.active && S.ears === 'local') commitWords(st.lastHyp.slice(st.committed));
+    if (st.lastHyp.length > st.committed && S.active && S.ears === 'local') commitWords(st.lastHyp.slice(st.committed), (st.lastRaw || st.lastHyp).slice(st.committed));
     delete LW.segs[LW.segId];
   } else if (LW.seg.length - tail >= 3) LW.queue.push({ segId: LW.segId, audio: lwConcat(LW.seg, tail) });
   else delete LW.segs[LW.segId];
@@ -1117,15 +1264,16 @@ function lwOnResult(m) {
   if (req && S.active && S.ears === 'local') {
     var st = LW.segs[req.segId];
     var words = tokenize(m.text);
+    var raw = rawFor(words, rawSplit(m.text));
     if (st && req.kind === 'interim') {
       if (req.segId === LW.segId && LW.voiced) {
         var agreed = lcpLen(words, st.lastHyp);
-        if (agreed > st.committed) { commitWords(words.slice(st.committed, agreed)); st.committed = agreed; }
-        st.lastHyp = words; st.covered = req.blocks;
-        tentativeWords(words.slice(st.committed));
+        if (agreed > st.committed) { commitWords(words.slice(st.committed, agreed), raw.slice(st.committed, agreed)); st.committed = agreed; }
+        st.lastHyp = words; st.lastRaw = raw; st.covered = req.blocks;
+        tentativeWords(words.slice(st.committed), raw.slice(st.committed));
       }
     } else if (st && req.kind === 'final') {
-      if (words.length > st.committed) commitWords(words.slice(st.committed));
+      if (words.length > st.committed) commitWords(words.slice(st.committed), raw.slice(st.committed));
       delete LW.segs[req.segId];
     }
   }
@@ -1287,6 +1435,7 @@ var API = {
   buildCorpus: buildCorpus, Tracker: Tracker, openerState: openerState, openerPush: openerPush,
   // live-path hooks (tests drive these with fake SpeechRecognition events)
   _onSpeechResult: onSpeechResult, _session: S, _lw: LW, _lwCfg: LW_CFG, setEars: setEars,
+  _mic: MIC,
   _lwFeed: function (f32) { LW.rate = 16000; lwFeed(f32); }, _ui: UI, _decide: decide, lastShown: null,
   buildIndex: buildVoiceRecitationIndex, match: matchRecitedSpeech,
   simulate: simulateVoiceRecitation, start: startVoiceRecitation,
