@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.0.0-hmm';
+var RECITE_VERSION = '3.1.0-hmm+quran-whisper';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -683,7 +683,7 @@ function startVoiceRecitation() {
   if (!TRACKER) { try { showToast('بيانات المصحف لم تُحمّل بعد'); } catch (e) {} return; }
   var SR = G.SpeechRecognition || G.webkitSpeechRecognition;
   var useServer = CFG.whisper.enabled && CFG.whisper.endpoint;
-  if (!SR && !useServer) {
+  if (!SR && !useServer && !(earsPref() === 'quran' && lwSupported())) {
     try { showToast('المتصفح لا يدعم التعرف الصوتي المباشر، يمكنك استخدام لوحة المحاكاة'); } catch (e) {}
     try { if (typeof toggleDockSim === 'function') toggleDockSim(); } catch (e) {}
     return;
@@ -702,7 +702,10 @@ function startVoiceRecitation() {
   sv('isVoiceReciteActive', true);
   try { updateVoiceReciteUI(true); } catch (e) {}
   setStatus('ابدأ التلاوة من أي موضع...');
-  if (useServer) { S.ears = 'server'; serverStart(); return; }   // ONE ears at a time
+  // ONE ears at a time: the in-browser Quran model if chosen, else the
+  // Whisper server if it is up, else the browser recogniser
+  if (earsPref() === 'quran' && lwSupported()) { localStart(); return; }
+  if (useServer) { S.ears = 'server'; serverStart(); return; }
   S.ears = 'browser';
   browserStart(SR);
 }
@@ -735,7 +738,7 @@ function browserStart(SR) {
       if (!S.active) { try { updateVoiceReciteUI(false); } catch (x) {} return; }
       clearTimeout(S.restartT);
       S.restartT = setTimeout(function () {
-        if (S.active && !S.running) {
+        if (S.active && !S.running && S.ears === 'browser') {
           try { S.rec.start(); } catch (err) {
             if (err && err.name !== 'InvalidStateError') { try { showMicDisconnectedWarning('disconnect'); } catch (x) {} }
           }
@@ -757,6 +760,7 @@ function stopVoiceRecitation() {
   clearTimeout(S.restartT);
   try { if (S.rec) S.rec.stop(); } catch (e) {}
   serverStop();
+  lwStopCapture();
   try { updateVoiceReciteUI(false); } catch (e) {}
 }
 
@@ -821,6 +825,323 @@ function serverStop() {
   SV.rec = null;
   try { if (SV.stream) SV.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
   SV.stream = null;
+}
+
+/* ---------- local ears: Quran Whisper running in the browser ----------
+ * assets/js/whisper-worker.js runs tarteel-ai/whisper-base-ar-quran
+ * (ONNX) with the vendored transformers.js. This side captures the mic at
+ * 16 kHz and streams it:
+ *   - voice-activity segmentation: a segment ends at a pause (waqf) of
+ *     END_SILENCE_MS, or is cut at MAX_SEG_S;
+ *   - while a segment grows it is re-transcribed every INTERIM_MS. Words that
+ *     two consecutive passes agree on ("local agreement") are committed to the
+ *     tracker; the rest is shown as tentative (peek);
+ *   - at the pause the whole segment is transcribed once more and whatever
+ *     was not committed yet is committed.
+ * Requests are strictly sequential (one model call at a time); a segment's
+ * final pass is queued and never dropped, interim passes are skipped when busy.
+ */
+var LW_CFG = {
+  BLOCK: 1600,            // 100 ms at 16 kHz
+  PREROLL_BLOCKS: 3,      // audio kept from before speech onset
+  END_SILENCE_MS: 650,    // pause that closes a segment
+  INTERIM_MS: 700,        // re-transcribe a growing segment this often (never overlaps: busy-gated)
+  MIN_INTERIM_S: 0.7,     // first tentative words after this much speech
+  MAX_SEG_S: 12,          // each pass re-decodes the whole segment: keep it short
+  FINAL_SKIP_BLOCKS: 4,   // last interim covered all but <=0.4 s: commit it, skip the final pass
+  SPEECH_RATIO: 3.0,      // speech = RMS above noise floor x this
+  MIN_RMS: 0.004
+};
+var LW = { worker: null, ready: false, loading: false, device: '', dtype: '',
+  ctx: null, stream: null, src: null, node: null, rate: 16000, frac: 0,
+  block: new Float32Array(1600), fill: 0, floor: 0.002,
+  voiced: false, seg: [], preroll: [], silenceMs: 0, segId: 0, segs: {},
+  lastInterimAt: 0, busy: false, queue: [], reqId: 0, pending: {}, afterReady: null };
+
+var ENGINE_SRC = (HAS_DOM && document.currentScript && document.currentScript.src) || 'assets/js/recite-by-mic.js';
+
+function earsPref() {
+  try { return localStorage.getItem('recite_ears') || 'browser'; } catch (e) { return 'browser'; }
+}
+function lwSupported() {
+  return HAS_DOM && typeof Worker !== 'undefined' && location.protocol !== 'file:' &&
+    !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) &&
+    !!(G.AudioContext || G.webkitAudioContext);
+}
+function lwStatus(text) {
+  var el = HAS_DOM && document.getElementById('dockSpeechText');
+  if (el) el.textContent = text;
+  setStatus(text);
+}
+function lwButton() {
+  var b = HAS_DOM && document.getElementById('dockEarsBtn');
+  if (!b) return;
+  var on = earsPref() === 'quran';
+  b.classList.toggle('on', on);
+  b.classList.toggle('loading', LW.loading);
+  b.title = on ? 'النموذج القرآني مفعّل (داخل المتصفح) — اضغط للعودة إلى التعرف العام'
+               : 'تفعيل النموذج القرآني الدقيق (يعمل داخل المتصفح، دون إنترنت بعد أول تحميل)';
+}
+
+function lwLoad(done) {
+  if (LW.ready) { if (done) done(); return; }
+  LW.afterReady = done || LW.afterReady;
+  if (LW.loading) return;
+  LW.loading = true; lwButton();
+  try {
+    LW.worker = new Worker(new URL('whisper-worker.js', ENGINE_SRC), { type: 'module' });
+  } catch (e) {
+    LW.loading = false; lwButton();
+    try { showToast('تعذّر تشغيل النموذج القرآني في هذا المتصفح'); } catch (x) {}
+    return;
+  }
+  LW.worker.onmessage = lwOnMessage;
+  LW.worker.onerror = function (e) {
+    LW.loading = false; lwButton();
+    lwStatus('تعذّر تحميل النموذج القرآني: ' + ((e && e.message) || ''));
+  };
+  lwStatus('جاري تحميل النموذج القرآني...');
+  var force = null; // 'cpu' | 'hybrid' to override the automatic choice (debugging)
+  try { force = localStorage.getItem('recite_whisper_force'); } catch (e) {}
+  LW.worker.postMessage({ type: 'load', force: force });
+}
+
+function lwOnMessage(ev) {
+  var m = ev.data || {};
+  if (m.type === 'progress') {
+    var mb = function (x) { return Math.round(x / 1e6); };
+    var pct = m.total ? Math.floor(100 * m.loaded / m.total) : 0;
+    lwStatus('تحميل النموذج القرآني (مرة واحدة فقط)... ' + pct + '% (' + mb(m.loaded) + ' / ' + mb(m.total) + ' MB)');
+  } else if (m.type === 'ready') {
+    LW.ready = true; LW.loading = false; LW.device = m.device; LW.dtype = m.dtype; lwButton();
+    try { localStorage.setItem('recite_model_ok', '1'); } catch (e) {}
+    try { showToast('النموذج القرآني جاهز (' + (m.device === 'cpu' ? 'المعالج' : 'كرت الشاشة + المعالج') + ')'); } catch (e) {}
+    lwStatus('النموذج القرآني جاهز — تابع التلاوة');
+    var f = LW.afterReady; LW.afterReady = null;
+    if (f) f();
+  } else if (m.type === 'warn') {
+    try { console.warn('[recite] ' + m.message); } catch (e) {}
+  } else if (m.type === 'result') {
+    lwOnResult(m);
+  } else if (m.type === 'error') {
+    LW.busy = false;
+    if (!LW.ready) {
+      LW.loading = false; lwButton();
+      lwStatus('تعذّر تحميل النموذج القرآني: ' + m.message);
+      try { showToast('تعذّر تحميل النموذج القرآني — سيُستخدم التعرف العام'); } catch (e) {}
+    }
+    delete LW.pending[m.id];
+    lwPump();
+  }
+}
+
+/* ---- capture ---- */
+function lwStartCapture() {
+  lwResetSegments();
+  if (CFG.testNoCapture) return; // tests push audio with ReciteByMic._lwFeed
+  navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true,
+    noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
+    if (!S.active || S.ears !== 'local') { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+    LW.stream = stream;
+    var AC = G.AudioContext || G.webkitAudioContext;
+    try { LW.ctx = new AC({ sampleRate: 16000 }); } catch (e) { LW.ctx = new AC(); }
+    LW.rate = LW.ctx.sampleRate; LW.frac = 0;
+    try { LW.src = LW.ctx.createMediaStreamSource(stream); }
+    catch (e) { // e.g. Firefox refuses a 16 kHz context for a 48 kHz mic: resample ourselves
+      try { LW.ctx.close(); } catch (x) {}
+      LW.ctx = new AC(); LW.rate = LW.ctx.sampleRate;
+      LW.src = LW.ctx.createMediaStreamSource(stream);
+    }
+    var sink = LW.ctx.createGain(); sink.gain.value = 0; sink.connect(LW.ctx.destination);
+    var code = "class T extends AudioWorkletProcessor{process(i){var c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true}}registerProcessor('lw-tap',T)";
+    if (LW.ctx.audioWorklet && typeof AudioWorkletNode !== 'undefined') {
+      var url = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+      LW.ctx.audioWorklet.addModule(url).then(function () {
+        LW.node = new AudioWorkletNode(LW.ctx, 'lw-tap');
+        LW.node.port.onmessage = function (e) { lwFeed(e.data); };
+        LW.src.connect(LW.node); LW.node.connect(sink);
+      });
+    } else {
+      LW.node = LW.ctx.createScriptProcessor(2048, 1, 1);
+      LW.node.onaudioprocess = function (e) { lwFeed(e.inputBuffer.getChannelData(0).slice(0)); };
+      LW.src.connect(LW.node); LW.node.connect(sink);
+    }
+    try { updateVoiceReciteUI(true); } catch (e) {}
+    lwStatus('🎙️ النموذج القرآني يستمع... ابدأ التلاوة');
+  }).catch(function () { try { showMicDisconnectedWarning('not-allowed'); } catch (e) {} });
+}
+
+function lwStopCapture() {
+  try { if (LW.node) LW.node.disconnect(); } catch (e) {}
+  try { if (LW.src) LW.src.disconnect(); } catch (e) {}
+  try { if (LW.stream) LW.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+  try { if (LW.ctx) LW.ctx.close(); } catch (e) {}
+  LW.node = LW.src = LW.stream = LW.ctx = null;
+  if (LW.voiced) lwEndSegment();          // finish what was said before the stop
+  lwWave(false);
+}
+
+function lwResetSegments() {
+  LW.fill = 0; LW.voiced = false; LW.seg = []; LW.preroll = []; LW.silenceMs = 0;
+  LW.segs = {}; LW.queue = []; LW.floor = 0.002;
+}
+
+/* samples at LW.rate -> 16 kHz blocks of 100 ms */
+function lwFeed(x) {
+  var step = LW.rate / 16000;
+  if (step === 1) { for (var i = 0; i < x.length; i++) lwPush(x[i]); return; }
+  for (var t = LW.frac; t < x.length; t += step) lwPush(x[Math.floor(t)]); // decimate (mic is band-limited by AGC/NS)
+  LW.frac = t - x.length;
+}
+function lwPush(v) {
+  LW.block[LW.fill++] = v;
+  if (LW.fill === LW_CFG.BLOCK) { LW.fill = 0; lwBlock(LW.block.slice(0)); }
+}
+
+function lwWave(on) {
+  var w = HAS_DOM && document.getElementById('dockAudioWave');
+  if (w) w.classList.toggle('active', !!on);
+}
+
+function lwBlock(b) {
+  var e = 0;
+  for (var i = 0; i < b.length; i++) e += b[i] * b[i];
+  var rms = Math.sqrt(e / b.length);
+  var speech = rms > Math.max(LW_CFG.MIN_RMS, LW.floor * LW_CFG.SPEECH_RATIO);
+  if (!LW.voiced) {
+    if (!speech) LW.floor = 0.95 * LW.floor + 0.05 * Math.max(0.0005, rms); // track the room noise
+    LW.preroll.push(b);
+    if (LW.preroll.length > LW_CFG.PREROLL_BLOCKS) LW.preroll.shift();
+    if (speech) {
+      LW.voiced = true; LW.silenceMs = 0; LW.seg = LW.preroll.slice(); LW.preroll = [];
+      LW.segId++; LW.segs[LW.segId] = { committed: 0, lastHyp: [] };
+      LW.lastInterimAt = Date.now(); lwWave(true);
+    }
+    return;
+  }
+  LW.seg.push(b);
+  LW.silenceMs = speech ? 0 : LW.silenceMs + 100;
+  var dur = LW.seg.length * 0.1;
+  if (LW.silenceMs >= LW_CFG.END_SILENCE_MS || dur >= LW_CFG.MAX_SEG_S) {
+    var cut = dur >= LW_CFG.MAX_SEG_S && LW.silenceMs < LW_CFG.END_SILENCE_MS;
+    lwEndSegment();
+    if (cut) { // no pause yet: keep listening in a fresh segment
+      LW.voiced = true; LW.segId++; LW.segs[LW.segId] = { committed: 0, lastHyp: [] };
+      LW.lastInterimAt = Date.now(); lwWave(true);
+    }
+  } else if (!LW.busy && !LW.queue.length && dur >= LW_CFG.MIN_INTERIM_S &&
+             Date.now() - LW.lastInterimAt >= LW_CFG.INTERIM_MS) {
+    LW.lastInterimAt = Date.now();
+    lwSend('interim', LW.segId, lwConcat(LW.seg, 0), LW.seg.length);
+  }
+}
+
+function lwConcat(blocks, dropTailBlocks) {
+  var n = Math.max(1, blocks.length - dropTailBlocks), out = new Float32Array(n * LW_CFG.BLOCK);
+  for (var i = 0; i < n; i++) out.set(blocks[i], i * LW_CFG.BLOCK);
+  return out;
+}
+
+function lwEndSegment() {
+  var tail = Math.max(0, Math.floor(LW.silenceMs / 100) - 2); // keep 200 ms of the pause
+  var st = LW.segs[LW.segId], speechBlocks = LW.seg.length - Math.floor(LW.silenceMs / 100);
+  if (st && st.lastHyp.length && st.covered >= speechBlocks - LW_CFG.FINAL_SKIP_BLOCKS) {
+    // the last interim pass already heard (almost) all of it: commit it now
+    // instead of spending another model call (the queue is the latency)
+    if (st.lastHyp.length > st.committed && S.active && S.ears === 'local') commitWords(st.lastHyp.slice(st.committed));
+    delete LW.segs[LW.segId];
+  } else if (LW.seg.length - tail >= 3) LW.queue.push({ segId: LW.segId, audio: lwConcat(LW.seg, tail) });
+  else delete LW.segs[LW.segId];
+  LW.voiced = false; LW.seg = []; LW.preroll = []; LW.silenceMs = 0; lwWave(false);
+  lwPump();
+}
+
+function lwSend(kind, segId, audio, blocks) {
+  if (!LW.worker || !LW.ready) return;
+  var id = ++LW.reqId;
+  LW.pending[id] = { kind: kind, segId: segId, blocks: blocks || 0 };
+  LW.busy = true;
+  LW.worker.postMessage({ type: 'transcribe', id: id, audio: audio }, [audio.buffer]);
+}
+function lwPump() {
+  if (LW.busy || !LW.queue.length) return;
+  var q = LW.queue.shift();
+  lwSend('final', q.segId, q.audio);
+}
+
+function lcpLen(a, b) {
+  var n = Math.min(a.length, b.length), i = 0;
+  while (i < n && a[i] === b[i]) i++;
+  return i;
+}
+
+function lwOnResult(m) {
+  LW.busy = false;
+  var req = LW.pending[m.id]; delete LW.pending[m.id];
+  LW.lastMs = m.ms;
+  (LW.msLog = LW.msLog || []).push(m.ms); if (LW.msLog.length > 300) LW.msLog.shift();
+  if (req && S.active && S.ears === 'local') {
+    var st = LW.segs[req.segId];
+    var words = tokenize(m.text);
+    if (st && req.kind === 'interim') {
+      if (req.segId === LW.segId && LW.voiced) {
+        var agreed = lcpLen(words, st.lastHyp);
+        if (agreed > st.committed) { commitWords(words.slice(st.committed, agreed)); st.committed = agreed; }
+        st.lastHyp = words; st.covered = req.blocks;
+        tentativeWords(words.slice(st.committed));
+      }
+    } else if (st && req.kind === 'final') {
+      if (words.length > st.committed) commitWords(words.slice(st.committed));
+      delete LW.segs[req.segId];
+    }
+  }
+  lwPump();
+}
+
+function localStart() {
+  S.ears = 'local';
+  if (LW.ready) { lwStartCapture(); return; }
+  // the browser recogniser keeps you followed while the model downloads
+  var SR = G.SpeechRecognition || G.webkitSpeechRecognition;
+  if (SR) { S.ears = 'browser'; browserStart(SR); }
+  lwLoad(function () {
+    if (!S.active || earsPref() !== 'quran') return;
+    switchEars('local');
+  });
+}
+
+/* stop the current ears and start `to` without ending the session */
+function switchEars(to) {
+  if (S.ears === to) return;
+  if (S.ears === 'browser') { S.ears = to; try { if (S.rec) S.rec.stop(); } catch (e) {} }
+  else if (S.ears === 'local') { lwStopCapture(); S.ears = to; }
+  else if (S.ears === 'server') { serverStop(); S.ears = to; }
+  if (to === 'local') lwStartCapture();
+  else if (to === 'browser') browserStart(G.SpeechRecognition || G.webkitSpeechRecognition);
+}
+
+function setEars(pref) {
+  try { localStorage.setItem('recite_ears', pref); } catch (e) {}
+  lwButton();
+  if (pref === 'quran') {
+    if (!S.active) { lwLoad(null); return; } // preload now, used at the next start
+    if (LW.ready) switchEars('local'); else localStart();
+  } else if (S.active && S.ears === 'local') {
+    switchEars('browser');
+  }
+}
+
+function onEarsButton() {
+  if (earsPref() === 'quran') { setEars('browser'); try { showToast('عاد التسميع إلى التعرف العام للمتصفح'); } catch (e) {} return; }
+  if (!lwSupported()) {
+    try { showToast(location.protocol === 'file:' ? 'افتح التطبيق عبر الخادم المحلي (http://127.0.0.1:8001) لتفعيل النموذج القرآني'
+                                                  : 'المتصفح لا يدعم تشغيل النموذج القرآني'); } catch (e) {}
+    return;
+  }
+  var known = false;
+  try { known = localStorage.getItem('recite_model_ok') === '1'; } catch (e) {}
+  if (!known && !G.confirm('سيُحمَّل النموذج القرآني (حوالي 100–120 ميغابايت) مرة واحدة فقط، ثم يعمل داخل المتصفح دون إنترنت ودون إرسال صوتك لأي جهة. متابعة؟')) return;
+  setEars('quran');
 }
 
 /* ---------- one-shot API (simulator, voice search) ---------- */
@@ -888,6 +1209,10 @@ function initVoiceRecitation() {
   on('dockMainToggleBtn', 'click', toggleVoiceRecitation);
   on('dockMinimizeBtn', 'click', function () { try { minimizeVoiceDock(); } catch (e) {} });
   on('dockToggleSimBtn', 'click', function () { try { toggleDockSim(); } catch (e) {} });
+  on('dockEarsBtn', 'click', onEarsButton);
+  lwButton();
+  // chosen before and already downloaded: warm the model up in the background
+  try { if (earsPref() === 'quran' && localStorage.getItem('recite_model_ok') === '1' && lwSupported()) lwLoad(null); } catch (e) {}
   var sim = function () {
     var inp = document.getElementById('dockSimInput');
     var v = inp ? inp.value.trim() : '';
@@ -927,7 +1252,8 @@ var API = {
   normalize: normalizeArabic, tokenize: tokenize, wordSim: wordSim, levenshtein: lev,
   buildCorpus: buildCorpus, Tracker: Tracker, openerState: openerState, openerPush: openerPush,
   // live-path hooks (tests drive these with fake SpeechRecognition events)
-  _onSpeechResult: onSpeechResult, _session: S, _ui: UI, _decide: decide, lastShown: null,
+  _onSpeechResult: onSpeechResult, _session: S, _lw: LW, _lwCfg: LW_CFG, setEars: setEars,
+  _lwFeed: function (f32) { LW.rate = 16000; lwFeed(f32); }, _ui: UI, _decide: decide, lastShown: null,
   buildIndex: buildVoiceRecitationIndex, match: matchRecitedSpeech,
   simulate: simulateVoiceRecitation, start: startVoiceRecitation,
   stop: stopVoiceRecitation, toggle: toggleVoiceRecitation,

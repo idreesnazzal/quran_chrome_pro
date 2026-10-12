@@ -64,6 +64,30 @@ The Quran is read as **one word sequence**. That is 77,797 data words, plus a vi
 - **Android Chrome sometimes re-sends the previous final result as a prefix.** Exactly that prefix is stripped, and nothing looser.
 - **Only one input source is active at a time:** the browser recognizer, or the Whisper server if `server/recite_server.py` reports a model loaded.
 
+## Ears: where the words come from
+
+The tracker is fed by one of three sources. Only one is active at a time.
+
+| source | when | quality |
+|---|---|---|
+| **Quran model in the browser** (🧠 button in the recite dock) | the reader turned it on; the app was opened over http(s) | Whisper base fine-tuned on Quran recitation (`tarteel-ai/whisper-base-ar-quran`, ONNX build `iqbalaesthetic/Basira`, Apache-2.0) |
+| Whisper server (`server/recite_server.py` with a model) | the server reports a loaded model | depends on the model |
+| Chrome's recognizer (`ar-SA`) | default | general Arabic (MSA) acoustics; weak on melodic tajweed |
+
+How the Quran model runs:
+
+- **Files.**
+  - `assets/js/whisper-worker.js` is an ES-module Web Worker.
+  - `assets/vendor/transformers/` holds transformers.js 3.8.1 and the ONNX Runtime wasm (21.6 MB). These are vendored, so there is no CDN dependency.
+  - The model itself is about 103 MB (int8, on WASM), or fp16/q4 on WebGPU. It is downloaded from huggingface.co once and cached in the browser's Cache Storage. After that it works offline, and audio never leaves the device.
+- **Speed.** When served by `recite_server.py`, the page is cross-origin isolated (COOP `same-origin` and COEP `credentialless`). That allows multi-threaded WASM.
+- **Streaming** (`recite-by-mic.js`, the "local ears" section):
+  1. The mic is captured at 16 kHz through an AudioWorklet.
+  2. An energy-based voice-activity detector with an adaptive noise floor splits speech into segments. A segment closes at a pause of 650 ms (a natural waqf), or is cut at 18 s.
+  3. While a segment grows, it is re-transcribed every 0.9 s. Words that two consecutive passes agree on are committed to the tracker; this is "local agreement" (as in whisper_streaming). The rest is shown as tentative.
+  4. At the pause, the whole segment is transcribed once more and the remainder is committed.
+- **Downloading.** While the model downloads, Chrome's recognizer keeps following the reader. When the model is ready, the source switches without restarting the session.
+
 ## Results
 
 Each row was produced by `node tests/benchmark.js`. Both engines run through the same fake Chrome event stream: interim results grow, 25% of interims get revised, then the final arrives. The text is the real 6,236-ayah corpus. The **held-out** seeds were never used for tuning. Tuning used `--tune`.

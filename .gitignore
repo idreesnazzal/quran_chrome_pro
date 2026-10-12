@@ -3,3 +3,6 @@ __pycache__/
 *.tmp
 # local-only backup of the pre-v3 page (kept on disk, not in history)
 index.backup-before-recite-rebuild.html
+
+# converted tiny model (scripts/convert_tiny_model.py): not wired in yet
+assets/models/

@@ -52,6 +52,8 @@ APP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 MIME_EXTRA = {
     ".webp": "image/webp",
+    ".mjs": "text/javascript",
+    ".wasm": "application/wasm",
     ".webmanifest": "application/manifest+json",
     ".md": "text/markdown; charset=utf-8",
 }
@@ -121,13 +123,28 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self._cors()
+        if ext in (".html", ".js", ".mjs", ".wasm"):
+            # cross-origin isolation -> SharedArrayBuffer -> multi-threaded
+            # WASM for the in-browser Quran model (2-3x faster on CPU).
+            # "credentialless" still lets fonts / recitation audio load.
+            self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+            self.send_header("Cross-Origin-Embedder-Policy", "credentialless")
         if ext in NO_STORE_EXTS:
             self.send_header("Cache-Control", "no-store")
         else:
             self.send_header("Cache-Control", "public, max-age=86400")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        self.wfile.write(data)
+        if not getattr(self, "_head_only", False):
+            self.wfile.write(data)
+
+    def do_HEAD(self):
+        # same headers as GET, no body (the app probes optional files with HEAD)
+        self._head_only = True
+        try:
+            self.do_GET()
+        finally:
+            self._head_only = False
 
     def do_POST(self):
         if self.path.rstrip("/") != "/recite-chunk":

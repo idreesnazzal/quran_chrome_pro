@@ -3095,6 +3095,11 @@
       from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    /* Quran-model toggle in the recite dock (gold ring = on, pulse = downloading) */
+    .dock-ears-btn.on { border-color: var(--gold-primary); box-shadow: 0 0 0 2px var(--gold-bg); color: var(--gold-primary); }
+    .dock-ears-btn.loading { animation: earsPulse 1.1s ease-in-out infinite alternate; }
+    @keyframes earsPulse { from { opacity: 0.55; } to { opacity: 1; } }
+
     /* ---- Phone header: it used to stay one row ~860px wide on a 390px
        screen, pushing the whole page sideways. Wrap it, icon-only buttons. */
     @media (max-width: 760px) {
@@ -3555,6 +3560,7 @@
 
       <div class="dock-actions">
         <button class="dock-icon-btn" id="dockOpenTafsirBtn" title="تفسير الآية الحالية">📖</button>
+        <button class="dock-icon-btn dock-ears-btn" id="dockEarsBtn" title="تفعيل النموذج القرآني الدقيق">🧠</button>
         <button class="dock-icon-btn" id="dockToggleSimBtn" title="لوحة تجربة واختبار الكلمات">🧪</button>
         <button class="dock-icon-btn" id="dockMinimizeBtn" title="تصغير الشريط">✕</button>
       </div>
