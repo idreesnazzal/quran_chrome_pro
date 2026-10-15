@@ -42,5 +42,19 @@ one-shot (simulator)
   ok   cold single unique word «مدهامتان» -> 55:64
   ok   cold single common word «قل» -> no answer
   ok   multi-ayah query lands on the LAST recited ayah (112:2)
+live-mic-fixes (v3.2.0)
+  ok   «الله» inside «قل هو الله» highlights immediately (not held by openerPush)
+  ok   «الله» at start of 112:2 highlights immediately
+  ok   «أعوذ» after «قل» is not swallowed as isti'adha (113:1#4)
+  ok   Chrome MSA spellings (ربي/الرحمان/اهدينا/السراط) + split «ان عمت» -> 1:7#4
+  ok   phonetic ASR swaps «كل» for «قل» and «الصمت» for «الصمد» -> 112:2#2
+  ok   split prefix «و وضعنا» for «ووضعنا» -> 94:2#3
+  ok   MSA «عما يتساءلون» for «عم يتساءلون» -> 78:2#3
+  ok   mid-ayah start on open page (2:255 «يعلم ما بين أيديهم...») -> 2:255#32
+  ok   first-word weak-sim guard: «الم» on Page 1 never falsely highlights 1:1#1
+  ok   N-best speech alternatives pick exact Quranic token («الله الصمد» over «الله الصمت»)
+  ok   takbir «الله اكبر» before reciting shows nothing (was 112:2#1)
+  ok   hifz: the same ayah recited twice ends on its last word (112:1#4)
+  ok   «ولذكر الله | اكبر» across two utterances keeps the real «اكبر» -> 29:45 last word
 
-38 passed, 0 failed
+51 passed, 0 failed

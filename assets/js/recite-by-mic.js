@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.1.0-hmm+quran-whisper';
+var RECITE_VERSION = '3.2.1-hmm+smart-asr';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -102,9 +102,22 @@ var MUQ = [
   ['الف لام ميم را', 'المر'], ['الف لام ميم', 'الم'], ['الف لام را', 'الر'],
   ['عين سين قاف', 'عسق'], ['طا سين ميم', 'طسم'], ['طا سين', 'طس'],
   ['حا ميم', 'حم'], ['طا ها', 'طه'], ['يا سين', 'يس'],
-  ['طاها', 'طه'], ['ياسين', 'يس'], ['حاميم', 'حم'], ['طاسين', 'طس'],
-  ['قاف', 'ق'], ['نون', 'ن'], ['صاد', 'ص']
-].map(function (e) { return [normalizeArabic(e[0]).split(' '), normalizeArabic(e[1])]; });
+  ['طاها', 'طه'], ['طها', 'طه'], ['ياسين', 'يس'], ['حاميم', 'حم'], ['طاسين', 'طس'],
+  ['قاف', 'ق'], ['نون', 'ن'], ['صاد', 'ص'],
+  ['ان عمت', 'انعمت'], ['ربي العالمين', 'رب العالمين'],
+  ['عما يتساءلون', 'عم يتساءلون'], ['الحمدالله', 'الحمد لله'],
+  ['ولالضالين', 'ولا الضالين']
+].map(function (e) { return [normalizeArabic(e[0]).split(' '), normalizeArabic(e[1]).split(' ')]; });
+
+// Zero-collision MSA dictation spellings (0 occurrences in QURAN_DATA) -> Quranic orthography
+var MSA_WORD_MAP = {
+  'الرحمان': 'الرحمن', 'اهدينا': 'اهدنا', 'السراط': 'الصراط', 'سراط': 'صراط',
+  'الصمت': 'الصمد', 'كفو': 'كفوا', 'السموات': 'السماوات', 'سموات': 'سماوات',
+  'هاذا': 'هذا', 'هاذه': 'هذه', 'ذالك': 'ذلك', 'لاكن': 'لكن',
+  'اولاءك': 'اولءك', 'الصلوه': 'الصلاه', 'الزكوه': 'الزكاه', 'الحيوه': 'الحياه',
+  'ابرهيم': 'ابراهيم', 'اسمعيل': 'اسماعيل', 'اسحق': 'اسحاق',
+  'هرون': 'هارون', 'سليمن': 'سليمان', 'داود': 'داوود'
+};
 
 function tokenize(text) {
   var n = normalizeArabic(text);
@@ -120,8 +133,13 @@ function tokenize(text) {
       for (var k = 0; k < ph.length; k++) if (t[i + k] !== ph[k]) { ok = false; break; }
       if (ok) hit = MUQ[m];
     }
-    if (hit) { out.push(hit[1]); i += hit[0].length; }
-    else { out.push(t[i]); i++; }
+    if (hit) {
+      for (var h = 0; h < hit[1].length; h++) out.push(MSA_WORD_MAP[hit[1][h]] || hit[1][h]);
+      i += hit[0].length;
+    } else {
+      var w = t[i++];
+      out.push(MSA_WORD_MAP[w] || w);
+    }
   }
   return out;
 }
@@ -146,12 +164,64 @@ function lev(a, b) {
   return prev[n];
 }
 
+// Precomputed 64x64 Arabic phonetic substitution table (0x0620..0x065F)
+// Cost scale: 100 = 1.0 edit, 45 = phonetic confusion pair, 55 = madd alif insert/delete
+var PHON_FLAT = new Uint8Array(4096);
+(function () {
+  for (var idx = 0; idx < 4096; idx++) PHON_FLAT[idx] = 100;
+  var pairs = [
+    'سص', 'تط', 'دض', 'ذز', 'ثس', 'قك', 'حه',
+    'عا', 'ظض', 'ظذ', 'ءا', 'دت', 'يا', 'بف'
+  ];
+  for (var p = 0; p < pairs.length; p++) {
+    var c1 = pairs[p].charCodeAt(0) - 0x0620, c2 = pairs[p].charCodeAt(1) - 0x0620;
+    if (c1 >= 0 && c1 < 64 && c2 >= 0 && c2 < 64) {
+      PHON_FLAT[(c1 << 6) | c2] = 45;
+      PHON_FLAT[(c2 << 6) | c1] = 45;
+    }
+  }
+})();
+var _pPrev = new Int32Array(128), _pCur = new Int32Array(128);
+
+function phonLev100(a, b) {
+  var m = a.length, n = b.length;
+  if (!m) return n * 100;
+  if (!n) return m * 100;
+  if (n >= 127) return lev(a, b) * 100;
+  var prev = _pPrev, cur = _pCur, j, i;
+  prev[0] = 0;
+  for (j = 1; j <= n; j++) prev[j] = prev[j - 1] + ((b.charCodeAt(j - 1) === 0x0627 && j > 1) ? 55 : 100);
+  for (i = 1; i <= m; i++) {
+    var ca = a.charCodeAt(i - 1);
+    var delCost = (ca === 0x0627 && i > 1) ? 55 : 100;
+    cur[0] = prev[0] + delCost;
+    var caIdx = ca - 0x0620;
+    var caValid = caIdx >= 0 && caIdx < 64;
+    for (j = 1; j <= n; j++) {
+      var cb = b.charCodeAt(j - 1);
+      var subCost = 0;
+      if (ca !== cb) {
+        var cbIdx = cb - 0x0620;
+        subCost = (caValid && cbIdx >= 0 && cbIdx < 64) ? PHON_FLAT[(caIdx << 6) | cbIdx] : 100;
+      }
+      var insCost = (cb === 0x0627 && j > 1) ? 55 : 100;
+      var v = prev[j] + delCost, ins = cur[j - 1] + insCost, sub = prev[j - 1] + subCost;
+      if (ins < v) v = ins;
+      if (sub < v) v = sub;
+      cur[j] = v;
+    }
+    var tmp = prev; prev = cur; cur = tmp;
+  }
+  return prev[n];
+}
+
 function wordSim(a, b) {
   if (a === b) return 1;
   var m = Math.max(a.length, b.length);
   if (!m) return 0;
   if (Math.abs(a.length - b.length) > Math.max(2, Math.min(a.length, b.length))) return 0;
-  return 1 - lev(a, b) / m;
+  var s = 1 - phonLev100(a, b) / (m * 100);
+  return s > 0 ? s : 0;
 }
 
 /* ------------------------------ corpus -------------------------------- */
@@ -282,10 +352,12 @@ logs();
 
 /* One forward step: alpha (Map pos->log) + heard word -> new alpha.
  * Pure: never mutates its input (peek relies on that). */
-function stepAlpha(C, alpha, h, hPrev) {
+function stepAlpha(C, alpha, h, hPrev, priorSet) {
   var nx = new Map();
   var L = C.L, words = C.words;
   STEP_H = h; STEP_MEMO = new Map();
+  var canFusePrev = !!(hPrev && hPrev.length <= 5 && h.length <= 6);
+  var hf = canFusePrev ? (hPrev + h) : '';
   function add(q, v) {
     var o = nx.get(q);
     nx.set(q, o === undefined ? v : lse(o, v));
@@ -306,6 +378,15 @@ function stepAlpha(C, alpha, h, hPrev) {
       e2 = e2 > CFG.E_MAX ? CFG.E_MAX : (e2 < CFG.E_MIN ? CFG.E_MIN : e2);
       add(g + 2, a + LOG.merge + e2);
     }
+    // one text word split into two heard tokens (ان عمت -> انعمت, و وضعنا -> ووضعنا)
+    if (canFusePrev && g >= 0) {
+      var sp0 = simCached(C, hf, words[g]);
+      if (sp0 >= 0.80) add(g, a + LOG.repeat + Math.min(CFG.E_MAX, CFG.E_SLOPE * (sp0 - CFG.E_MID)));
+      if (g + 1 < L) {
+        var sp1 = simCached(C, hf, words[g + 1]);
+        if (sp1 >= 0.80) add(g + 1, a + LOG.merge + Math.min(CFG.E_MAX, CFG.E_SLOPE * (sp1 - CFG.E_MID)));
+      }
+    }
     // surah end -> skip the next surah's basmala
     var bs = C.basmalaSkip[g];
     if (bs !== undefined && bs < L) add(bs, a + LOG.bskip + emis(C, h, bs));
@@ -320,11 +401,15 @@ function stepAlpha(C, alpha, h, hPrev) {
     }
     add(g, a + LOG.garbage);                               // not Quran text
   });
-  // teleport (real jumps), split over seeds
+  // teleport (real jumps), split over seeds (with on-page boost when seed is on the visible page)
   var seeds = seedsFor(C, h, hPrev);
   if (seeds.length) {
     var t = total + LOG.tele - Math.log(seeds.length);
-    for (var i = 0; i < seeds.length; i++) add(seeds[i], t + emis(C, h, seeds[i]));
+    for (var i = 0; i < seeds.length; i++) {
+      var sd = seeds[i];
+      var pageBoost = (priorSet && priorSet.has(C.ayahOf[sd])) ? 1.8 : 0;
+      add(sd, t + pageBoost + emis(C, h, sd));
+    }
   }
   // beam
   var arr = [];
@@ -395,6 +480,20 @@ function openerPush(st, w) {
 }
 
 /* ------------------------------ tracker ------------------------------- */
+function heldMatchesActivePath(C, alpha, hold, prev) {
+  // only mid-recitation: before the first real word every ayah start on the
+  // page is "active", and a takbir «الله اكبر» jumped to «الله الصمد»
+  if (prev === null || prev === undefined) return false;
+  if (!hold || !hold.length || !alpha || !alpha.size) return false;
+  var w0 = hold[0], match = false;
+  alpha.forEach(function (v, g) {
+    if (match || v < -2.5) return;
+    if (g + 1 < C.L && C.words[g + 1] === w0) match = true;
+    else if (g >= 0 && C.basmalaSkip[g] !== undefined && C.words[C.basmalaSkip[g]] === w0) match = true;
+  });
+  return match;
+}
+
 function Tracker(C) {
   this.C = C;
   this.reset();
@@ -402,6 +501,7 @@ function Tracker(C) {
 Tracker.prototype.reset = function () {
   this.peekCache = [];    // [{w, alpha, prev, hold, gains}] of the last peek
   this.alpha = new Map();
+  this.priorSet = new Set();
   this.opener = openerState();
   this.prev = null;       // last word fed to the model
   this.gains = [];        // recent best-path gains (lost detector)
@@ -410,9 +510,11 @@ Tracker.prototype.reset = function () {
 /* prior: ayah indexes the reader is likely to start at (current page...) */
 Tracker.prototype.setPrior = function (ayahIdxs, weight) {
   var C = this.C, a = new Map(), lw = Math.log(weight || 1);
+  if (!this.priorSet) this.priorSet = new Set();
   for (var i = 0; i < ayahIdxs.length; i++) {
     var ai = ayahIdxs[i];
     if (ai < 0 || ai >= C.ayahs.length) continue;
+    this.priorSet.add(ai);
     var f = C.ayahFirst[ai];
     // a surah's first ayah: the reader may start with its basmala
     if (C.ayahs[ai].aya === 1 && f >= 4 && C.virt[f - 1]) a.set(f - 5, lw);
@@ -429,16 +531,25 @@ Tracker.prototype.setPriorAt = function (ayahIdx, wordIdx) {
   var C = this.C;
   if (ayahIdx < 0 || ayahIdx >= C.ayahs.length) return;
   this.alpha = new Map();
+  this.priorSet = new Set([ayahIdx]);
   this.alpha.set(C.ayahFirst[ayahIdx] + Math.max(-1, wordIdx | 0) , 0);
 };
 Tracker.prototype._feed = function (alpha, w, prev) {
   if (!alpha.size) alpha = new Map([[-1, 0]]);
-  return stepAlpha(this.C, alpha, w, prev);
+  return stepAlpha(this.C, alpha, w, prev, this.priorSet);
 };
 /* commit words (final results) */
 Tracker.prototype.push = function (words) {
   this.peekCache = [];
   for (var i = 0; i < words.length; i++) {
+    // «اكبر» after a released «الله» is a takbir, unless the text goes on
+    // with «اكبر» itself (29:45 «ولذكر الله اكبر», 9:72, 40:10)
+    if (this.opener.afterAllah && words[i] === 'اكبر' &&
+        !heldMatchesActivePath(this.C, this.alpha, ['اكبر'], this.prev)) {
+      this.opener.afterAllah = false;
+      continue;
+    }
+    this.opener.afterAllah = false;
     var rel = openerPush(this.opener, words[i]);
     for (var j = 0; j < rel.length; j++) {
       var before = this.alpha;
@@ -447,6 +558,19 @@ Tracker.prototype.push = function (words) {
       if (this.gains.length > 6) this.gains.shift();
       this.alpha = nx;
       this.prev = rel[j];
+      this.steps++;
+    }
+  }
+  if (this.opener.hold.length && heldMatchesActivePath(this.C, this.alpha, this.opener.hold, this.prev)) {
+    var held = this.opener.hold;
+    this.opener.hold = [];
+    if (held.length === 1 && held[0] === 'الله') this.opener.afterAllah = true;
+    for (var hIdx = 0; hIdx < held.length; hIdx++) {
+      var nxH = this._feed(this.alpha, held[hIdx], this.prev);
+      this.gains.push(nxH.rawBest);
+      if (this.gains.length > 6) this.gains.shift();
+      this.alpha = nxH;
+      this.prev = held[hIdx];
       this.steps++;
     }
   }
@@ -482,6 +606,13 @@ Tracker.prototype.peek = function (words) {
       prev = rel[j];
     }
     cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice() });
+  }
+  if (st.hold.length && heldMatchesActivePath(this.C, alpha, st.hold, prev)) {
+    for (var hIdx = 0; hIdx < st.hold.length; hIdx++) {
+      alpha = this._feed(alpha, st.hold[hIdx], prev);
+      gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
+      prev = st.hold[hIdx];
+    }
   }
   return this._result(alpha, gains, prev);
 };
@@ -590,7 +721,8 @@ function decide(res, tentative) {
   if (res.ayahIdx === UI.lastAyah && wordIdx === UI.lastWord) return { same: true };
   // a word that matched nothing may not push the highlight forward (it is
   // either noise or the start of a jump; the next real words decide)
-  if (UI.lastPos >= 0 && res.lastSim < CFG.WEAK_SIM) return { same: true };
+  // (also before the first shown word, except for a basmala opening the session)
+  if ((UI.lastPos >= 0 || !res.basmala) && res.lastSim < CFG.WEAK_SIM) return { same: true };
   // a far move (jump) needs a confident belief, not a 50/50 one
   if (UI.lastPos >= 0 && Math.abs(res.pos - UI.lastPos) > 8 && res.conf < CFG.JUMP_CONF) return { status: 'أتحقق من الموضع...' };
   UI.lastPos = res.pos;
@@ -658,10 +790,11 @@ function tentativeWords(words, raw) {
 }
 
 /* Chrome on Android sometimes re-sends the previous final as the prefix of
- * the next one; strip exactly that, nothing fuzzier. */
+ * the next one; strip exactly that, nothing fuzzier. An exact repeat (same
+ * words, nothing new) is the reader repeating the ayah: keep it. */
 function stripRepeatedPrefix(words) {
   var p = S.lastFinal;
-  if (p.length && words.length >= p.length) {
+  if (p.length && words.length > p.length) {
     for (var i = 0; i < p.length; i++) if (words[i] !== p[i]) return words;
     return words.slice(p.length);
   }
@@ -826,7 +959,7 @@ function evlogStart() {
   EVLOG.t0 = Date.now(); EVLOG.list = [];
   EVLOG.stamp = 'session-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   clearInterval(EVLOG.timer);
-  EVLOG.timer = setInterval(evlogSave, 10000);
+  EVLOG.timer = setInterval(evlogSave, 10000); if (EVLOG.timer && EVLOG.timer.unref) EVLOG.timer.unref();
 }
 function evlogSave() {
   if (!EVLOG.t0 || !HAS_DOM || location.protocol !== 'http:' || !/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) return;
@@ -837,6 +970,32 @@ function evlogSave() {
 }
 function evlogStop() { evlogSave(); clearInterval(EVLOG.timer); EVLOG.t0 = 0; }
 
+/* Pick the SpeechRecognition alternative whose words best fit the Quran corpus
+ * and the current tracker position when Chrome offers multiple alternatives. */
+function pickBestTranscript(r) {
+  if (!r || !r.length) return '';
+  var bestT = (r[0] && r[0].transcript) || '';
+  if (r.length <= 1 || !CORPUS || !TRACKER) return bestT;
+  var bestScore = -1e9;
+  var curPos = UI.lastPos;
+  for (var a = 0; a < r.length; a++) {
+    var tr = (r[a] && r[a].transcript) || '';
+    var w = tokenize(tr);
+    if (!w.length) continue;
+    var sc = -a * 0.15; // slight prior for rank 0
+    for (var j = 0; j < w.length; j++) {
+      if (CORPUS.uni.has(w[j])) sc += 1.0;
+      if (curPos >= 0) {
+        for (var d = 1; d <= 5 && curPos + d < CORPUS.L; d++) {
+          if (CORPUS.words[curPos + d] === w[j]) { sc += 2.0; break; }
+        }
+      }
+    }
+    if (sc > bestScore) { bestScore = sc; bestT = tr; }
+  }
+  return bestT;
+}
+
 function onSpeechResult(ev) {
   try {
     for (var k = ev.resultIndex; k < ev.results.length; k++)
@@ -846,14 +1005,16 @@ function onSpeechResult(ev) {
   try {
     for (var i = ev.resultIndex; i < ev.results.length; i++) {
       var r = ev.results[i];
-      var toks = tokenize(r[0].transcript);
-      var raw = rawFor(toks, rawSplit(r[0].transcript));
+      var chosen = pickBestTranscript(r);
+      var toks = tokenize(chosen);
+      var raw = rawFor(toks, rawSplit(chosen));
       if (toks.length && !HEAR.words) { HEAR.words = true; micMonitorStop(); } // words flow: no diagnostics needed
       if (r.isFinal) {
         if (i < S.finalIdx) continue;        // already committed
         S.finalIdx = i + 1;
         var fresh = stripRepeatedPrefix(toks);
         S.lastFinal = toks;
+        S.lastInterim = []; S.lastInterimRaw = [];
         commitWords(fresh, raw.slice(raw.length - fresh.length));
       } else if (i >= S.finalIdx) {
         interim = interim.concat(toks);
@@ -861,7 +1022,13 @@ function onSpeechResult(ev) {
       }
     }
   } catch (e) { log('result err', e); return; }
-  tentativeWords(interim, interimRaw);
+  if (interim.length) {
+    var freshInt = stripRepeatedPrefix(interim);
+    var freshIntRaw = interimRaw.slice(interimRaw.length - freshInt.length);
+    S.lastInterim = freshInt;
+    S.lastInterimRaw = freshIntRaw;
+    tentativeWords(freshInt, freshIntRaw);
+  }
 }
 
 /* Chrome runs ONE speech recognition at a time for the whole browser.
@@ -929,7 +1096,7 @@ function browserStart(SR) {
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = 'ar-SA';
-    rec.maxAlternatives = 1;
+    rec.maxAlternatives = 5;
     // (Chrome 154's `quality` is left at its default: the version that worked
     //  on the reader's machine never set it)
     rec.onstart = function () {
@@ -980,7 +1147,8 @@ function browserStart(SR) {
       S.running = false;
       if (!S.active) { try { updateVoiceReciteUI(false); } catch (x) {} return; }
       clearTimeout(S.restartT);
-      var wait = S.backoff || 250; S.backoff = 0;
+      if (S.lastInterim && S.lastInterim.length) { commitWords(S.lastInterim, S.lastInterimRaw); S.lastInterim = []; S.lastInterimRaw = []; }
+      var wait = S.backoff || 30; S.backoff = 0;
       S.restartT = setTimeout(function () {
         if (S.active && !S.running && S.ears === 'browser') {
           try { S.rec.start(); } catch (err) {
@@ -1316,6 +1484,10 @@ function lwSend(kind, segId, audio, blocks) {
   var id = ++LW.reqId;
   LW.pending[id] = { kind: kind, segId: segId, blocks: blocks || 0 };
   LW.busy = true;
+  clearTimeout(LW.busyT);
+  LW.busyT = setTimeout(function () {
+    if (LW.busy && LW.pending[id]) { delete LW.pending[id]; LW.busy = false; lwPump(); }
+  }, 15000);
   LW.worker.postMessage({ type: 'transcribe', id: id, audio: audio }, [audio.buffer]);
 }
 function lwPump() {
@@ -1331,7 +1503,7 @@ function lcpLen(a, b) {
 }
 
 function lwOnResult(m) {
-  LW.busy = false;
+  clearTimeout(LW.busyT); LW.busy = false;
   var req = LW.pending[m.id]; delete LW.pending[m.id];
   LW.lastMs = m.ms;
   (LW.msLog = LW.msLog || []).push(m.ms); if (LW.msLog.length > 300) LW.msLog.shift();
@@ -1517,6 +1689,7 @@ function simulateVoiceRecitation(text) {
   var keep = CFG.TURN_CONF; CFG.TURN_CONF = 0; // a typed query turns the page at once
   var d;
   try { d = decide(res, false); } finally { CFG.TURN_CONF = keep; }
+  API.lastResult = res; API.lastShown = (d && d.m) || API.lastShown;
   if (HAS_DOM) paint(d, toks);
   return { bestIdx: res.ayahIdx, score: res.conf, confidence: Math.round(res.conf * 100),
     sura: res.ayah.sura, aya: res.ayah.aya, page: res.ayah.page, suraName: res.ayah.suraName,
@@ -1536,6 +1709,7 @@ function matchRecitedSpeech(text, anchorIdx) {
 
 function initVoiceRecitation() {
   serverProbe();
+  if (HAS_DOM) setTimeout(buildVoiceRecitationIndex, 60);
   try { console.info('[recite] engine v' + RECITE_VERSION); } catch (e) {}
   if (!HAS_DOM) return;
   function on(id, ev, fn) { var el = document.getElementById(id); if (el) el.addEventListener(ev, fn); }
@@ -1608,9 +1782,13 @@ G.stopVoiceRecitation = stopVoiceRecitation;
 G.toggleVoiceRecitation = toggleVoiceRecitation;
 G.initVoiceRecitation = initVoiceRecitation;
 G.simulateVoiceRecitation = simulateVoiceRecitation;
-G.setVoiceAnchor = function (idx) {
+G.setVoiceAnchor = function (idx, wordIdx) {
   buildVoiceRecitationIndex();
-  if (TRACKER) { TRACKER.reset(); TRACKER.setPrior([idx], 1); }
+  if (TRACKER) {
+    TRACKER.reset();
+    if (typeof wordIdx === 'number') TRACKER.setPriorAt(idx, wordIdx - 1);
+    else TRACKER.setPrior([idx], 30);
+  }
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -78,7 +78,7 @@ function chromeEvents(utterances, r, opts) {
 }
 
 function toSREvent(ev) {
-  const results = ev.results.map((x) => { const o = [{ transcript: x.t }]; o.isFinal = x.fin; return o; });
+  const results = ev.results.map((x) => { const o = x.alts ? x.alts.map(a => ({ transcript: a })) : [{ transcript: x.t }]; o.isFinal = x.fin; return o; });
   return { resultIndex: ev.resultIndex, results };
 }
 

@@ -5377,7 +5377,10 @@
       voiceActiveWordIdx = wordIdx;
       highlightWordOnMushaf(sura, aya, wordIdx, page, suraName);
       const item = ayahVoiceIndex.find(a => a.sura === sura && a.aya === aya);
-      if (item) updateWordKaraokeRibbon(item, wordIdx);
+      if (item) {
+        updateWordKaraokeRibbon(item, wordIdx);
+        if (typeof setVoiceAnchor === "function") setVoiceAnchor(item.idx, wordIdx);
+      }
     };
 
     // 7. React to Detected Ayah & Word (Navigation & Visual Highlighting)

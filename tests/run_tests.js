@@ -191,5 +191,44 @@ console.log('one-shot (simulator)');
   check('multi-ayah query lands on the LAST recited ayah (112:2)', m3 && m3.bestAyah.sura === 112 && m3.bestAyah.aya === 2, m3 && m3.bestAyah.sura + ':' + m3.bestAyah.aya);
 }
 
+
+console.log('live-mic-fixes (v3.2.0)');
+{
+  const r1 = live(604, ['قل هو الله']);
+  check('«الله» inside «قل هو الله» highlights immediately (not held by openerPush)', at(r1.last, 112, 1, 3), where(r1.last));
+  const r2 = live(604, ['قل هو الله احد', 'الله']);
+  check('«الله» at start of 112:2 highlights immediately', at(r2.last, 112, 2, 1), where(r2.last));
+  const r3 = live(604, ['قل اعوذ برب الفلق']);
+  check('«أعوذ» after «قل» is not swallowed as isti\'adha (113:1#4)', at(r3.last, 113, 1, 4), where(r3.last));
+  const r4 = live(1, ['الحمد لله ربي العالمين', 'الرحمان الرحيم', 'مالك يوم الدين', 'اياك نعبد واياك نستعين', 'اهدينا السراط المستقيم', 'صراط الذين ان عمت عليهم']);
+  check('Chrome MSA spellings (ربي/الرحمان/اهدينا/السراط) + split «ان عمت» -> 1:7#4', at(r4.last, 1, 7, 4), where(r4.last));
+  const r5 = live(604, ['كل هو الله احد', 'الله الصمت']);
+  check('phonetic ASR swaps «كل» for «قل» and «الصمت» for «الصمد» -> 112:2#2', at(r5.last, 112, 2, 2), where(r5.last));
+  const r6 = live(pageOf(94, 1), ['الم نشرح لك صدرك', 'و وضعنا عنك وزرك']);
+  check('split prefix «و وضعنا» for «ووضعنا» -> 94:2#3', at(r6.last, 94, 2, 3), where(r6.last));
+  const r7 = live(pageOf(78, 1), ['عما يتساءلون', 'عن النبا العظيم']);
+  check('MSA «عما يتساءلون» for «عم يتساءلون» -> 78:2#3', at(r7.last, 78, 2, 3), where(r7.last));
+  const r8 = live(pageOf(2, 255), ['يعلم ما بين ايديهم وما خلفهم']);
+  check('mid-ayah start on open page (2:255 «يعلم ما بين أيديهم...») -> 2:255#32', at(r8.last, 2, 255, 32), where(r8.last));
+  const r9 = live(1, ['الم']);
+  check('first-word weak-sim guard: «الم» on Page 1 never falsely highlights 1:1#1', r9.last === null, where(r9.last));
+  e.start(604);
+  e.event({
+    results: [
+      { t: 'قل هو الله احد', fin: true },
+      { alts: ['الله الصمت', 'الله الصمد'], fin: true }
+    ],
+    resultIndex: 0
+  });
+  check('N-best speech alternatives pick exact Quranic token («الله الصمد» over «الله الصمت»)', at(e.shown(), 112, 2, 2), where(e.shown()));
+  const r10 = live(604, ['الله اكبر']);
+  check('takbir «الله اكبر» before reciting shows nothing (was 112:2#1)', r10.seen.every(s => s === null), where(r10.last));
+  const r11 = live(604, ['قل هو الله احد', 'قل هو الله احد']);
+  check('hifz: the same ayah recited twice ends on its last word (112:1#4)', at(r11.last, 112, 1, 4), where(r11.last));
+  const r12 = live(pageOf(29, 45), ['واقم الصلاه ان الصلاه تنهي عن الفحشاء والمنكر ولذكر الله', 'اكبر والله يعلم ما تصنعون']);
+  check('«ولذكر الله | اكبر» across two utterances keeps the real «اكبر» -> 29:45 last word',
+    at(r12.last, 29, 45, C.ayahs[idx(29, 45)].wordCount), where(r12.last));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

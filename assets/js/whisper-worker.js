@@ -86,7 +86,9 @@ self.onmessage = async (e) => {
     } else if (m.type === 'transcribe') {
       if (!asr) await (loading || load());
       const t0 = performance.now();
-      const out = await asr(m.audio, { max_new_tokens: 160, num_beams: 1, do_sample: false });
+      const durSec = (m.audio && m.audio.length) ? (m.audio.length / 16000) : 2;
+      const maxTok = Math.min(160, Math.max(24, Math.ceil(durSec * 14)));
+      const out = await asr(m.audio, { max_new_tokens: maxTok, num_beams: 1, do_sample: false });
       postMessage({ type: 'result', id: m.id, text: (out && out.text) || '', ms: Math.round(performance.now() - t0) });
     }
   } catch (err) {
