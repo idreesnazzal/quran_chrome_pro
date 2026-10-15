@@ -53,9 +53,28 @@ The Quran is read as **one word sequence**. That is 77,797 data words, plus a vi
 1. **Opener filter.** This is a streaming matcher that swallows text which is not Quran: أعوذ بالله (من الشيطان الرجيم | السميع العليم…), صدق الله العظيم, الله أكبر and آمين. Patterns of 2 words or fewer must match exactly, so «امين» cannot swallow «امن».
 2. **Display gate** (`decide()`):
    - Show a position only when its confidence is at least 0.45.
+   - **The first position of a session waits until the words single out one place** (3.3.0): confidence ≥ 0.85 *and* 2 good words in a row. See *Wait until unique* below.
    - A move of more than 8 words needs confidence of at least 0.75.
    - The highlight never moves onto a word that the last heard word does not resemble (sim < 0.5).
    - The page turns immediately at confidence ≥ 0.80. At confidence ≥ 0.55 it turns only after two consecutive updates agree.
+
+### Wait until unique (3.3.0)
+
+A phrase like «يا ايها الذين امنوا» (89 places) or «الم» (6 surahs) does not say *where* the reader is. For every starting point, the **uniqueness point** is the number of words until the phrase occurs in one place only. At ayah starts: 1 word 10%, 2 words 35%, 3 words 24%, 4 words 12%, 5–6 words 12%, 7–10 words 6%, more than 10 words 2% (whole twin passages such as 2:47–48 = 2:122–123, or 15:36–42 ≈ 38:79–85).
+
+- **The start of a session is uncertain.** The reader probably starts on the open page, but may start anywhere. For the first 2 words, the jump mass is `COLD_TELEPORT` = 0.2 instead of 0.006. It is only the *start* that is uncertain: with 4 words, a misheard third word could pull a correct highlight away (7 false jumps in the benchmark).
+- **Fair credit.** A "started elsewhere" hypothesis that enters on the second word is also credited for the first word (never penalised), as the open-page hypothesis is. Without it, a shared opening looked 10× likelier on the open page.
+- **The gate:** the first position needs confidence ≥ `FIRST_CONF` = 0.85 and `FIRST_RUN` = 2 good words in a row.
+
+`node tests/mutashabihat.js` starts recitations at shared phrases (280 per mode, stratified by uniqueness point), and counts moves to a wrong place:
+
+| start | wrong move before (3.2.1) | after (3.3.0) | cost |
+|---|---|---|---|
+| far from the open page | 9.6% of starts | **0%** | moves 0 words (median) after the uniqueness point |
+| on the open page | 5.4% | **0%** | first highlight after 3 words (median), was 2; p90 7, was 3 |
+| jump in mid-session | 1.1% | 1.1% | mostly a plausible continuation into the next ayah |
+
+In the benchmark, wrong highlights went to 0 in the clean, cold and off-Quran families. Accuracy there is lower (clean 98.9% → 95.9%) because the first words of each scenario are now *waiting* (nothing shown). Waiting is not an error, but the benchmark counts it as one.
 
 ### Live input
 

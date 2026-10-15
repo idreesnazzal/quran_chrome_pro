@@ -104,10 +104,11 @@ console.log('following');
   check('one common word never jumps over an ayah (18:5 + الارض -/-> 18:7)', !everAt(r.seen, 18, 7), where(r.last));
 }
 {
-  const r = live(pageOf(2, 21), ['يايها الناس']);
-  check('merged يايها lands on «ايها»… then الناس (2:21 word 3)', at(r.last, 2, 21, 3), where(r.last));
-  const r2 = live(pageOf(2, 21), ['يا ايها الناس']);
-  check('split يا ايها ends on the same word', at(r2.last, 2, 21, 3), where(r2.last));
+  // «يا ايها الناس» is in 20 places: a cold start waits for «اعبدوا» (unique)
+  const r = live(pageOf(2, 21), ['يايها الناس اعبدوا']);
+  check('merged يايها, then «الناس اعبدوا» -> 2:21 word 4, never a wrong ayah', at(r.last, 2, 21, 4) && r.seen.every(s => !s || at(s, 2, 21)), where(r.last));
+  const r2 = live(pageOf(2, 21), ['يا ايها الناس اعبدوا']);
+  check('split يا ايها ends on the same word (2:21 word 4)', at(r2.last, 2, 21, 4), where(r2.last));
 }
 {
   const r = live(pageOf(2, 31), ['قالوا سبحانك لا علم لنا', 'لا علم لنا', 'الا ما علمتنا']);
@@ -194,7 +195,8 @@ console.log('one-shot (simulator)');
 
 console.log('live-mic-fixes (v3.2.0)');
 {
-  const r1 = live(604, ['قل هو الله']);
+  // mid-recitation (111 read first): «الله» is not held back waiting for «اكبر»
+  const r1 = live(603, ['تبت يدا ابي لهب وتب', 'ما اغني عنه ماله وما كسب', 'سيصلي نارا ذات لهب', 'وامراته حماله الحطب', 'في جيدها حبل من مسد', 'قل هو الله']);
   check('«الله» inside «قل هو الله» highlights immediately (not held by openerPush)', at(r1.last, 112, 1, 3), where(r1.last));
   const r2 = live(604, ['قل هو الله احد', 'الله']);
   check('«الله» at start of 112:2 highlights immediately', at(r2.last, 112, 2, 1), where(r2.last));
@@ -208,8 +210,10 @@ console.log('live-mic-fixes (v3.2.0)');
   check('split prefix «و وضعنا» for «ووضعنا» -> 94:2#3', at(r6.last, 94, 2, 3), where(r6.last));
   const r7 = live(pageOf(78, 1), ['عما يتساءلون', 'عن النبا العظيم']);
   check('MSA «عما يتساءلون» for «عم يتساءلون» -> 78:2#3', at(r7.last, 78, 2, 3), where(r7.last));
-  const r8 = live(pageOf(2, 255), ['يعلم ما بين ايديهم وما خلفهم']);
-  check('mid-ayah start on open page (2:255 «يعلم ما بين أيديهم...») -> 2:255#32', at(r8.last, 2, 255, 32), where(r8.last));
+  // «يعلم ما بين ايديهم وما خلفهم» is in 4 places (2:255, 20:110, 21:28, 22:76)
+  // «يعلم ما بين ايديهم وما خلفهم ولا يحيطون» is in 2 places; «بشيء» makes it unique
+  const r8 = live(pageOf(2, 255), ['يعلم ما بين ايديهم وما خلفهم ولا يحيطون بشيء']);
+  check('mid-ayah start on open page (2:255 «يعلم ما بين أيديهم... بشيء») -> 2:255#35, never a twin', at(r8.last, 2, 255, 35) && r8.seen.every(s => !s || at(s, 2, 255)), where(r8.last));
   const r9 = live(1, ['الم']);
   check('first-word weak-sim guard: «الم» on Page 1 never falsely highlights 1:1#1', r9.last === null, where(r9.last));
   e.start(604);
@@ -221,6 +225,22 @@ console.log('live-mic-fixes (v3.2.0)');
     resultIndex: 0
   });
   check('N-best speech alternatives pick exact Quranic token («الله الصمد» over «الله الصمت»)', at(e.shown(), 112, 2, 2), where(e.shown()));
+  // mutashabihat: wait until the words single out ONE place, then go there
+  const m1 = live(59, ['رب فانظرني الي يوم يبعثون', 'قال فانك من المنظرين الي يوم الوقت المعلوم', 'قال فبعزتك لاغوينهم']);
+  check('15:36-38 = 38:79-81 twins: no highlight until «فبعزتك» (38:82), then 38:82',
+    at(m1.last, 38, 82) && !everAt(m1.seen, 15, 36) && !everAt(m1.seen, 15, 37) && !everAt(m1.seen, 15, 38), where(m1.last));
+  const m2 = live(1, ['يا بني اسراءيل اذكروا نعمتي التي انعمت عليكم']);
+  check('2:40 / 2:47 / 2:122 share «يا بني اسراءيل اذكروا نعمتي التي انعمت عليكم»: wait (nothing shown)',
+    m2.seen.every(s => s === null), where(m2.last));
+  const m6 = live(pageOf(33, 41), ['يا ايها الذين امنوا لا تقتلوا الصيد']);
+  check('open page has «يا ايها الذين امنوا» (33:41) but the reader is at 5:95: never 33:41, lands on 5:95',
+    !everAt(m6.seen, 33, 41) && at(m6.last, 5, 95), where(m6.last));
+  const m3 = live(300, ['الم', 'ذلك الكتاب']);
+  check('«الم» (6 surahs) waits; «ذلك الكتاب» -> 2:2', at(m3.last, 2, 2) && m3.seen.every(s => !s || at(s, 2, 2)), where(m3.last));
+  const m4 = live(pageOf(55, 13), ['فباي الاء ربكما تكذبان', 'خلق الانسان من صلصال كالفخار']);
+  check('al-Rahman refrain (31x) then «خلق الانسان» -> 55:14', at(m4.last, 55, 14), where(m4.last));
+  const m5 = live(pageOf(109, 1), ['قل يا ايها الكافرون', 'لا اعبد ما تعبدون', 'ولا انتم عابدون ما اعبد', 'ولا انا عابد ما عبدتم', 'ولا انتم عابدون ما اعبد']);
+  check('109:3 = 109:5 word for word: read in order -> 109:5 (not back to 109:3)', at(m5.last, 109, 5), where(m5.last));
   const r10 = live(604, ['الله اكبر']);
   check('takbir «الله اكبر» before reciting shows nothing (was 112:2#1)', r10.seen.every(s => s === null), where(r10.last));
   const r11 = live(604, ['قل هو الله احد', 'قل هو الله احد']);

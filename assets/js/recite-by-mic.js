@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.2.1-hmm+smart-asr';
+var RECITE_VERSION = '3.3.0-hmm+wait-until-unique';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -72,6 +72,11 @@ var CFG = {
   E_MIN: -4.0,           // unrelated word: advancing on it must lose to 'garbage, stay'
   SHOW_CONF: 0.45,       // min posterior to move the highlight
   JUMP_CONF: 0.75,       // min posterior to move the highlight more than 8 words
+  FIRST_CONF: 0.85,      // min posterior for the FIRST position of a session
+  FIRST_RUN: 2,          // ...and that many good words in a row (shared openings: wait)
+  COLD_TELEPORT: 0.2,    // jump mass for the first COLD_WORDS words of a session: the
+  COLD_WORDS: 2,         // reader may start anywhere, not only on the open page (the
+                         // START is uncertain; 4 words let a misheard 3rd word jump away)
   WEAK_SIM: 0.5,         // highlight never moves onto a word the last heard word does not resemble
   TURN_CONF: 0.80,       // posterior that turns the page immediately
   TURN_CONF_2: 0.55,     // ...or this, on two consecutive updates
@@ -352,7 +357,7 @@ logs();
 
 /* One forward step: alpha (Map pos->log) + heard word -> new alpha.
  * Pure: never mutates its input (peek relies on that). */
-function stepAlpha(C, alpha, h, hPrev, priorSet) {
+function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
   var nx = new Map();
   var L = C.L, words = C.words;
   STEP_H = h; STEP_MEMO = new Map();
@@ -404,11 +409,17 @@ function stepAlpha(C, alpha, h, hPrev, priorSet) {
   // teleport (real jumps), split over seeds (with on-page boost when seed is on the visible page)
   var seeds = seedsFor(C, h, hPrev);
   if (seeds.length) {
-    var t = total + LOG.tele - Math.log(seeds.length);
+    var t = total + (teleLog === undefined ? LOG.tele : teleLog) - Math.log(seeds.length);
+    // session start (teleLog given): «the reader STARTED here» also recited
+    // the previous heard word here; credit it (never penalise), as the
+    // open-page hypothesis was credited for it - otherwise a shared opening
+    // («يا ايها الذين امنوا», 89 places) looked 10x likelier on the open page
+    var credit = teleLog !== undefined && hPrev;
     for (var i = 0; i < seeds.length; i++) {
       var sd = seeds[i];
       var pageBoost = (priorSet && priorSet.has(C.ayahOf[sd])) ? 1.8 : 0;
-      add(sd, t + pageBoost + emis(C, h, sd));
+      var c0 = credit && sd > 0 ? emis(C, hPrev, sd - 1) : 0;
+      add(sd, t + pageBoost + (c0 > 0 ? c0 : 0) + emis(C, h, sd));
     }
   }
   // beam
@@ -506,6 +517,7 @@ Tracker.prototype.reset = function () {
   this.prev = null;       // last word fed to the model
   this.gains = [];        // recent best-path gains (lost detector)
   this.steps = 0;
+  this.coldUntil = 0;     // steps below this use COLD_TELEPORT (session start)
 };
 /* prior: ayah indexes the reader is likely to start at (current page...) */
 Tracker.prototype.setPrior = function (ayahIdxs, weight) {
@@ -521,6 +533,7 @@ Tracker.prototype.setPrior = function (ayahIdxs, weight) {
     a.set(f - 1, lw);
   }
   if (!a.size) a.set(-1, 0);
+  if (this.steps === 0) this.coldUntil = CFG.COLD_WORDS; // nothing heard yet: may start anywhere
   // merge into existing belief (manual page change mid-session keeps context)
   if (this.alpha.size) {
     this.alpha.forEach(function (v, q) { a.set(q, a.has(q) ? lse(a.get(q), v) : v); });
@@ -532,11 +545,13 @@ Tracker.prototype.setPriorAt = function (ayahIdx, wordIdx) {
   if (ayahIdx < 0 || ayahIdx >= C.ayahs.length) return;
   this.alpha = new Map();
   this.priorSet = new Set([ayahIdx]);
+  this.coldUntil = 0; // an explicit anchor (word tapped): trust it
   this.alpha.set(C.ayahFirst[ayahIdx] + Math.max(-1, wordIdx | 0) , 0);
 };
-Tracker.prototype._feed = function (alpha, w, prev) {
+Tracker.prototype._feed = function (alpha, w, prev, step) {
   if (!alpha.size) alpha = new Map([[-1, 0]]);
-  return stepAlpha(this.C, alpha, w, prev, this.priorSet);
+  var tl = step < this.coldUntil ? Math.log(CFG.COLD_TELEPORT) : undefined;
+  return stepAlpha(this.C, alpha, w, prev, this.priorSet, tl);
 };
 /* commit words (final results) */
 Tracker.prototype.push = function (words) {
@@ -553,7 +568,7 @@ Tracker.prototype.push = function (words) {
     var rel = openerPush(this.opener, words[i]);
     for (var j = 0; j < rel.length; j++) {
       var before = this.alpha;
-      var nx = this._feed(before, rel[j], this.prev);
+      var nx = this._feed(before, rel[j], this.prev, this.steps);
       this.gains.push(nx.rawBest);
       if (this.gains.length > 6) this.gains.shift();
       this.alpha = nx;
@@ -566,7 +581,7 @@ Tracker.prototype.push = function (words) {
     this.opener.hold = [];
     if (held.length === 1 && held[0] === 'الله') this.opener.afterAllah = true;
     for (var hIdx = 0; hIdx < held.length; hIdx++) {
-      var nxH = this._feed(this.alpha, held[hIdx], this.prev);
+      var nxH = this._feed(this.alpha, held[hIdx], this.prev, this.steps);
       this.gains.push(nxH.rawBest);
       if (this.gains.length > 6) this.gains.shift();
       this.alpha = nxH;
@@ -581,7 +596,7 @@ Tracker.prototype.flush = function () {
   var held = this.opener.hold;
   this.opener.hold = [];
   for (var i = 0; i < held.length; i++) {
-    var nx = this._feed(this.alpha, held[i], this.prev);
+    var nx = this._feed(this.alpha, held[i], this.prev, this.steps);
     this.gains.push(nx.rawBest); if (this.gains.length > 6) this.gains.shift();
     this.alpha = nx; this.prev = held[i]; this.steps++;
   }
@@ -596,20 +611,20 @@ Tracker.prototype.peek = function (words) {
   while (k < words.length && k < cache.length && cache[k].w === words[k]) k++;
   cache.length = k;
   var base = k ? cache[k - 1] : { alpha: this.alpha, prev: this.prev,
-    hold: this.opener.hold, gains: this.gains };
-  var alpha = base.alpha, prev = base.prev, st = openerState(base.hold), gains = base.gains.slice();
+    hold: this.opener.hold, gains: this.gains, steps: this.steps };
+  var alpha = base.alpha, prev = base.prev, st = openerState(base.hold), gains = base.gains.slice(), steps = base.steps;
   for (var i = k; i < words.length; i++) {
     var rel = openerPush(st, words[i]);
     for (var j = 0; j < rel.length; j++) {
-      alpha = this._feed(alpha, rel[j], prev);
+      alpha = this._feed(alpha, rel[j], prev, steps++);
       gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
       prev = rel[j];
     }
-    cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice() });
+    cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice(), steps: steps });
   }
   if (st.hold.length && heldMatchesActivePath(this.C, alpha, st.hold, prev)) {
     for (var hIdx = 0; hIdx < st.hold.length; hIdx++) {
-      alpha = this._feed(alpha, st.hold[hIdx], prev);
+      alpha = this._feed(alpha, st.hold[hIdx], prev, steps++);
       gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
       prev = st.hold[hIdx];
     }
@@ -635,6 +650,7 @@ Tracker.prototype._result = function (alpha, gains, lastWord) {
   for (var i = 0; i < gains.length; i++) if (gains[i] < -1.0) bad++;
   for (var j = gains.length - 1; j >= 0 && gains[j] >= 0.5; j--) good++;
   s.lost = bad >= 3 && good < 2;
+  s.goodRun = good;
   s.lastGain = gains.length ? gains[gains.length - 1] : 0;
   return s;
 };
@@ -706,6 +722,11 @@ function setStatus(text) {
 function decide(res, tentative) {
   if (res.lost) return { status: 'لم أتعرف على التلاوة بعد... تابع القراءة' };
   if (res.conf < CFG.SHOW_CONF) return { status: 'أتحقق من الموضع...' };
+  // the first position of a session: many places share the first words
+  // («الم», «يا ايها الذين امنوا», 15:36-42 = 38:79-85): wait until the heard
+  // words single out one of them
+  if (UI.lastPos < 0 && (res.conf < CFG.FIRST_CONF || (res.goodRun || 0) < CFG.FIRST_RUN))
+    return { status: 'أتحقق من الموضع...' };
   var ay = res.ayah;
   // page turn hysteresis: a confident result turns at once, a medium one
   // must repeat on the next update (prevents flip-flopping between twins)

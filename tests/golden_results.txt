@@ -10,8 +10,8 @@ following
   ok   short ayah mid-stream: 18:3 shown while crossing 18:2 -> 18:4
   ok   one-word ayah: مدهامتان 55:64 shown between 55:63 and 55:65
   ok   one common word never jumps over an ayah (18:5 + الارض -/-> 18:7)
-  ok   merged يايها lands on «ايها»… then الناس (2:21 word 3)
-  ok   split يا ايها ends on the same word
+  ok   merged يايها, then «الناس اعبدوا» -> 2:21 word 4, never a wrong ayah
+  ok   split يا ايها ends on the same word (2:21 word 4)
   ok   restart 3 words back, then continue (2:32)
   ok   word stuttered 3 times
   ok   whole ayah repeated (memorising) -> back at 112:1
@@ -50,11 +50,17 @@ live-mic-fixes (v3.2.0)
   ok   phonetic ASR swaps «كل» for «قل» and «الصمت» for «الصمد» -> 112:2#2
   ok   split prefix «و وضعنا» for «ووضعنا» -> 94:2#3
   ok   MSA «عما يتساءلون» for «عم يتساءلون» -> 78:2#3
-  ok   mid-ayah start on open page (2:255 «يعلم ما بين أيديهم...») -> 2:255#32
+  ok   mid-ayah start on open page (2:255 «يعلم ما بين أيديهم... بشيء») -> 2:255#35, never a twin
   ok   first-word weak-sim guard: «الم» on Page 1 never falsely highlights 1:1#1
   ok   N-best speech alternatives pick exact Quranic token («الله الصمد» over «الله الصمت»)
+  ok   15:36-38 = 38:79-81 twins: no highlight until «فبعزتك» (38:82), then 38:82
+  ok   2:40 / 2:47 / 2:122 share «يا بني اسراءيل اذكروا نعمتي التي انعمت عليكم»: wait (nothing shown)
+  ok   open page has «يا ايها الذين امنوا» (33:41) but the reader is at 5:95: never 33:41, lands on 5:95
+  ok   «الم» (6 surahs) waits; «ذلك الكتاب» -> 2:2
+  ok   al-Rahman refrain (31x) then «خلق الانسان» -> 55:14
+  ok   109:3 = 109:5 word for word: read in order -> 109:5 (not back to 109:3)
   ok   takbir «الله اكبر» before reciting shows nothing (was 112:2#1)
   ok   hifz: the same ayah recited twice ends on its last word (112:1#4)
   ok   «ولذكر الله | اكبر» across two utterances keeps the real «اكبر» -> 29:45 last word
 
-51 passed, 0 failed
+57 passed, 0 failed
