@@ -111,7 +111,8 @@ var MUQ = [
   ['قاف', 'ق'], ['نون', 'ن'], ['صاد', 'ص'],
   ['ان عمت', 'انعمت'], ['ربي العالمين', 'رب العالمين'],
   ['عما يتساءلون', 'عم يتساءلون'], ['الحمدالله', 'الحمد لله'],
-  ['ولالضالين', 'ولا الضالين']
+  ['ولالضالين', 'ولا الضالين'],
+  ['فانما العسر', 'فان مع العسر'], ['انما العسر', 'ان مع العسر']
 ].map(function (e) { return [normalizeArabic(e[0]).split(' '), normalizeArabic(e[1]).split(' ')]; });
 
 // Zero-collision MSA dictation spellings (0 occurrences in QURAN_DATA) -> Quranic orthography
@@ -414,11 +415,12 @@ function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
     // the previous heard word here; credit it (never penalise), as the
     // open-page hypothesis was credited for it - otherwise a shared opening
     // («يا ايها الذين امنوا», 89 places) looked 10x likelier on the open page
-    var credit = teleLog !== undefined && hPrev;
+    var midStart = alpha.rawBest !== undefined && alpha.rawBest < 0 && hPrev;
     for (var i = 0; i < seeds.length; i++) {
       var sd = seeds[i];
       var pageBoost = (priorSet && priorSet.has(C.ayahOf[sd])) ? 1.8 : 0;
-      var c0 = credit && sd > 0 ? emis(C, hPrev, sd - 1) : 0;
+      var c0 = (teleLog !== undefined && hPrev && sd > 0) ? emis(C, hPrev, sd - 1)
+             : (midStart && sd > 0 && C.wordOf[sd - 1] === 0 && words[sd - 1] === hPrev && words[sd] === h) ? CFG.E_MAX : 0;
       add(sd, t + pageBoost + (c0 > 0 ? c0 : 0) + emis(C, h, sd));
     }
   }
@@ -725,8 +727,11 @@ function decide(res, tentative) {
   // the first position of a session: many places share the first words
   // («الم», «يا ايها الذين امنوا», 15:36-42 = 38:79-85): wait until the heard
   // words single out one of them
-  if (UI.lastPos < 0 && (res.conf < CFG.FIRST_CONF || (res.goodRun || 0) < CFG.FIRST_RUN))
-    return { status: 'أتحقق من الموضع...' };
+  if (UI.lastPos < 0) {
+    var uPost = (res.lastSim === 1 && CORPUS && res.pos >= 0 && CORPUS.uni.get(CORPUS.words[res.pos])) || null;
+    var needRun = (uPost && uPost.length === 1) ? 1 : CFG.FIRST_RUN;
+    if (res.conf < CFG.FIRST_CONF || (res.goodRun || 0) < needRun) return { status: 'أتحقق من الموضع...' };
+  }
   var ay = res.ayah;
   // page turn hysteresis: a confident result turns at once, a medium one
   // must repeat on the next update (prevents flip-flopping between twins)
@@ -1707,9 +1712,10 @@ function simulateVoiceRecitation(text) {
     return null;
   }
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1;
-  var keep = CFG.TURN_CONF; CFG.TURN_CONF = 0; // a typed query turns the page at once
+  var keep = CFG.TURN_CONF, keepFC = CFG.FIRST_CONF, keepFR = CFG.FIRST_RUN;
+  CFG.TURN_CONF = 0; CFG.FIRST_CONF = CFG.SHOW_CONF; CFG.FIRST_RUN = 1; // a typed query turns the page at once
   var d;
-  try { d = decide(res, false); } finally { CFG.TURN_CONF = keep; }
+  try { d = decide(res, false); } finally { CFG.TURN_CONF = keep; CFG.FIRST_CONF = keepFC; CFG.FIRST_RUN = keepFR; }
   API.lastResult = res; API.lastShown = (d && d.m) || API.lastShown;
   if (HAS_DOM) paint(d, toks);
   return { bestIdx: res.ayahIdx, score: res.conf, confidence: Math.round(res.conf * 100),

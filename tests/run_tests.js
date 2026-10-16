@@ -248,6 +248,16 @@ console.log('live-mic-fixes (v3.2.0)');
   const r12 = live(pageOf(29, 45), ['واقم الصلاه ان الصلاه تنهي عن الفحشاء والمنكر ولذكر الله', 'اكبر والله يعلم ما تصنعون']);
   check('«ولذكر الله | اكبر» across two utterances keeps the real «اكبر» -> 29:45 last word',
     at(r12.last, 29, 45, C.ayahs[idx(29, 45)].wordCount), where(r12.last));
+  const r13 = live(pageOf(103, 1), ['والعصر']);
+  check('1-word unique ayah «والعصر» on its page highlights immediately -> 103:1#1', at(r13.last, 103, 1, 1), where(r13.last));
+  const r14 = live(5, ['ان الله لا يستحيي ان يضرب مثلا ما بعوضه فما فوقها', 'انما العسر يسرا']);
+  check('mid-session jump from 2:26 with Chrome merge «انما العسر يسرا» -> 94:6#4', at(r14.last, 94, 6, 4), where(r14.last));
+  const r15 = live(5, ['ان الله لا يستحيي ان يضرب مثلا ما بعوضه فما فوقها', 'انا اعطيناك الكوثر']);
+  check('mid-session jump to short ayah «إنا أعطيناك الكوثر» -> 108:1#3', at(r15.last, 108, 1, 3), where(r15.last));
+  const r16 = live(5, ['ان الله لا يستحيي ان يضرب مثلا ما بعوضه فما فوقها', 'قد افلح المؤمنون']);
+  check('mid-session jump starting with frequent word «قد أفلح المؤمنون» -> 23:1#3', at(r16.last, 23, 1, 3), where(r16.last));
+  e.start(1); R.simulate('مدهامتان');
+  check('simulator 1-word query «مدهامتان» paints lastShown -> 55:64', R.lastShown && R.lastShown.bestAyah.sura === 55 && R.lastShown.bestAyah.aya === 64);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
