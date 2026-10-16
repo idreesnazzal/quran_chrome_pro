@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.3.0-hmm+wait-until-unique';
+var RECITE_VERSION = '3.3.2-hmm+wait-until-unique';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -71,7 +71,8 @@ var CFG = {
   E_MAX: 2.25,
   E_MIN: -4.0,           // unrelated word: advancing on it must lose to 'garbage, stay'
   SHOW_CONF: 0.45,       // min posterior to move the highlight
-  JUMP_CONF: 0.75,       // min posterior to move the highlight more than 8 words
+  JUMP_CONF: 0.85,       // min posterior to move the highlight more than 8 words (0.75
+                         // let mid-session jumps land on twins: 3:116 vs 58:17, 26:105 vs 26:160)
   FIRST_CONF: 0.85,      // min posterior for the FIRST position of a session
   FIRST_RUN: 2,          // ...and that many good words in a row (shared openings: wait)
   COLD_TELEPORT: 0.2,    // jump mass for the first COLD_WORDS words of a session: the
