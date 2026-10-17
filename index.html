@@ -12,21 +12,13 @@
     (function () {
       if (location.protocol !== 'file:') return;
       var SERVER = 'http://127.0.0.1:8001/';
-      function banner() {
-        var b = document.createElement('div');
-        b.setAttribute('dir', 'rtl');
-        b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px 16px;' +
-          'background:#7c2d12;color:#fff;font:600 15px/1.6 Cairo,system-ui,sans-serif;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.3)';
-        b.innerHTML = 'فتحتَ التطبيق كملف، والمتصفح لا يحفظ إذن الميكروفون للملفات فيسأل في كل مرة. ' +
-          'شغّل <b>Open Mushaf.cmd</b> من مجلد التطبيق (أو افتح <b>' + SERVER + '</b> والخادم يعمل). ' +
-          '<button style="margin-inline-start:10px;padding:2px 10px;border-radius:6px;border:0;cursor:pointer">✕</button>';
-        b.querySelector('button').onclick = function () { b.remove(); };
-        document.body.appendChild(b);
-      }
+      var GH_PAGES = 'https://idreesnazzal.github.io/quran_chrome_pro/';
       fetch(SERVER + 'health', { cache: 'no-store' })
         .then(function (r) { if (r.ok) location.replace(SERVER + location.hash); else throw 0; })
         .catch(function () {
-          if (document.body) banner(); else document.addEventListener('DOMContentLoaded', banner);
+          if (navigator.onLine !== false) {
+            location.replace(GH_PAGES + location.hash);
+          }
         });
     })();
   </script>
