@@ -123,7 +123,8 @@ var MSA_WORD_MAP = {
   'هاذا': 'هذا', 'هاذه': 'هذه', 'ذالك': 'ذلك', 'لاكن': 'لكن',
   'اولاءك': 'اولءك', 'الصلوه': 'الصلاه', 'الزكوه': 'الزكاه', 'الحيوه': 'الحياه',
   'ابرهيم': 'ابراهيم', 'اسمعيل': 'اسماعيل', 'اسحق': 'اسحاق',
-  'هرون': 'هارون', 'سليمن': 'سليمان', 'داود': 'داوود'
+  'هرون': 'هارون', 'سليمن': 'سليمان', 'داود': 'داوود',
+  'الل': 'الله', 'بالل': 'بالله', 'تالل': 'تالله', 'فلل': 'فلله', 'والل': 'والله', 'لل': 'لله'
 };
 
 function tokenize(text) {
@@ -226,6 +227,8 @@ function wordSim(a, b) {
   if (a === b) return 1;
   var m = Math.max(a.length, b.length);
   if (!m) return 0;
+  if (Math.min(a.length, b.length) >= 4 &&
+      (b === 'ال' + a || b === 'ان' + a || a === 'ال' + b || a === 'ان' + b)) return 0.85;
   if (Math.abs(a.length - b.length) > Math.max(2, Math.min(a.length, b.length))) return 0;
   var s = 1 - phonLev100(a, b) / (m * 100);
   return s > 0 ? s : 0;
@@ -323,7 +326,7 @@ function unigramSeeds(C, h) {
   if (hit) return hit;
   var out = [];
   var u = C.uni.get(h);
-  if (u) { if (u.length <= CFG.SEED_UNIGRAM_MAX) out = u; }
+  if (u) { if (u.length <= CFG.SEED_UNIGRAM_MAX) out = u.slice(); }
   else {
     var acc = [];
     for (var l = Math.max(1, h.length - 2); l <= h.length + 2; l++) {
@@ -335,6 +338,11 @@ function unigramSeeds(C, h) {
           if (ps.length <= CFG.SEED_UNIGRAM_MAX) acc = acc.concat(ps);
         }
       }
+    }
+    if (h.length >= 4) {
+      var pAn = C.uni.get('ان' + h), pAl = C.uni.get('ال' + h);
+      if (pAn && pAn.length <= 40) acc = acc.concat(pAn);
+      if (pAl && pAl.length <= 60) acc = acc.concat(pAl);
     }
     if (acc.length <= CFG.SEED_UNIGRAM_MAX * 2) out = acc;
   }
@@ -372,10 +380,11 @@ function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
   var total = -Infinity;
   alpha.forEach(function (a, g) {
     total = lse(total, a);
-    // forward: next word and skips
+    // forward: next word and skips (virtual basmala only steps into its own ayah 1)
     for (var d = 1; d <= 6; d++) {
       var q = g + d;
       if (q >= L) break;
+      if (g >= 0 && C.virt[g] && C.ayahOf[q] !== C.ayahOf[g]) break;
       add(q, a + (d === 1 ? LOG.next : LOG.skip[d]) + emis(C, h, q));
     }
     // two text words fused into one heard token (يا ايها -> يايها)
@@ -420,18 +429,18 @@ function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
   // teleport (real jumps), split over seeds (with on-page boost when seed is on the visible page)
   var seeds = seedsFor(C, h, hPrev);
   if (seeds.length) {
-    var t = total + (teleLog === undefined ? LOG.tele : teleLog) - Math.log(seeds.length);
-    // session start (teleLog given): «the reader STARTED here» also recited
-    // the previous heard word here; credit it (never penalise), as the
-    // open-page hypothesis was credited for it - otherwise a shared opening
-    // («يا ايها الذين امنوا», 89 places) looked 10x likelier on the open page
+    var tBase = total + LOG.tele - Math.log(seeds.length);
+    var tCold = teleLog !== undefined ? total + teleLog - Math.log(seeds.length) : tBase;
     var midStart = alpha.rawBest !== undefined && alpha.rawBest < 0 && hPrev;
     for (var i = 0; i < seeds.length; i++) {
       var sd = seeds[i];
-      var pageBoost = (priorSet && priorSet.has(C.ayahOf[sd])) ? 1.8 : 0;
-      var c0 = (teleLog !== undefined && hPrev && sd > 0) ? emis(C, hPrev, sd - 1)
+      var aiSd = C.ayahOf[sd];
+      var onPage = !!(priorSet && priorSet.has(aiSd));
+      var useCold = teleLog !== undefined && (!alpha.afterBasmala || (onPage && C.wordOf[sd > 0 ? sd - 1 : sd] === 0));
+      var pageBoost = onPage ? 1.8 : 0;
+      var c0 = (useCold && hPrev && sd > 0) ? emis(C, hPrev, sd - 1)
              : (midStart && sd > 0 && C.wordOf[sd - 1] === 0 && words[sd - 1] === hPrev && words[sd] === h) ? CFG.E_MAX : 0;
-      add(sd, t + pageBoost + (c0 > 0 ? c0 : 0) + emis(C, h, sd));
+      add(sd, (useCold ? tCold : tBase) + pageBoost + (c0 > 0 ? c0 : 0) + emis(C, h, sd));
     }
   }
   // beam
@@ -486,6 +495,15 @@ function openerPush(st, w) {
   for (;;) {
     var n = st.hold.length;
     if (!n) return released;
+    // hold 1..3 word prefixes of Basmala so partial «بسم الله» never steps onto a nearby «الله»
+    if (n <= BASMALA.length) {
+      var bOk = true;
+      for (var b = 0; b < n; b++) if (wordSim(st.hold[b], BASMALA[b]) < 0.75) { bOk = false; break; }
+      if (bOk) {
+        if (n === BASMALA.length) { var fullB = st.hold; st.hold = []; return released.concat(fullB); }
+        return released;
+      }
+    }
     var full = false, prefix = false;
     for (var o = 0; o < OPENERS.length; o++) {
       var P = OPENERS[o];
@@ -511,7 +529,7 @@ function heldMatchesActivePath(C, alpha, hold, prev) {
   var w0 = hold[0], match = false;
   alpha.forEach(function (v, g) {
     if (match || v < -2.5) return;
-    if (g + 1 < C.L && C.words[g + 1] === w0) match = true;
+    if (g + 1 < C.L && !C.virt[g + 1] && C.words[g + 1] === w0) match = true;
     else if (g >= 0 && C.basmalaSkip[g] !== undefined && C.words[C.basmalaSkip[g]] === w0) match = true;
   });
   return match;
@@ -562,7 +580,9 @@ Tracker.prototype.setPriorAt = function (ayahIdx, wordIdx) {
 };
 Tracker.prototype._feed = function (alpha, w, prev, step) {
   if (!alpha.size) alpha = new Map([[-1, 0]]);
+  if (step === 0 && w === 'بسم' && this.coldUntil > 0) this.coldUntil = Math.max(this.coldUntil, CFG.COLD_WORDS + 4);
   var tl = step < this.coldUntil ? Math.log(CFG.COLD_TELEPORT) : undefined;
+  alpha.afterBasmala = step >= 4 && step < this.coldUntil;
   return stepAlpha(this.C, alpha, w, prev, this.priorSet, tl);
 };
 /* commit words (final results) */
@@ -738,15 +758,21 @@ function setStatus(text) {
 /* -> { status, m } ; m = what the highlight should show (null = hold) */
 function decide(res, tentative) {
   if (res.lost) return { status: 'لم أتعرف على التلاوة بعد... تابع القراءة' };
+  if (res.basmala || res.ayahIdx === 0 ||
+      (res.ayah && res.ayah.sura === 27 && res.ayah.aya === 30 && res.wordIdx >= 4 &&
+       UI.lastAyah !== res.ayahIdx && UI.lastAyah !== res.ayahIdx - 1)) {
+    return { status: 'البسملة... تابع التلاوة' };
+  }
   if (res.conf < CFG.SHOW_CONF) return { status: 'أتحقق من الموضع...' };
   // the first position of a session: many places share the first words
   // («الم», «يا ايها الذين امنوا», 15:36-42 = 38:79-85): wait until the heard
   // words single out one of them
   if (UI.lastPos < 0) {
-    var uPost = (res.lastSim === 1 && CORPUS && res.pos >= 0 && CORPUS.uni.get(CORPUS.words[res.pos])) || null;
-    var bPost = (res.lastSim >= 0.85 && CORPUS && res.pos > 0 && CORPUS.bi.get(CORPUS.words[res.pos - 1] + ' ' + CORPUS.words[res.pos])) || null;
+    var uPost = (res.lastSim === 1 && CORPUS && res.pos >= 0 && CORPUS.ayahs[res.ayahIdx].wordCount === 1 && CORPUS.uni.get(CORPUS.words[res.pos])) || null;
+    var bPost = (res.lastSim >= 0.85 && CORPUS && res.pos > 0 && CORPUS.words[res.pos].length >= 3 && CORPUS.bi.get(CORPUS.words[res.pos - 1] + ' ' + CORPUS.words[res.pos])) || null;
     var onOpenPage = !!(TRACKER && TRACKER.priorSet && TRACKER.priorSet.has(res.ayahIdx));
-    var needRun = (uPost && uPost.length === 1) ? 1 : CFG.FIRST_RUN;
+    var isOpeningBi = !!(bPost && bPost.length === 1 && CORPUS.wordOf[res.pos] === 1 && res.conf >= 0.85);
+    var needRun = ((uPost && uPost.length === 1) || isOpeningBi) ? 1 : CFG.FIRST_RUN;
     var needConf = (bPost && bPost.length === 1 && (res.goodRun || 0) >= 2) ? 0.60
                  : (onOpenPage && (res.goodRun || 0) >= 2) ? 0.68 : CFG.FIRST_CONF;
     if (res.conf < needConf || (res.goodRun || 0) < needRun) return { status: 'أتحقق من الموضع...' };
@@ -783,11 +809,11 @@ function decide(res, tentative) {
 function paintAtPos(p, baseM) {
   UI.paintedPos = p;
   var ai = CORPUS.ayahOf[p], ay = CORPUS.ayahs[ai];
-  var wIdx = CORPUS.isBasmala[p] ? -1 : CORPUS.wordOf[p];
+  var wIdx = CORPUS.virt[p] ? -1 : CORPUS.wordOf[p];
   var m = (p === baseM.pos) ? baseM : {
     bestIdx: ai, bestAyah: ay, activeWordIdx: wIdx, pos: p,
     score: baseM.score, baseScore: baseM.baseScore, confidence: baseM.confidence,
-    isJump: false, tentative: baseM.tentative, basmala: !!CORPUS.isBasmala[p]
+    isJump: false, tentative: baseM.tentative, basmala: !!CORPUS.virt[p]
   };
   try { onVoiceAyahDetected(m, null); } catch (e) { log('ui err', e); }
 }
@@ -807,7 +833,7 @@ function paint(d, transcript) {
   var steps = [];
   if (UI.paintedPos >= 0 && !d.m.isJump && targetPos > UI.paintedPos && targetPos - UI.paintedPos <= 10) {
     for (var p = UI.paintedPos + 1; p <= targetPos; p++) {
-      if (!CORPUS.isBasmala[p] || p === targetPos) steps.push(p);
+      if (!CORPUS.virt[p] || p === targetPos) steps.push(p);
     }
   } else if ((UI.paintedPos < 0 || d.m.isJump) && d.m.activeWordIdx > 0 && d.m.activeWordIdx <= 4) {
     var f0 = CORPUS.ayahFirst[d.m.bestIdx];

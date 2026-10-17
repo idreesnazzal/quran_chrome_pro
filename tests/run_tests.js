@@ -266,6 +266,17 @@ console.log('live-mic-fixes (v3.2.0)');
   e.start(1);
   e.event({ results: [{ t: 'الم نشرح', fin: false }], resultIndex: 0 });
   check('unique 2-word bigram «ألم نشرح» unlocks on word 2 -> 94:1#2', at(e.shown(), 94, 1, 2), where(e.shown()));
+  const r18 = live(1, ['اعوذ بالله من الشيطان الرجيم', 'بسم الل الرحمن الرحيم'], { hl: { sura: 1, aya: 1 } });
+  check('isti\'adha + «بسم الل الرحمن الرحيم» on Page 1 never moves or highlights any ayah', r18.seen.every(s => s === null), where(r18.last));
+  const r19 = live(604, ['قل هو الله احد', 'اعوذ بالله من الشيطان الرجيم', 'بسم الل الرحمن الرحيم']);
+  check('mid-session isti\'adha + «بسم الل الرحمن الرحيم» after 112:1 stays on 112:1#4 (no move to 112:2 or 113:1)',
+    at(r19.last, 112, 1, 4) && !everAt(r19.seen, 112, 2) && !everAt(r19.seen, 113, 1), where(r19.last));
+  const r20 = live(pageOf(2, 255), ['اعوذ بالله من الشيطان الرجيم', 'بسم الل الرحمن الرحيم', 'الله لا اله الا هو الحي القيوم']);
+  check('isti\'adha + «بسم الل الرحمن الرحيم» + Ayat al-Kursi on Page 42 -> 2:255#7', at(r20.last, 2, 255, 7), where(r20.last));
+  const r21 = live(pageOf(27, 29), [ayahText(27, 29), ayahText(27, 30)]);
+  check('27:30 «إنه من سليمان وإنه بسم الله الرحمن الرحيم» in context IS followed -> 27:30#8', at(r21.last, 27, 30, 8), where(r21.last));
+  const r22 = live(1, ['يا سماء فطرت', 'واذا الكواكب انتثرت', 'واذا البحار فجرت', 'علمت']);
+  check('ASR «يا سماء فطرت» (for «إذا السماء انفطرت») + 82:2..4 -> 82:5#1', at(r22.last, 82, 5, 1) && !everAt(r22.seen, 38, 1), where(r22.last));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
