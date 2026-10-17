@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.3.2-hmm+wait-until-unique';
+var RECITE_VERSION = '3.3.4-hmm+wait-until-unique';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -660,9 +660,12 @@ Tracker.prototype.peek = function (words) {
       gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
       prev = st.hold[hIdx];
     }
-  } else if (!st.hold.length && cache.length >= 2 && alpha.rawBest < 0 && cache[cache.length - 2].alpha.rawBest >= 0) {
+  } else if (!st.hold.length && cache.length >= 2 && words[words.length - 1].length <= 2 &&
+             alpha.rawBest < 0 && cache[cache.length - 2].alpha.rawBest >= 0) {
     // In live interim speech, the last token is often a partial syllable still
-    // being uttered; if it degraded the path, emit the completed words before it.
+    // being uttered («رب ع»); if it degraded the path, emit the completed words
+    // before it. Only a 1-2 letter fragment: a whole misheard word must count
+    // (applied to every bad word it doubled wrong highlights, 4.0% -> 8.7%).
     var prevEntry = cache[cache.length - 2];
     return this._result(prevEntry.alpha, prevEntry.gains, prevEntry.prev);
   }
