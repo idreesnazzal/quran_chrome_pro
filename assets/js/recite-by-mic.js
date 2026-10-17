@@ -397,6 +397,9 @@ function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
     // surah end -> skip the next surah's basmala
     var bs = C.basmalaSkip[g];
     if (bs !== undefined && bs < L) add(bs, a + LOG.bskip + emis(C, h, bs));
+    else if (g + 1 < L && C.basmalaSkip[g + 1] !== undefined && C.basmalaSkip[g + 1] < L) {
+      add(C.basmalaSkip[g + 1], a - 1.9 + emis(C, h, C.basmalaSkip[g + 1]));
+    }
     if (g >= 0) {
       add(g, a + LOG.repeat + emis(C, h, g));            // repeated word
       for (var k = 1; k <= 8 && g - k >= 0; k++) {        // restart a few words back
@@ -405,6 +408,12 @@ function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
       var ai = C.ayahOf[g];
       var f0 = C.ayahFirst[ai];
       if (g - f0 > 8) add(f0, a + LOG.ayahStart + emis(C, h, f0)); // restart the ayah
+      // smooth transition to the immediate next ayah even if ASR clipped 1-3 words at the waqf pause
+      var rem = C.ayahLast[ai] - g;
+      if (rem >= 1 && rem <= 3 && ai + 1 < C.ayahs.length) {
+        var fNext = C.ayahFirst[ai + 1];
+        if (fNext < L) add(fNext, a + (rem === 1 ? -1.7 : -2.3) + emis(C, h, fNext));
+      }
     }
     add(g, a + LOG.garbage);                               // not Quran text
   });
@@ -631,6 +640,11 @@ Tracker.prototype.peek = function (words) {
       gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
       prev = st.hold[hIdx];
     }
+  } else if (!st.hold.length && cache.length >= 2 && alpha.rawBest < 0 && cache[cache.length - 2].alpha.rawBest >= 0) {
+    // In live interim speech, the last token is often a partial syllable still
+    // being uttered; if it degraded the path, emit the completed words before it.
+    var prevEntry = cache[cache.length - 2];
+    return this._result(prevEntry.alpha, prevEntry.gains, prevEntry.prev);
   }
   return this._result(alpha, gains, prev);
 };
@@ -699,7 +713,7 @@ function ayahsOnPages(pages) {
 }
 
 /* ---------- UI bridge: tracker result -> kept index.html UI ---------- */
-var UI = { lastPos: -1, lastAyah: -1, lastWord: -2, pendingPage: -1, autoPage: -1, raf: 0, queued: null };
+var UI = { lastPos: -1, lastAyah: -1, lastWord: -2, paintedPos: -1, stepT: 0, pendingPage: -1, autoPage: -1, raf: 0, queued: null };
 
 /* decide synchronously (testable in Node), paint on the next frame */
 function emit(res, transcript, tentative) {
@@ -730,8 +744,12 @@ function decide(res, tentative) {
   // words single out one of them
   if (UI.lastPos < 0) {
     var uPost = (res.lastSim === 1 && CORPUS && res.pos >= 0 && CORPUS.uni.get(CORPUS.words[res.pos])) || null;
+    var bPost = (res.lastSim >= 0.85 && CORPUS && res.pos > 0 && CORPUS.bi.get(CORPUS.words[res.pos - 1] + ' ' + CORPUS.words[res.pos])) || null;
+    var onOpenPage = !!(TRACKER && TRACKER.priorSet && TRACKER.priorSet.has(res.ayahIdx));
     var needRun = (uPost && uPost.length === 1) ? 1 : CFG.FIRST_RUN;
-    if (res.conf < CFG.FIRST_CONF || (res.goodRun || 0) < needRun) return { status: 'أتحقق من الموضع...' };
+    var needConf = (bPost && bPost.length === 1 && (res.goodRun || 0) >= 2) ? 0.60
+                 : (onOpenPage && (res.goodRun || 0) >= 2) ? 0.68 : CFG.FIRST_CONF;
+    if (res.conf < needConf || (res.goodRun || 0) < needRun) return { status: 'أتحقق من الموضع...' };
   }
   var ay = res.ayah;
   // page turn hysteresis: a confident result turns at once, a medium one
@@ -750,22 +768,65 @@ function decide(res, tentative) {
   // either noise or the start of a jump; the next real words decide)
   // (also before the first shown word, except for a basmala opening the session)
   if ((UI.lastPos >= 0 || !res.basmala) && res.lastSim < CFG.WEAK_SIM) return { same: true };
-  // a far move (jump) needs a confident belief, not a 50/50 one
-  if (UI.lastPos >= 0 && Math.abs(res.pos - UI.lastPos) > 8 && res.conf < CFG.JUMP_CONF) return { status: 'أتحقق من الموضع...' };
+  // a far move (jump) needs a confident belief, not a 50/50 one; advancing
+  // within the same ayah or into the immediate next ayah is sequential reading
+  var isSeqAyah = UI.lastAyah >= 0 && (res.ayahIdx === UI.lastAyah || res.ayahIdx === UI.lastAyah + 1) && res.pos >= UI.lastPos;
+  if (UI.lastPos >= 0 && !isSeqAyah && Math.abs(res.pos - UI.lastPos) > 8 && res.conf < CFG.JUMP_CONF) return { status: 'أتحقق من الموضع...' };
   UI.lastPos = res.pos;
   var isJump = UI.lastAyah >= 0 && Math.abs(res.ayahIdx - UI.lastAyah) > 3;
   UI.lastAyah = res.ayahIdx; UI.lastWord = wordIdx;
-  return { m: { bestIdx: res.ayahIdx, bestAyah: ay, activeWordIdx: wordIdx,
+  return { m: { bestIdx: res.ayahIdx, bestAyah: ay, activeWordIdx: wordIdx, pos: res.pos,
     score: res.conf, baseScore: res.conf, confidence: Math.round(res.conf * 100),
     isJump: isJump, tentative: !!tentative, basmala: res.basmala } };
+}
+
+function paintAtPos(p, baseM) {
+  UI.paintedPos = p;
+  var ai = CORPUS.ayahOf[p], ay = CORPUS.ayahs[ai];
+  var wIdx = CORPUS.isBasmala[p] ? -1 : CORPUS.wordOf[p];
+  var m = (p === baseM.pos) ? baseM : {
+    bestIdx: ai, bestAyah: ay, activeWordIdx: wIdx, pos: p,
+    score: baseM.score, baseScore: baseM.baseScore, confidence: baseM.confidence,
+    isJump: false, tentative: baseM.tentative, basmala: !!CORPUS.isBasmala[p]
+  };
+  try { onVoiceAyahDetected(m, null); } catch (e) { log('ui err', e); }
 }
 
 function paint(d, transcript) {
   showTranscript(transcript);
   if (d.status) setStatus(d.status);
   if (!d.m) return;
-  try { onVoiceAyahDetected(d.m, null); } catch (e) { log('ui err', e); }
+  clearTimeout(UI.stepT); UI.stepT = 0;
+  var targetPos = d.m.pos;
+  if (!CORPUS || targetPos === undefined || targetPos < 0 || d.m.basmala) {
+    UI.paintedPos = targetPos !== undefined ? targetPos : -1;
+    try { onVoiceAyahDetected(d.m, null); } catch (e) { log('ui err', e); }
+    if (!d.m.isJump) setStatus(d.m.basmala ? 'البسملة... تابع' : 'متابعة التسميع جارية... 🎙️');
+    return;
+  }
+  var steps = [];
+  if (UI.paintedPos >= 0 && !d.m.isJump && targetPos > UI.paintedPos && targetPos - UI.paintedPos <= 10) {
+    for (var p = UI.paintedPos + 1; p <= targetPos; p++) {
+      if (!CORPUS.isBasmala[p] || p === targetPos) steps.push(p);
+    }
+  } else if ((UI.paintedPos < 0 || d.m.isJump) && d.m.activeWordIdx > 0 && d.m.activeWordIdx <= 4) {
+    var f0 = CORPUS.ayahFirst[d.m.bestIdx];
+    for (var p0 = f0; p0 <= targetPos; p0++) steps.push(p0);
+  } else {
+    steps.push(targetPos);
+  }
+  paintAtPos(steps[0], d.m);
   if (!d.m.isJump) setStatus(d.m.basmala ? 'البسملة... تابع' : 'متابعة التسميع جارية... 🎙️');
+  if (steps.length > 1) {
+    var idx = 1, baseM = d.m;
+    var tick = function () {
+      if (idx >= steps.length) { UI.stepT = 0; return; }
+      paintAtPos(steps[idx++], baseM);
+      if (idx < steps.length) UI.stepT = setTimeout(tick, 48);
+      else UI.stepT = 0;
+    };
+    UI.stepT = setTimeout(tick, 48);
+  }
 }
 
 function showTranscript(words) {
@@ -1099,7 +1160,7 @@ function startVoiceRecitation() {
       if (CORPUS.ayahs[i].sura === hl.sura && CORPUS.ayahs[i].aya === hl.aya) { TRACKER.setPrior([i], 30); break; }
     }
   }
-  UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1; UI.autoPage = -1;
+  UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.paintedPos = -1; clearTimeout(UI.stepT); UI.stepT = 0; UI.pendingPage = -1; UI.autoPage = -1;
   S.active = true; S.heard = []; S.heardRaw = []; S.noSpeech = 0; S.aborts = []; S.backoff = 0; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
   clearTimeout(HEAR.timer); HEAR.speechAt = 0; HEAR.words = false; HEAR.offered = false;
   evlogStart();
@@ -1197,6 +1258,7 @@ function stopVoiceRecitation() {
   S.active = false;
   sv('isVoiceReciteActive', false);
   clearTimeout(S.restartT);
+  clearTimeout(UI.stepT); UI.stepT = 0;
   try { if (S.rec) S.rec.stop(); } catch (e) {}
   serverStop();
   lwStopCapture();
@@ -1304,8 +1366,8 @@ var ENGINE_SRC = (HAS_DOM && document.currentScript && document.currentScript.sr
 
 function earsPref() {
   try {
-    if (localStorage.getItem('recite_ears_v') !== '2') {
-      localStorage.setItem('recite_ears_v', '2');
+    if (localStorage.getItem('recite_ears_v') !== '3') {
+      localStorage.setItem('recite_ears_v', '3');
       localStorage.setItem('recite_ears', 'browser');
     }
     return localStorage.getItem('recite_ears') || 'browser';
@@ -1712,7 +1774,7 @@ function simulateVoiceRecitation(text) {
     if (ds) ds.textContent = 'لم يتم العثور على موضع مطابق لـ "' + text + '"';
     return null;
   }
-  UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.pendingPage = -1;
+  UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.paintedPos = res.pos; clearTimeout(UI.stepT); UI.stepT = 0; UI.pendingPage = -1;
   var keep = CFG.TURN_CONF, keepFC = CFG.FIRST_CONF, keepFR = CFG.FIRST_RUN;
   CFG.TURN_CONF = 0; CFG.FIRST_CONF = CFG.SHOW_CONF; CFG.FIRST_RUN = 1; // a typed query turns the page at once
   var d;

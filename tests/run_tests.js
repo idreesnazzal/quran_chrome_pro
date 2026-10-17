@@ -258,6 +258,14 @@ console.log('live-mic-fixes (v3.2.0)');
   check('mid-session jump starting with frequent word «قد أفلح المؤمنون» -> 23:1#3', at(r16.last, 23, 1, 3), where(r16.last));
   e.start(1); R.simulate('مدهامتان');
   check('simulator 1-word query «مدهامتان» paints lastShown -> 55:64', R.lastShown && R.lastShown.bestAyah.sura === 55 && R.lastShown.bestAyah.aya === 64);
+  e.start(1);
+  e.event({ results: [{ t: 'الحمد لله رب ع', fin: false }], resultIndex: 0 });
+  check('interim with trailing incomplete syllable «الحمد لله رب ع» highlights «رب» (1:2#3) immediately', at(e.shown(), 1, 2, 3), where(e.shown()));
+  const r17 = live(1, ['الحمد لله رب', 'الرحمن']);
+  check('clipped last word of ayah at waqf («الحمد لله رب» then «الرحمن») transitions immediately to 1:3#1', at(r17.last, 1, 3, 1), where(r17.last));
+  e.start(1);
+  e.event({ results: [{ t: 'الم نشرح', fin: false }], resultIndex: 0 });
+  check('unique 2-word bigram «ألم نشرح» unlocks on word 2 -> 94:1#2', at(e.shown(), 94, 1, 2), where(e.shown()));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
