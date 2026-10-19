@@ -87,5 +87,22 @@ muqatta'at as Chrome writes them (3.3.5, reader 2026-10-19)
   ok   «ياسين» on 36:1's page -> 36:1, «والقران الكريم» -> 36:2, «الا غرورا» never moves onto 36:4 «علي»
   ok   «الا» is not like «علي» (no ع~ا / ي~ا phonetic pairs)
   ok   «ياسين» + «والقران الحكيم» -> 36:2
+review agents' findings, reproduced then fixed (3.3.7)
+  ok   after 112:1, reciting 2:255 one word per final never shows 112:3 («لا»~«لم» is a half match)
+  ok   after 112:1, «السلام عليكم» does not move the highlight into 112:2
+  ok   an interim of a stopped session is not committed into the next one
+  ok   onend drops a trailing fragment that is no word («… احد ر»)
+  ok   setPrior (page turned by hand) invalidates the peek cache
+  ok   a tentative basmala does not change the session's cold-start window
+  ok   27:30 «انه من سليمان وانه بسم الله الرحمن الرحيم» in ONE final is highlighted
+  ok   a lone basmala still never goes to 27:30
+  ok   typed search «الحمد لله رب العالمين» finds an ayah (was null)
+  ok   typed search of an off-Quran sentence still finds nothing
+  ok   40:10: «الله اكبر» inside one final is Quran text (all 3 words counted)
+  ok   29:45: «الله اكبر» inside one final is Quran text (all 4 words counted)
+  ok   9:72: «الله اكبر» inside one final is Quran text (all 3 words counted)
+  ok   26:107 «اني لكم رسول امين»: the Quran word «امين» is followed (not swallowed as آمين)
+  ok   after a restart, Android's re-sent previous final is not committed twice
+  ok   100 letter names in one interim tokenize in < 500 ms (was 1.3 s)
 
-81 passed, 0 failed
+97 passed, 0 failed

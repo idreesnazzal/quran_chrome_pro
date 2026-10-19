@@ -38,7 +38,7 @@ The Quran is read as **one word sequence**. That is 77,797 data words, plus a vi
   - for a spelling that never occurs in the text, a fuzzy match (sim ≥ 0.8) against the vocabulary.
 
   The teleport mass is split across the seeds. A common word therefore barely teleports, and a rare one does.
-- **Inference.** The forward algorithm runs in log space with a beam of 96 states. One step costs about 1 ms.
+- **Inference.** The forward algorithm runs in log space with a beam of 96 states. One step costs about 2 ms (p50 of a heard word, benchmark).
 - **Answer.** The answer is the best state. **Confidence** is the posterior mass within ±3 words of it. It is a real probability, and the table below shows it is calibrated.
 
 ### What the model does without special cases
@@ -102,8 +102,8 @@ How the Quran model runs:
 - **Speed.** When served by `recite_server.py`, the page is cross-origin isolated (COOP `same-origin` and COEP `credentialless`). That allows multi-threaded WASM.
 - **Streaming** (`recite-by-mic.js`, the "local ears" section):
   1. The mic is captured at 16 kHz through an AudioWorklet.
-  2. An energy-based voice-activity detector with an adaptive noise floor splits speech into segments. A segment closes at a pause of 650 ms (a natural waqf), or is cut at 18 s.
-  3. While a segment grows, it is re-transcribed every 0.9 s. Words that two consecutive passes agree on are committed to the tracker; this is "local agreement" (as in whisper_streaming). The rest is shown as tentative.
+  2. An energy-based voice-activity detector with an adaptive noise floor splits speech into segments. A segment closes at a pause of 650 ms (a natural waqf), or is cut at 12 s (`MAX_SEG_S`).
+  3. While a segment grows, it is re-transcribed every 0.7 s (`INTERIM_MS`). Words that two consecutive passes agree on are committed to the tracker; this is "local agreement" (as in whisper_streaming). The rest is shown as tentative.
   4. At the pause, the whole segment is transcribed once more and the remainder is committed.
 - **Downloading.** While the model downloads, Chrome's recognizer keeps following the reader. When the model is ready, the source switches without restarting the session.
 

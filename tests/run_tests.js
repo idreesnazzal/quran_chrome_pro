@@ -312,5 +312,57 @@ console.log('muqatta\'at as Chrome writes them (3.3.5, reader 2026-10-19)');
   check('«ياسين» + «والقران الحكيم» -> 36:2', at(k7.last, 36, 2, 2), where(k7.last));
 }
 
+console.log('review agents\' findings, reproduced then fixed (3.3.7)');
+{
+  const S = R._session, rec = () => S.rec;
+  const w255 = ayahText(2, 255).split(' ');
+  const a1 = live(604, ['قل هو الله احد'].concat(w255.slice(0, 8)));
+  check('after 112:1, reciting 2:255 one word per final never shows 112:3 («لا»~«لم» is a half match)', !everAt(a1.seen, 112, 3), where(a1.last));
+  const a2 = live(604, ['قل هو الله احد', 'السلام', 'عليكم']);
+  check('after 112:1, «السلام عليكم» does not move the highlight into 112:2', at(a2.last, 112, 1, 4), where(a2.last));
+  // stale interim must not cross a session
+  e.start(604); e.event({ results: [{ t: 'قل هو الله احد', fin: false }], resultIndex: 0 });
+  R.stop(); if (rec().onend) rec().onend();
+  e.start(1); if (rec().onend) rec().onend();
+  check('an interim of a stopped session is not committed into the next one', S.heard.length === 0 && e.shown() === null, S.heard.join(' '));
+  // a 1-2 letter fragment kept at a session end is dropped
+  e.start(604); e.event({ results: [{ t: 'قل هو الله احد ر', fin: false }], resultIndex: 0 }); if (rec().onend) rec().onend();
+  check('onend drops a trailing fragment that is no word («… احد ر»)', S.heard.join(' ') === 'قل هو الله احد', S.heard.join(' '));
+  // a new prior empties the peek cache; peek leaves the cold-start window alone
+  e.start(604); e.event({ results: [{ t: 'قل', fin: false }], resultIndex: 0 });
+  const T = R.tracker(); T.setPrior([idx(109, 1)], 50);
+  check('setPrior (page turned by hand) invalidates the peek cache', T.peekCache.length === 0, String(T.peekCache.length));
+  e.start(604); const T2 = R.tracker(), cu = T2.coldUntil; T2.peek(['بسم', 'الله', 'الرحمن', 'الرحيم']); T2.peek(['قل']);
+  check('a tentative basmala does not change the session\'s cold-start window', T2.coldUntil === cu, `${cu} -> ${T2.coldUntil}`);
+  // 27:30 heard whole
+  const f1 = live(pageOf(27, 30), [ayahText(27, 30)], { noInterim: true });
+  check('27:30 «انه من سليمان وانه بسم الله الرحمن الرحيم» in ONE final is highlighted', at(f1.last, 27, 30), where(f1.last));
+  const f2 = live(1, ['بسم الله الرحمن الرحيم'], { noInterim: true });
+  check('a lone basmala still never goes to 27:30', !everAt(f2.seen, 27, 30), where(f2.last));
+  // typed search
+  e.start(1); const g1 = R.simulate('الحمد لله رب العالمين');
+  check('typed search «الحمد لله رب العالمين» finds an ayah (was null)', !!g1 && g1.sura === 1 && g1.aya === 2, g1 ? g1.sura + ':' + g1.aya : 'null');
+  e.start(1); const g2 = R.simulate('سوف ارجع الى البيت واتصل بصديقي');
+  check('typed search of an off-Quran sentence still finds nothing', g2 === null, g2 ? g2.sura + ':' + g2.aya : 'null');
+  // opener words that are Quran text mid-session
+  for (const [s, a, k] of [[40, 10, 5], [29, 45, 14], [9, 72, 18]]) {
+    const w = ayahText(s, a).split(' '), i = w.indexOf('الله', k - 1);
+    e.start(pageOf(s, a)); const fins = [];
+    for (const x of w.slice(0, k)) { fins.push(x); e.event({ results: fins.map((t) => ({ t, fin: true })), resultIndex: fins.length - 1 }); }
+    const st0 = R.tracker().steps; fins.push(w.slice(k, i + 3).join(' '));
+    e.event({ results: fins.map((t) => ({ t, fin: true })), resultIndex: fins.length - 1 });
+    check(`${s}:${a}: «الله اكبر» inside one final is Quran text (all ${i + 3 - k} words counted)`, R.tracker().steps - st0 === i + 3 - k, `+${R.tracker().steps - st0}`);
+  }
+  const j1 = live(pageOf(26, 106), [ayahText(26, 106)].concat(ayahText(26, 107).split(' ')));
+  check('26:107 «اني لكم رسول امين»: the Quran word «امين» is followed (not swallowed as آمين)', at(j1.last, 26, 107, 4), where(j1.last));
+  // Android prefix re-send after a recogniser restart
+  e.start(604); e.event({ results: [{ t: 'قل هو الله احد', fin: true }], resultIndex: 0 });
+  if (rec().onend) rec().onend(); if (rec().onstart) rec().onstart();
+  e.event({ results: [{ t: 'قل هو الله احد الله الصمد', fin: true }], resultIndex: 0 });
+  check('after a restart, Android\'s re-sent previous final is not committed twice', S.heard.length === 6, S.heard.join(' '));
+  const t0 = Date.now(); R.tokenize(('ميم ').repeat(100));
+  check('100 letter names in one interim tokenize in < 500 ms (was 1.3 s)', Date.now() - t0 < 500, (Date.now() - t0) + ' ms');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

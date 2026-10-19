@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.3.6-hmm+wait-until-unique';
+var RECITE_VERSION = '3.3.7-hmm+wait-until-unique';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -80,6 +80,7 @@ var CFG = {
   COLD_WORDS: 2,         // reader may start anywhere, not only on the open page (the
                          // START is uncertain; 4 words let a misheard 3rd word jump away)
   WEAK_SIM: 0.5,         // highlight never moves onto a word the last heard word does not resemble
+  CROSS_SIM: 0.62,       // ...and never into ANOTHER ayah on a half match («لا»~«لم» 0.5 took 112:1 -> 112:3)
   TURN_CONF: 0.80,       // posterior that turns the page immediately
   TURN_CONF_2: 0.55,     // ...or this, on two consecutive updates
   DEBUG: false,
@@ -211,7 +212,7 @@ function spelledLetters(toks) {
     var best = null;
     for (var a = 0; a < run.length; a++) {
       var strongN = 0, letters = '';
-      for (var b = a; b < run.length; b++) {
+      for (var b = a; b < run.length && b - a < 8; b++) {   // longest opening 5 letters + slack (100 «ميم» took 1.3 s)
         letters += run[b].l; if (run[b].strong) strongN++;
         if (strongN < 2) continue;
         for (var q = 0; q < MUQ_TARGETS.length; q++) {
@@ -626,6 +627,16 @@ function heldMatchesActivePath(C, alpha, hold, prev) {
   return match;
 }
 
+/* The opener filter swallows «الله اكبر», «امين», «صدق الله العظيم», the
+ * isti'adha. Mid-session, a word the active path expects next is Quran text
+ * («ولذكر الله اكبر» 29:45 in one final lost 2 words; the word «امين» was
+ * swallowed at all 12 places, e.g. 26:107 «اني لكم رسول امين»). */
+var OPENER_FIRST = { 'الله': 1, 'امين': 1, 'صدق': 1, 'اعوذ': 1 };
+function openerBypass(C, alpha, st, w, prev) {
+  return !st.hold.length && prev !== null && prev !== undefined && OPENER_FIRST[w] === 1 &&
+    heldMatchesActivePath(C, alpha, [w], prev);
+}
+
 function Tracker(C) {
   this.C = C;
   this.reset();
@@ -643,6 +654,7 @@ Tracker.prototype.reset = function () {
 /* prior: ayah indexes the reader is likely to start at (current page...) */
 Tracker.prototype.setPrior = function (ayahIdxs, weight) {
   var C = this.C, a = new Map(), lw = Math.log(weight || 1);
+  this.peekCache = []; // the cached interim steps were computed from the old belief
   if (!this.priorSet) this.priorSet = new Set();
   for (var i = 0; i < ayahIdxs.length; i++) {
     var ai = ayahIdxs[i];
@@ -667,13 +679,17 @@ Tracker.prototype.setPriorAt = function (ayahIdx, wordIdx) {
   this.alpha = new Map();
   this.priorSet = new Set([ayahIdx]);
   this.coldUntil = 0; // an explicit anchor (word tapped): trust it
+  this.peekCache = [];
   this.alpha.set(C.ayahFirst[ayahIdx] + Math.max(-1, wordIdx | 0) , 0);
 };
-Tracker.prototype._feed = function (alpha, w, prev, step) {
+Tracker.prototype._feed = function (alpha, w, prev, step, cs) {
+  // cs: whose cold-start window to use/extend - the tracker (committed words)
+  // or a peek's private copy (a revised interim must not change the session)
+  cs = cs || this;
   if (!alpha.size) alpha = new Map([[-1, 0]]);
-  if (step === 0 && w === 'بسم' && this.coldUntil > 0) this.coldUntil = Math.max(this.coldUntil, CFG.COLD_WORDS + 4);
-  var tl = step < this.coldUntil ? Math.log(CFG.COLD_TELEPORT) : undefined;
-  alpha.afterBasmala = step >= 4 && step < this.coldUntil;
+  if (step === 0 && w === 'بسم' && cs.coldUntil > 0) cs.coldUntil = Math.max(cs.coldUntil, CFG.COLD_WORDS + 4);
+  var tl = step < cs.coldUntil ? Math.log(CFG.COLD_TELEPORT) : undefined;
+  alpha.afterBasmala = step >= 4 && step < cs.coldUntil;
   return stepAlpha(this.C, alpha, w, prev, this.priorSet, tl);
 };
 /* commit words (final results) */
@@ -688,7 +704,7 @@ Tracker.prototype.push = function (words) {
       continue;
     }
     this.opener.afterAllah = false;
-    var rel = openerPush(this.opener, words[i]);
+    var rel = openerBypass(this.C, this.alpha, this.opener, words[i], this.prev) ? [words[i]] : openerPush(this.opener, words[i]);
     for (var j = 0; j < rel.length; j++) {
       var before = this.alpha;
       var nx = this._feed(before, rel[j], this.prev, this.steps);
@@ -734,20 +750,21 @@ Tracker.prototype.peek = function (words) {
   while (k < words.length && k < cache.length && cache[k].w === words[k]) k++;
   cache.length = k;
   var base = k ? cache[k - 1] : { alpha: this.alpha, prev: this.prev,
-    hold: this.opener.hold, gains: this.gains, steps: this.steps };
+    hold: this.opener.hold, gains: this.gains, steps: this.steps, cu: this.coldUntil };
   var alpha = base.alpha, prev = base.prev, st = openerState(base.hold), gains = base.gains.slice(), steps = base.steps;
+  var cs = { coldUntil: base.cu };
   for (var i = k; i < words.length; i++) {
-    var rel = openerPush(st, words[i]);
+    var rel = openerBypass(this.C, alpha, st, words[i], prev) ? [words[i]] : openerPush(st, words[i]);
     for (var j = 0; j < rel.length; j++) {
-      alpha = this._feed(alpha, rel[j], prev, steps++);
+      alpha = this._feed(alpha, rel[j], prev, steps++, cs);
       gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
       prev = rel[j];
     }
-    cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice(), steps: steps });
+    cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice(), steps: steps, cu: cs.coldUntil });
   }
   if (st.hold.length && heldMatchesActivePath(this.C, alpha, st.hold, prev)) {
     for (var hIdx = 0; hIdx < st.hold.length; hIdx++) {
-      alpha = this._feed(alpha, st.hold[hIdx], prev, steps++);
+      alpha = this._feed(alpha, st.hold[hIdx], prev, steps++, cs);
       gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
       prev = st.hold[hIdx];
     }
@@ -846,15 +863,26 @@ function emit(res, transcript, tentative) {
 }
 
 function setStatus(text) {
-  try { var el = document.getElementById('voiceStatusText'); if (el) el.textContent = text; } catch (e) {}
+  try {
+    var el = document.getElementById('voiceStatusText'); if (el) el.textContent = text;
+    // voiceStatusText sits in a HUD that is never displayed: the reader saw no
+    // «أتحقق من الموضع...» while the engine waited, so waiting looked like a
+    // dead app. The dock's badge is visible; a paint overwrites it.
+    if (!/^متابعة التسميع/.test(text)) {
+      var b = document.getElementById('dockWordIndexBadge'); if (b) b.textContent = '⏳ ' + text;
+    }
+  } catch (e) {}
 }
+
+var RECENT_TOKS = []; // the last heard tokens (committed + tentative), for span tests in decide()
 
 /* -> { status, m } ; m = what the highlight should show (null = hold) */
 function decide(res, tentative) {
   if (res.lost) return { status: 'لم أتعرف على التلاوة بعد... تابع القراءة' };
   if (res.basmala || res.ayahIdx === 0 ||
       (res.ayah && res.ayah.sura === 27 && res.ayah.aya === 30 && res.wordIdx >= 4 &&
-       UI.lastAyah !== res.ayahIdx && UI.lastAyah !== res.ayahIdx - 1)) {
+       UI.lastAyah !== res.ayahIdx && UI.lastAyah !== res.ayahIdx - 1 &&
+       RECENT_TOKS.slice(-14).indexOf('سليمان') === -1)) {   // a whole-ayah final heard «سليمان»: it IS 27:30
     return { status: 'البسملة... تابع التلاوة' };
   }
   if (res.conf < CFG.SHOW_CONF) return { status: 'أتحقق من الموضع...' };
@@ -888,6 +916,9 @@ function decide(res, tentative) {
   // either noise or the start of a jump; the next real words decide)
   // (also before the first shown word, except for a basmala opening the session)
   if ((UI.lastPos >= 0 || !res.basmala) && res.lastSim < CFG.WEAK_SIM) return { same: true };
+  // into ANOTHER ayah only on a real match: the cheap «next» transition made a
+  // 0.5 match 84-93% sure (after 112:1, «السلام» -> 112:2, 2:255's «لا» -> 112:3)
+  if (UI.lastAyah >= 0 && res.ayahIdx !== UI.lastAyah && res.lastSim < CFG.CROSS_SIM) return { same: true };
   // a far move (jump) needs a confident belief, not a 50/50 one; advancing
   // within the same ayah or into the immediate next ayah is sequential reading
   var isSeqAyah = UI.lastAyah >= 0 && (res.ayahIdx === UI.lastAyah || res.ayahIdx === UI.lastAyah + 1) && res.pos >= UI.lastPos;
@@ -970,7 +1001,8 @@ function onUserPageCheck() {
   // the reader turned the page by hand mid-session: they want to recite it
   var p = gv('currentPage', 1);
   if (p !== S.userPage) {
-    if (S.userPage !== -1 && p !== UI.autoPage) TRACKER.setPrior(ayahsOnPages(visiblePages()), 50);
+    // (double-page mode: an auto-turn to 42 sets currentPage 41, the spread's right page)
+    if (S.userPage !== -1 && p !== UI.autoPage && visiblePages().indexOf(UI.autoPage) === -1) TRACKER.setPrior(ayahsOnPages(visiblePages()), 50);
     S.userPage = p;
   }
 }
@@ -987,6 +1019,7 @@ function commitWords(words, raw) {
   onUserPageCheck();
   S.heard = S.heard.concat(words).slice(-200);
   S.heardRaw = (S.heardRaw || []).concat(rawFor(words, raw)).slice(-200);
+  RECENT_TOKS = S.heard.slice(-30);
   emit(TRACKER.push(words), S.heardRaw, false);
 }
 
@@ -994,6 +1027,7 @@ function tentativeWords(words, raw) {
   if (!TRACKER) return;
   onUserPageCheck();
   if (!words.length) return;
+  RECENT_TOKS = S.heard.concat(words).slice(-30);
   emit(TRACKER.peek(words), (S.heardRaw || []).concat(rawFor(words, raw)), true);
 }
 
@@ -1281,14 +1315,17 @@ function startVoiceRecitation() {
     }
   }
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.paintedPos = -1; clearTimeout(UI.stepT); UI.stepT = 0; UI.pendingPage = -1; UI.autoPage = -1;
+  S.lastInterim = []; S.lastInterimRaw = []; RECENT_TOKS = []; // nothing crosses a session
   S.active = true; S.heard = []; S.heardRaw = []; S.noSpeech = 0; S.aborts = []; S.backoff = 0; S.finalIdx = 0; S.lastFinal = []; S.userPage = gv('currentPage', 1);
   clearTimeout(HEAR.timer); HEAR.speechAt = 0; HEAR.words = false; HEAR.offered = false;
   evlogStart();
-  // diagnostics only if nothing arrives: a second capture next to Chrome's
-  // recogniser is avoided while it works
-  clearTimeout(MIC.lazyT);
   sv('isVoiceReciteActive', true);
   try { updateVoiceReciteUI(true); } catch (e) {}
+  if (HAS_DOM) {   // the old session's place and confidence must not stay on screen
+    [['dockAyahPill', 'بانتظار التلاوة...'], ['voiceDetectedTarget', 'بانتظار التلاوة...'], ['voiceDetectedConf', '']].forEach(function (x) {
+      var el = document.getElementById(x[0]); if (el) el.textContent = x[1];
+    });
+  }
   setStatus('ابدأ التلاوة من أي موضع...');
   // ONE ears at a time: the in-browser Quran model if chosen, else the
   // Whisper server if it is up, else the browser recogniser
@@ -1308,7 +1345,10 @@ function browserStart(SR) {
     // (Chrome 154's `quality` is left at its default: the version that worked
     //  on the reader's machine never set it)
     rec.onstart = function () {
-      S.running = true; S.finalIdx = 0; S.lastFinal = []; // indexes restart per session
+      // result indexes restart with every recogniser session; lastFinal does NOT:
+      // Android re-sends the previous final after a restart too (it was reset
+      // here, so the prefix was committed twice). Reset in startVoiceRecitation.
+      S.running = true; S.finalIdx = 0;
       try { hideMicDisconnectedWarning(); } catch (e) {}
       try { updateVoiceReciteUI(true); } catch (e) {}
       evlog('start');
@@ -1353,9 +1393,16 @@ function browserStart(SR) {
     rec.onend = function () {
       evlog('end');
       S.running = false;
-      if (!S.active) { try { updateVoiceReciteUI(false); } catch (x) {} return; }
+      if (!S.active) { S.lastInterim = []; S.lastInterimRaw = []; try { updateVoiceReciteUI(false); } catch (x) {} return; }
       clearTimeout(S.restartT);
-      if (S.lastInterim && S.lastInterim.length) { commitWords(S.lastInterim, S.lastInterimRaw); S.lastInterim = []; S.lastInterimRaw = []; }
+      if (S.lastInterim && S.lastInterim.length) {
+        // a trailing 1-2 letter fragment that is no word of the text («… احد ر»)
+        // was cut mid-word by the session end: drop it (peek already ignores it)
+        var li = S.lastInterim.slice(), lr = (S.lastInterimRaw || []).slice(), lt = li[li.length - 1];
+        if (lt && lt.length <= 2 && CORPUS && !CORPUS.uni.has(lt)) { li.pop(); if (lr.length === li.length + 1) lr.pop(); }
+        if (li.length) commitWords(li, lr);
+        S.lastInterim = []; S.lastInterimRaw = [];
+      }
       var wait = S.backoff || 30; S.backoff = 0;
       S.restartT = setTimeout(function () {
         if (S.active && !S.running && S.ears === 'browser') {
@@ -1376,6 +1423,7 @@ function browserStart(SR) {
 
 function stopVoiceRecitation() {
   S.active = false;
+  S.lastInterim = []; S.lastInterimRaw = [];
   sv('isVoiceReciteActive', false);
   clearTimeout(S.restartT);
   clearTimeout(UI.stepT); UI.stepT = 0;
@@ -1383,7 +1431,6 @@ function stopVoiceRecitation() {
   serverStop();
   lwStopCapture();
   micMonitorStop();
-  clearTimeout(MIC.lazyT);
   evlogStop();
   try { updateVoiceReciteUI(false); } catch (e) {}
 }
@@ -1882,6 +1929,17 @@ function oneShot(text, priorAyahs) {
   } finally { CFG.TELEPORT = keep; logs(); }
 }
 
+/* the real words ending at pos match the last tokens of a query (sim >= .8) */
+function pathMatches(pos, toks) {
+  var k = Math.min(toks.length, 4), g = pos;
+  for (var i = toks.length - 1; i >= toks.length - k; i--) {
+    while (g >= 0 && CORPUS.virt[g]) g--;
+    if (g < 0 || wordSim(toks[i], CORPUS.words[g]) < 0.8) return false;
+    g--;
+  }
+  return true;
+}
+
 function simulateVoiceRecitation(text) {
   if (!text) return null;
   buildVoiceRecitationIndex();
@@ -1889,16 +1947,22 @@ function simulateVoiceRecitation(text) {
   try { if (typeof openVoiceDock === 'function') openVoiceDock(); } catch (e) {}
   var res = oneShot(text, ayahsOnPages(visiblePages()));
   var toks = tokenize(text);
-  if (!res || res.lost || res.conf < CFG.SHOW_CONF) {
+  RECENT_TOKS = toks.slice(-30);
+  // search-mode teleport flattens the posterior over every copy of a common
+  // phrase («الحمد لله رب العالمين» is 6 places: 38%), so conf alone rejected
+  // it; a query of >= 2 words whose best path matches it word for word is found
+  var exact = !!(res && !res.lost && toks.length >= 2 && pathMatches(res.pos, toks));
+  if (!res || res.lost || (res.conf < CFG.SHOW_CONF && !exact)) {
     var ds = HAS_DOM && document.getElementById('dockSpeechText');
     if (ds) ds.textContent = 'لم يتم العثور على موضع مطابق لـ "' + text + '"';
     return null;
   }
   UI.lastPos = -1; UI.lastAyah = -1; UI.lastWord = -2; UI.paintedPos = res.pos; clearTimeout(UI.stepT); UI.stepT = 0; UI.pendingPage = -1;
-  var keep = CFG.TURN_CONF, keepFC = CFG.FIRST_CONF, keepFR = CFG.FIRST_RUN;
-  CFG.TURN_CONF = 0; CFG.FIRST_CONF = CFG.SHOW_CONF; CFG.FIRST_RUN = 1; // a typed query turns the page at once
+  var keep = CFG.TURN_CONF, keepFC = CFG.FIRST_CONF, keepFR = CFG.FIRST_RUN, keepSC = CFG.SHOW_CONF;
+  CFG.TURN_CONF = 0; CFG.FIRST_CONF = exact ? 0 : CFG.SHOW_CONF; CFG.FIRST_RUN = 1; // a typed query turns the page at once
+  if (exact) CFG.SHOW_CONF = 0;
   var d;
-  try { d = decide(res, false); } finally { CFG.TURN_CONF = keep; CFG.FIRST_CONF = keepFC; CFG.FIRST_RUN = keepFR; }
+  try { d = decide(res, false); } finally { CFG.TURN_CONF = keep; CFG.FIRST_CONF = keepFC; CFG.FIRST_RUN = keepFR; CFG.SHOW_CONF = keepSC; }
   API.lastResult = res; API.lastShown = (d && d.m) || API.lastShown;
   if (HAS_DOM) paint(d, toks);
   return { bestIdx: res.ayahIdx, score: res.conf, confidence: Math.round(res.conf * 100),
