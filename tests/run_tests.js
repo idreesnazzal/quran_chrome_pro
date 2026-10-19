@@ -302,6 +302,12 @@ console.log('muqatta\'at as Chrome writes them (3.3.5, reader 2026-10-19)');
   check('26:1-2 = 28:1-2 word for word: «طسم تلك ايات الكتاب المبين» waits (nothing shown)', k5.seen.every(s => s === null), where(k5.last));
   const k6 = live(pageOf(37, 129), [ayahText(37, 129), ayahText(37, 130)]);
   check('37:130 «سلام علي ال ياسين» in context stays in 37 (ياسين is not rewritten to يس)', at(k6.last, 37, 130, C.ayahs[idx(37, 130)].wordCount) && !everAt(k6.seen, 36, 1), where(k6.last));
+  // reader 2026-10-19 14:36 (page 440, where 36:1 starts): Chrome «ياسين» «والقران الكريم» «ياسين» «الا غرور» «الا غرورا»
+  const k8 = live(pageOf(36, 1), ['ياسين', 'والقران الكريم', 'ياسين', 'الا غرور', 'الا غرورا']);
+  check('«ياسين» on 36:1\'s page -> 36:1, «والقران الكريم» -> 36:2, «الا غرورا» never moves onto 36:4 «علي»',
+    everAt(k8.seen, 36, 1) && everAt(k8.seen, 36, 2) && !everAt(k8.seen, 36, 4) && !everAt(k8.seen, 37, 130), where(k8.last));
+  check('«الا» is not like «علي» (no ع~ا / ي~ا phonetic pairs)', R.wordSim ? R.wordSim('الا', 'علي') < 0.5 : true,
+    R.wordSim ? String(R.wordSim('الا', 'علي')) : '');
   const k7 = live(1, ['ياسين', 'والقران الحكيم']);
   check('«ياسين» + «والقران الحكيم» -> 36:2', at(k7.last, 36, 2, 2), where(k7.last));
 }

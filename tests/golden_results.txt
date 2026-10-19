@@ -84,6 +84,8 @@ muqatta'at as Chrome writes them (3.3.5, reader 2026-10-19)
   ok   «حا ميم» «عين سين قاف» «كذلك يوحي اليك» -> 42:3
   ok   26:1-2 = 28:1-2 word for word: «طسم تلك ايات الكتاب المبين» waits (nothing shown)
   ok   37:130 «سلام علي ال ياسين» in context stays in 37 (ياسين is not rewritten to يس)
+  ok   «ياسين» on 36:1's page -> 36:1, «والقران الكريم» -> 36:2, «الا غرورا» never moves onto 36:4 «علي»
+  ok   «الا» is not like «علي» (no ع~ا / ي~ا phonetic pairs)
   ok   «ياسين» + «والقران الحكيم» -> 36:2
 
-79 passed, 0 failed
+81 passed, 0 failed

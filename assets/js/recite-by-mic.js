@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.3.5-hmm+wait-until-unique';
+var RECITE_VERSION = '3.3.6-hmm+wait-until-unique';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -259,8 +259,10 @@ var PHON_FLAT = new Uint8Array(4096);
   for (var idx = 0; idx < 4096; idx++) PHON_FLAT[idx] = 100;
   var pairs = [
     'سص', 'تط', 'دض', 'ذز', 'ثس', 'قك', 'حه',
-    'عا', 'ظض', 'ظذ', 'ءا', 'دت', 'يا', 'بف'
+    'ظض', 'ظذ', 'ءا', 'دت', 'بف'
   ];
+  // not ع~ا / ي~ا: they made «الا» 70% like «علي» (reader 2026-10-19: «الا
+  // غرورا» moved the highlight onto 36:4 «علي»); Chrome writes standard words
   for (var p = 0; p < pairs.length; p++) {
     var c1 = pairs[p].charCodeAt(0) - 0x0620, c2 = pairs[p].charCodeAt(1) - 0x0620;
     if (c1 >= 0 && c1 < 64 && c2 >= 0 && c2 < 64) {
@@ -409,6 +411,7 @@ function unigramSeeds(C, h) {
   if (hit) return hit;
   var out = [];
   var u = C.uni.get(h);
+  if (u && h === 'ياسين') u = u.concat(C.uni.get('يس') || []); // 37:130 and 36:1 sound alike
   if (u) { if (u.length <= CFG.SEED_UNIGRAM_MAX) out = u.slice(); }
   else {
     var acc = [];
