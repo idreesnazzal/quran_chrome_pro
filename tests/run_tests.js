@@ -360,6 +360,10 @@ console.log('review agents\' findings, reproduced then fixed (3.3.7)');
   if (rec().onend) rec().onend(); if (rec().onstart) rec().onstart();
   e.event({ results: [{ t: 'قل هو الله احد الله الصمد', fin: true }], resultIndex: 0 });
   check('after a restart, Android\'s re-sent previous final is not committed twice', S.heard.length === 6, S.heard.join(' '));
+  // reader 2026-10-19 23:43, page 207 open, cold start at 99:7 (Chrome: «غره» for ذره, «يرى» for يره)
+  const z1 = live(207, ['مثقال غره خيرا يرى', 'فميان المتقاضره', 'شرا يرى']);
+  check('cold «مثقال غره خيرا يرى» … «شرا يرى» shows 99:7 then ends on 99:8 (was: nothing at all)', everAt(z1.seen, 99, 7) && at(z1.last, 99, 8, 6), where(z1.last));
+  check('«يرى» matches «يره» (a final ه read as ى)', R.wordSim('يري', 'يره') >= 0.8, String(R.wordSim('يري', 'يره')));
   const t0 = Date.now(); R.tokenize(('ميم ').repeat(100));
   check('100 letter names in one interim tokenize in < 500 ms (was 1.3 s)', Date.now() - t0 < 500, (Date.now() - t0) + ' ms');
 }

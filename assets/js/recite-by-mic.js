@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.3.7-hmm+wait-until-unique';
+var RECITE_VERSION = '3.3.8-hmm+wait-until-unique';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -75,6 +75,7 @@ var CFG = {
                          // let mid-session jumps land on twins: 3:116 vs 58:17, 26:105 vs 26:160)
   FIRST_CONF: 0.85,      // min posterior for the FIRST position of a session
   FIRST_RUN: 2,          // ...and that many good words in a row (shared openings: wait)
+  RUN_GAIN: 0.25,        // a "good" word for FIRST_RUN: its best-path log-gain (0.5 was too strict for Chrome's spelling)
   COLD_TELEPORT: 0.2,    // jump mass for the first COLD_WORDS words of a session: the
   MUQ_BOOST: 3.0,        // jump onto a surah opening heard as its muqatta'a letters (log)
   COLD_WORDS: 2,         // reader may start anywhere, not only on the open page (the
@@ -311,6 +312,11 @@ function wordSim(a, b) {
   // «ياسين» is also a word of the text (37:130 «سلام علي ال ياسين»): it is not
   // rewritten to «يس»; both spellings sound the same, so they match fully
   if ((a === 'ياسين' && b === 'يس') || (a === 'يس' && b === 'ياسين')) return 1;
+  // a final «ه» read at a pause sounds like «ى»: Chrome writes the plain verb
+  // «يرى» for 99:7-8 «يره» (reader 2026-10-19); same word but the last letter
+  var la = a.length;
+  if (la >= 3 && la === b.length && a.slice(0, -1) === b.slice(0, -1) &&
+      ((a[la - 1] === 'ي' && b[la - 1] === 'ه') || (a[la - 1] === 'ه' && b[la - 1] === 'ي'))) return 0.85;
   var m = Math.max(a.length, b.length);
   if (!m) return 0;
   if (Math.min(a.length, b.length) >= 4 &&
@@ -798,7 +804,11 @@ Tracker.prototype._result = function (alpha, gains, lastWord) {
   for (var i = 0; i < gains.length; i++) if (gains[i] < -1.0) bad++;
   for (var j = gains.length - 1; j >= 0 && gains[j] >= 0.5; j--) good++;
   s.lost = bad >= 3 && good < 2;
-  s.goodRun = good;
+  // the first-highlight gate counts words that fit, not only near-perfect
+  // ones: Chrome's spelling («غره» for ذره, sim 0.67) broke every run
+  var fit = 0;
+  for (var j2 = gains.length - 1; j2 >= 0 && gains[j2] >= CFG.RUN_GAIN; j2--) fit++;
+  s.goodRun = fit;
   s.lastGain = gains.length ? gains[gains.length - 1] : 0;
   return s;
 };
