@@ -48,7 +48,7 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.3.4-hmm+wait-until-unique';
+var RECITE_VERSION = '3.3.5-hmm+wait-until-unique';
 
 var CFG = {
   BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
@@ -76,6 +76,7 @@ var CFG = {
   FIRST_CONF: 0.85,      // min posterior for the FIRST position of a session
   FIRST_RUN: 2,          // ...and that many good words in a row (shared openings: wait)
   COLD_TELEPORT: 0.2,    // jump mass for the first COLD_WORDS words of a session: the
+  MUQ_BOOST: 3.0,        // jump onto a surah opening heard as its muqatta'a letters (log)
   COLD_WORDS: 2,         // reader may start anywhere, not only on the open page (the
                          // START is uncertain; 4 words let a misheard 3rd word jump away)
   WEAK_SIM: 0.5,         // highlight never moves onto a word the last heard word does not resemble
@@ -108,12 +109,14 @@ var MUQ = [
   ['الف لام ميم را', 'المر'], ['الف لام ميم', 'الم'], ['الف لام را', 'الر'],
   ['عين سين قاف', 'عسق'], ['طا سين ميم', 'طسم'], ['طا سين', 'طس'],
   ['حا ميم', 'حم'], ['طا ها', 'طه'], ['يا سين', 'يس'],
-  ['طاها', 'طه'], ['طها', 'طه'], ['ياسين', 'يس'], ['حاميم', 'حم'], ['طاسين', 'طس'],
+  ['طاها', 'طه'], ['طها', 'طه'], ['حاميم', 'حم'], ['طاسين', 'طس'],
   ['قاف', 'ق'], ['نون', 'ن'], ['صاد', 'ص'],
   ['ان عمت', 'انعمت'], ['ربي العالمين', 'رب العالمين'],
   ['عما يتساءلون', 'عم يتساءلون'], ['الحمدالله', 'الحمد لله'],
   ['ولالضالين', 'ولا الضالين'],
-  ['فانما العسر', 'فان مع العسر'], ['انما العسر', 'ان مع العسر']
+  ['فانما العسر', 'فان مع العسر'], ['انما العسر', 'ان مع العسر'],
+  ['الم را', 'المر'], ['الم راء', 'المر'], ['الم ر', 'المر'], ['الم صاد', 'المص'], ['الم ص', 'المص'],
+  ['حم عين سين قاف', 'حم عسق'], ['حم ع س ق', 'حم عسق']
 ].map(function (e) { return [normalizeArabic(e[0]).split(' '), normalizeArabic(e[1]).split(' ')]; });
 
 // Zero-collision MSA dictation spellings (0 occurrences in QURAN_DATA) -> Quranic orthography
@@ -130,7 +133,7 @@ var MSA_WORD_MAP = {
 function tokenize(text) {
   var n = normalizeArabic(text);
   if (!n) return [];
-  var t = n.split(' ');
+  var t = spelledLetters(n.split(' '));
   var out = [];
   for (var i = 0; i < t.length;) {
     var hit = null;
@@ -148,6 +151,83 @@ function tokenize(text) {
       var w = t[i++];
       out.push(MSA_WORD_MAP[w] || w);
     }
+  }
+  return out;
+}
+
+/* The muqatta'at as Chrome really writes them: broken letter names, not
+ * «كاف ها يا عين صاد» (reader, 2026-10-19: «كاف هاء عن ص», «اد ك ك ع ص»,
+ * «كافانا عن صاد» for كهيعص). Rebuild the letters of a run of letter names
+ * and match them to the openings, allowing a missing or wrong letter.
+ * STRONG names never occur alone in the text (or are single letters);
+ * WEAK ones are also words («عن» 223x, «يا» 350x), so a run needs >= 2
+ * strong names. tests/run_tests.js scans the whole Quran text: 0 hits. */
+var LETTER_STRONG = {}, LETTER_WEAK = {}, LETTER_PREFIX = [];
+(function () {
+  var strong = { 'الف': 'ا', 'لام': 'ل', 'ميم': 'م', 'راء': 'ر', 'صاد': 'ص', 'كاف': 'ك', 'هاء': 'ه',
+    'ياء': 'ي', 'عين': 'ع', 'سين': 'س', 'قاف': 'ق', 'نون': 'ن', 'طاء': 'ط', 'حاء': 'ح' };
+  'المرصكهيعسقنطح'.split('').forEach(function (c) { strong[c] = c; });
+  var weak = { 'كا': 'ك', 'ها': 'ه', 'يا': 'ي', 'عن': 'ع', 'را': 'ر', 'طا': 'ط', 'حا': 'ح', 'سي': 'س', 'مي': 'م' };
+  Object.keys(strong).forEach(function (k) { LETTER_STRONG[normalizeArabic(k)] = strong[k]; });
+  Object.keys(weak).forEach(function (k) { LETTER_WEAK[normalizeArabic(k)] = weak[k]; });
+  // a name fused with what follows («كافانا»): its first letter counts
+  ['كاف', 'صاد', 'سين', 'قاف', 'نون', 'ميم', 'لام'].forEach(function (k) { LETTER_PREFIX.push([k, strong[k]]); });
+})();
+var MUQ_OPENINGS = {};
+['المص', 'الر', 'المر', 'كهيعص', 'طه', 'طسم', 'طس', 'يس', 'حم', 'عسق', 'ص', 'ق', 'ن'].forEach(function (w) { MUQ_OPENINGS[w] = 1; });
+function muqSafe(C, h) {
+  if (!C.muqSafe) C.muqSafe = {};
+  if (C.muqSafe[h] === undefined) {
+    var safe = true;
+    C.uni.forEach(function (v, w) { if (safe && w !== h && w.indexOf(h) === 0) safe = false; });
+    C.muqSafe[h] = safe;
+  }
+  return C.muqSafe[h];
+}
+var MUQ_TARGETS = [ // letters -> corpus tokens
+  ['الم', ['الم']], ['المص', ['المص']], ['الر', ['الر']], ['المر', ['المر']], ['كهيعص', ['كهيعص']],
+  ['طه', ['طه']], ['طسم', ['طسم']], ['طس', ['طس']], ['يس', ['يس']], ['حم', ['حم']],
+  ['حمعسق', ['حم', 'عسق']], ['عسق', ['عسق']]
+];
+function letterOf(tok) {
+  if (LETTER_STRONG[tok]) return { l: LETTER_STRONG[tok], strong: true };
+  if (LETTER_WEAK[tok]) return { l: LETTER_WEAK[tok], strong: false };
+  for (var i = 0; i < LETTER_PREFIX.length; i++) {
+    var nm = LETTER_PREFIX[i][0];
+    if (tok.length > nm.length && tok.length <= nm.length + 3 && tok.indexOf(nm) === 0) {
+      var rest = tok.slice(nm.length), r2 = LETTER_STRONG[rest] || LETTER_WEAK[rest];
+      return { l: LETTER_PREFIX[i][1] + (r2 || ''), strong: true };
+    }
+  }
+  return null;
+}
+function spelledLetters(toks) {
+  var out = [], i = 0;
+  while (i < toks.length) {
+    var j = i, run = [];
+    while (j < toks.length) { var lo = letterOf(toks[j]); if (!lo) break; run.push(lo); j++; }
+    if (run.length < 2) { out.push(toks[i]); i++; continue; }
+    // best contiguous sub-run (>= 2 strong names) -> opening
+    var best = null;
+    for (var a = 0; a < run.length; a++) {
+      var strongN = 0, letters = '';
+      for (var b = a; b < run.length; b++) {
+        letters += run[b].l; if (run[b].strong) strongN++;
+        if (strongN < 2) continue;
+        for (var q = 0; q < MUQ_TARGETS.length; q++) {
+          var tg = MUQ_TARGETS[q][0], lim = tg.length >= 5 ? 2 : (tg.length >= 3 ? 1 : 0);
+          var d = lev(letters, tg);
+          if (d > lim) continue;
+          var sc = d * 10 - (b - a);  // closest, then longest
+          if (!best || sc < best.sc) best = { sc: sc, a: a, b: b, q: q, tie: false };
+          else if (sc === best.sc && q !== best.q) best.tie = true;
+        }
+      }
+    }
+    if (!best || best.tie) { out.push(toks[i]); i++; continue; }
+    for (var k = i; k < i + best.a; k++) out.push(toks[k]);
+    out.push.apply(out, MUQ_TARGETS[best.q][1]);
+    i = i + best.b + 1;
   }
   return out;
 }
@@ -225,6 +305,9 @@ function phonLev100(a, b) {
 
 function wordSim(a, b) {
   if (a === b) return 1;
+  // «ياسين» is also a word of the text (37:130 «سلام علي ال ياسين»): it is not
+  // rewritten to «يس»; both spellings sound the same, so they match fully
+  if ((a === 'ياسين' && b === 'يس') || (a === 'يس' && b === 'ياسين')) return 1;
   var m = Math.max(a.length, b.length);
   if (!m) return 0;
   if (Math.min(a.length, b.length) >= 4 &&
@@ -438,6 +521,11 @@ function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
       var onPage = !!(priorSet && priorSet.has(aiSd));
       var useCold = teleLog !== undefined && (!alpha.afterBasmala || (onPage && C.wordOf[sd > 0 ? sd - 1 : sd] === 0));
       var pageBoost = onPage ? 1.8 : 0;
+      // a muqatta'a rebuilt from several letter names is strong evidence of
+      // a surah opening, even mid-session (18:2 -> «كاف هاء عن ص» = 19:1).
+      // Only one that no other word starts with: Chrome's interim shows word
+      // fragments («اذ ق» on the way to «اذ قال» jumped to 50:1 «ق»)
+      if (MUQ_OPENINGS[h] && words[sd] === h && C.wordOf[sd] === 0 && muqSafe(C, h)) pageBoost += CFG.MUQ_BOOST;
       var c0 = (useCold && hPrev && sd > 0) ? emis(C, hPrev, sd - 1)
              : (midStart && sd > 0 && C.wordOf[sd - 1] === 0 && words[sd - 1] === hPrev && words[sd] === h) ? CFG.E_MAX : 0;
       add(sd, (useCold ? tCold : tBase) + pageBoost + (c0 > 0 ? c0 : 0) + emis(C, h, sd));

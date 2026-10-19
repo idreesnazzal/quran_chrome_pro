@@ -279,5 +279,32 @@ console.log('live-mic-fixes (v3.2.0)');
   check('ASR «يا سماء فطرت» (for «إذا السماء انفطرت») + 82:2..4 -> 82:5#1', at(r22.last, 82, 5, 1) && !everAt(r22.seen, 38, 1), where(r22.last));
 }
 
+console.log('muqatta\'at as Chrome writes them (3.3.5, reader 2026-10-19)');
+{
+  const tk = (t) => R.tokenize(t).join(' ');
+  const cases = [['كاف هاء عن ص', 'كهيعص'], ['اد ك ك ع ص', 'اد كهيعص'], ['كافانا عن صاد', 'كهيعص'], ['كاف ها يا عين صاد', 'كهيعص'],
+    ['الف لام ميم را', 'المر'], ['الف لام ميم راء', 'المر'], ['الف لام ميم ر', 'المر'], ['الم را', 'المر'], ['الف لام ميمرا', 'المر'], ['ا ل م ر', 'المر'],
+    ['الف لام ميم صاد', 'المص'], ['الف لام را', 'الر'], ['حا ميم عين سين قاف', 'حم عسق'], ['طا سين ميم', 'طسم'], ['طاء سين', 'طس'], ['ياء سين', 'يس']];
+  const bad = cases.filter(([t, want]) => tk(t) !== want);
+  check(`${cases.length} broken spellings rebuild the right muqatta'a`, !bad.length, bad.map(([t, w]) => t + ' -> ' + tk(t) + ' (want ' + w + ')').join('; '));
+  let changed = []; C.ayahs.forEach((a, i) => { const w = []; for (let g = C.ayahFirst[i]; g <= C.ayahLast[i]; g++) w.push(C.words[g]);
+    if (tk(w.join(' ')) !== w.join(' ')) changed.push(a.sura + ':' + a.aya); });
+  check('no ayah of the text is rewritten by tokenize() (letter rule, table, spellings)', !changed.length, changed.slice(0, 5).join(' '));
+  const k1 = live(1, ['كاف هاء عن ص', 'ذكر رحمه ربك عبده زكريا']);
+  check('cold «كاف هاء عن ص» + 19:2 -> 19:2#5', at(k1.last, 19, 2, 5), where(k1.last));
+  const k2 = live(pageOf(18, 1), ['الحمد لله الذي انزل علي عبده الكتاب ولم يجعل له عوجا', 'قيما ينبت كاف هاء عن ص']);
+  check('mid-session jump 18:2 -> «كاف هاء عن ص» shows 19:1 (reader\'s real session)', at(k2.last, 19, 1), where(k2.last));
+  const k3 = live(1, ['الف لام ميم راء', 'تلك ايات الكتاب']);
+  check('«الف لام ميم راء» + «تلك ايات الكتاب» -> 13:1 (المر is unique)', at(k3.last, 13, 1), where(k3.last));
+  const k4 = live(1, ['حا ميم', 'عين سين قاف', 'كذلك يوحي اليك']);
+  check('«حا ميم» «عين سين قاف» «كذلك يوحي اليك» -> 42:3', at(k4.last, 42, 3, 3), where(k4.last));
+  const k5 = live(1, ['طا سين ميم', 'تلك ايات الكتاب المبين']);
+  check('26:1-2 = 28:1-2 word for word: «طسم تلك ايات الكتاب المبين» waits (nothing shown)', k5.seen.every(s => s === null), where(k5.last));
+  const k6 = live(pageOf(37, 129), [ayahText(37, 129), ayahText(37, 130)]);
+  check('37:130 «سلام علي ال ياسين» in context stays in 37 (ياسين is not rewritten to يس)', at(k6.last, 37, 130, C.ayahs[idx(37, 130)].wordCount) && !everAt(k6.seen, 36, 1), where(k6.last));
+  const k7 = live(1, ['ياسين', 'والقران الحكيم']);
+  check('«ياسين» + «والقران الحكيم» -> 36:2', at(k7.last, 36, 2, 2), where(k7.last));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
