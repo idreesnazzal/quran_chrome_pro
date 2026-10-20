@@ -1292,25 +1292,27 @@
     }
 
     /* Floating Recitation Console / Dock */
+    /* In the page flow, right under the mushaf pages (moved there at load),
+       sticky at the bottom of the window while scrolling. As a fixed overlay
+       it covered the pages' last lines and the page could not scroll past it. */
     .voice-floating-dock {
-      position: fixed;
-      bottom: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 95%;
-      max-width: 900px;
+      position: sticky;
+      bottom: 10px;
+      width: 100%;
+      max-width: 980px;
+      margin: 14px auto 4px;
       background: var(--bg-card);
-      border: 1.5px solid var(--border-color);
-      border-radius: 18px;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
       z-index: 860;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       display: none;
       flex-direction: column;
       overflow: hidden;
       animation: slideUpDock 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-      transition: all 0.25s ease;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
     .voice-floating-dock.show {
@@ -1323,19 +1325,19 @@
     }
 
     @keyframes slideUpDock {
-      from { transform: translate(-50%, 25px); opacity: 0; }
-      to { transform: translate(-50%, 0); opacity: 1; }
+      from { transform: translateY(16px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
 
     .dock-header-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 16px;
+      padding: 8px 14px;
       background: var(--bg-primary);
       border-bottom: 1px solid var(--border-color);
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px 10px;
     }
 
     .dock-main-controls {
@@ -1424,11 +1426,11 @@
 
     /* Live Speech & Transcript row */
     .dock-speech-row {
-      padding: 8px 16px;
+      padding: 6px 14px;
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 0.9rem;
+      font-size: 0.86rem;
       border-bottom: 1px solid var(--border-color);
       background: rgba(0, 0, 0, 0.12);
     }
@@ -1451,15 +1453,17 @@
 
     /* Word-by-Word Karaoke Ribbon (شريط الكلمات التفاعلي) */
     .dock-karaoke-row {
-      padding: 10px 16px;
+      padding: 8px 14px 9px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       overflow-x: auto;
+      overflow-y: hidden;
       direction: rtl;
       scrollbar-width: thin;
       background: var(--bg-card);
-      min-height: 52px;
+      min-height: 50px;
+      scroll-padding-inline: 40px;
     }
 
     .dock-karaoke-row::-webkit-scrollbar {
@@ -1472,9 +1476,11 @@
     }
 
     .karaoke-word-chip {
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-size: 1.05rem;
+      padding: 4px 11px;
+      border-radius: 9px;
+      font-size: 1rem;
+      line-height: 1.6;
+      flex-shrink: 0;
       font-weight: 700;
       font-family: inherit;
       white-space: nowrap;
@@ -1492,13 +1498,11 @@
       color: #10b981;
     }
 
-    .karaoke-word-chip.active {
-      background: rgba(245, 158, 11, 0.25);
-      border: 2px solid #f59e0b;
+    .karaoke-word-chip.active {   /* no scale: it was cut by the row's overflow */
+      background: rgba(245, 158, 11, 0.22);
+      border: 1px solid #f59e0b;
       color: var(--gold-primary);
-      transform: scale(1.1);
-      box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
-      font-size: 1.15rem;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35);
     }
 
     .karaoke-word-chip.pending {
@@ -4039,6 +4043,10 @@
     const floatingMicLauncher = document.getElementById('floatingMicLauncher');
     const floatingMicLabel = document.getElementById('floatingMicLabel');
     const voiceFloatingDock = document.getElementById('voiceFloatingDock');
+    (function () {   // the dock lives under the mushaf pages (see .voice-floating-dock)
+      const spread = document.getElementById('bookSpreadContainer');
+      if (voiceFloatingDock && spread && spread.parentNode) spread.parentNode.insertBefore(voiceFloatingDock, spread.nextSibling);
+    })();
     const dockMainToggleBtn = document.getElementById('dockMainToggleBtn');
     const dockBtnIcon = document.getElementById('dockBtnIcon');
     const dockBtnText = document.getElementById('dockBtnText');
