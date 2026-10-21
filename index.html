@@ -3150,6 +3150,7 @@
     }
   </style>
   <link rel="stylesheet" href="assets/css/ayah-lists.css">
+  <link rel="stylesheet" href="assets/css/settings.css">
 </head>
 <body>
 
@@ -3174,7 +3175,13 @@
 
     <div class="header-actions">
       <!-- Lighting & Appearance Control -->
-      <div class="theme-menu-container" id="themeMenuContainer">
+      <button class="audio-toggle-btn" id="settingsBtn" title="الإعدادات: المظهر والسطوع، عرض المصحف، التلاوة، التسميع، التفسير والبحث">
+        <span>⚙️</span>
+        <span>الإعدادات</span>
+      </button>
+
+      <!-- the old «الإضاءة» menu: now inside ⚙️ الإعدادات (assets/js/settings.js) -->
+      <div class="theme-menu-container" id="themeMenuContainer" style="display: none;">
         <button class="theme-toggle-btn" id="themeMenuBtn" title="تغيير إضاءة ومظهر الموقع">
           <span id="themeBtnIcon">🌙</span>
           <span class="theme-btn-text">الإضاءة</span>
@@ -3471,8 +3478,8 @@
         <button class="nav-btn" id="nextPageBtn" title="الصفحة التالية">التالية ◀</button>
       </div>
 
-      <!-- View Mode Group: Single vs Two-Page Spread -->
-      <div class="controls-view-mode-group">
+      <!-- View Mode Group: Single vs Two-Page Spread (now in ⚙️ الإعدادات) -->
+      <div class="controls-view-mode-group" style="display: none;">
         <button class="view-mode-btn active" id="singlePageModeBtn" title="عرض صفحة واحدة">
           <span>📄</span>
           <span>صفحة واحدة</span>
@@ -3926,6 +3933,7 @@
   <script src="data/word_boxes.js"></script>
     <script src="assets/js/recite-by-mic.js"></script>
     <script src="assets/js/ayah-lists.js"></script>
+    <script src="assets/js/settings.js"></script>
   <script>
     // State
     let currentPage = 1;
@@ -4592,8 +4600,10 @@
 
       // Top Controls events
       pageNumberInput.addEventListener('change', () => {
+        const v = parseInt(pageNumberInput.value);
+        if (isNaN(v)) { pageNumberInput.value = currentPage; return; }   // emptied: stay (it jumped to page 1)
         clearAyahHighlight();
-        goToPage(parseInt(pageNumberInput.value) || 1);
+        goToPage(v);
       });
       prevPageBtn.addEventListener('click', () => handlePrevPageNavigation(false));
       nextPageBtn.addEventListener('click', () => handleNextPageNavigation(false));
@@ -4601,8 +4611,10 @@
       // Bottom Controls events (scrolls smoothly to top so reader starts at beginning of new page)
       if (pageNumberInputBottom) {
         pageNumberInputBottom.addEventListener('change', () => {
+          const v = parseInt(pageNumberInputBottom.value);
+          if (isNaN(v)) { pageNumberInputBottom.value = currentPage; return; }
           clearAyahHighlight();
-          goToPage(parseInt(pageNumberInputBottom.value) || 1);
+          goToPage(v);
           scrollMushafToTop();
         });
       }
@@ -5464,7 +5476,7 @@
         ? (targetPage !== currentRightPage && targetPage !== currentLeftPage)
         : (targetPage !== currentPage);
 
-      if (needsPageTurn) {
+      if (needsPageTurn && !(window.MUSHAF_UI && window.MUSHAF_UI.autoTurn === false)) {
         goToPage(targetPage, bestAyah.suraName);
       }
 
@@ -5732,8 +5744,15 @@
 
       // Sync dropdowns
       if (window.QURAN_DATA.surahs) {
-        const surah = window.QURAN_DATA.surahs.find(s => currentPage >= s.page_start && currentPage <= s.page_end);
-        if (surah) surahSelect.value = surah.page_start;
+        const SS = window.QURAN_DATA.surahs, picked = surahSelect.selectedIndex > 0 ? SS[surahSelect.selectedIndex - 1] : null;
+        let si = picked && picked.page_start === currentPage ? surahSelect.selectedIndex - 1 : SS.findIndex(x => x.page_start === currentPage);
+        if (si < 0) for (let i = SS.length - 1; i >= 0; i--) if (SS[i].page_start <= currentPage) { si = i; break; }
+        if (si >= 0) surahSelect.selectedIndex = si + 1;   // option values are page numbers: shared by several surahs
+      }
+      {
+        const atFirst = currentPage <= 1, atLast = (isDoublePageMode ? (currentLeftPage || currentRightPage) : currentPage) >= 604;
+        ['prevPageBtn', 'prevPageBtnBottom', 'floatingPrevBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = atFirst; });
+        ['nextPageBtn', 'nextPageBtnBottom', 'floatingNextBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = atLast; });
       }
 
       if (window.QURAN_DATA.juz) {
