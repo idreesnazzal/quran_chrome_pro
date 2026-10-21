@@ -5489,9 +5489,37 @@
       // Update the word karaoke ribbon
       updateWordKaraokeRibbon(bestAyah, activeWordIdx);
 
+      // the last word of the LAST visible page: turn now, before the first word there
+      maybeTurnAfterPageEnd(bestAyah, activeWordIdx, bestIdx);
+
       if (isNewAyah && isJump) {
         showToast(`🎙️ تم التعرف والانتقال إلى سورة ${bestAyah.suraName} - آية ${bestAyah.aya}`);
       }
+    }
+
+    // Recitation reached the last word of the last page on screen (the left
+    // page of a spread, or the single page): turn to the next page right away
+    // instead of waiting for the next page's first words to be recognised.
+    // Respects «قلب الصفحة تلقائيًا» (⚙️). No ayah spans two pages.
+    let pageEndTurnT = 0;
+    function maybeTurnAfterPageEnd(ay, wordIdx, detIdx) {
+      if (!ay || wordIdx < 0 || (window.MUSHAF_UI && window.MUSHAF_UI.autoTurn === false)) return;
+      const lastVisible = isDoublePageMode ? (currentLeftPage || currentRightPage) : currentPage;
+      if (ay.page !== lastVisible || lastVisible >= 604) return;
+      const i = ayaIndexMap.get(`${ay.sura}_${ay.aya}`);
+      if (i === undefined) return;
+      const next = activeData[i + 1];
+      if (!next || next[2] <= ay.page) return;                       // not the page's last ayah
+      const words = String(activeData[i][4]).replace(/\(\d+\)\s*$/, '').trim().split(/\s+/).filter(Boolean);
+      if (wordIdx !== words.length - 1) return;                     // not its last word
+      clearTimeout(pageEndTurnT);
+      pageEndTurnT = setTimeout(() => {
+        const still = isDoublePageMode ? (currentLeftPage || currentRightPage) : currentPage;
+        // still there, and the reader has not moved on or back meanwhile
+        if (still === lastVisible && voiceLastDetectedIdx === detIdx && voiceActiveWordIdx === wordIdx && isVoiceReciteActive) {
+          goToPage(lastVisible + 1);
+        }
+      }, 450);
     }
 
     function updateVoiceReciteUI(isActive) {
