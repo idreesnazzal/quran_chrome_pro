@@ -3149,6 +3149,7 @@
       .header-actions > button, .header-actions > a, .theme-toggle-btn { padding: 7px 10px; }
     }
   </style>
+  <link rel="stylesheet" href="assets/css/ayah-lists.css">
 </head>
 <body>
 
@@ -3224,6 +3225,12 @@
       </div>
 
       <!-- Recitation Audio Toggle Button -->
+      <!-- Ayah lists (قوائمي): saved ayahs, notes, spaced review — assets/js/ayah-lists.js -->
+      <button class="audio-toggle-btn" id="ayahListsBtn" title="قوائمي: الآيات المحفوظة والملاحظات (اضغط B لحفظ الآية المظللة)">
+        <span>📚</span>
+        <span>قوائمي</span>
+      </button>
+
       <button class="audio-toggle-btn" id="audioToggleBtn" title="التلاوة الصوتية (المنشاوي والحصري)">
         <span>🎧</span>
         <span>التلاوة الصوتية</span>
@@ -3590,6 +3597,7 @@
       </div>
 
       <div class="dock-actions">
+        <button class="dock-icon-btn" id="dockSaveAyahBtn" title="حفظ الآية التي تُتلى الآن في قائمة (مثلًا: أخطاء التسميع)">🔖</button>
         <button class="dock-icon-btn" id="dockOpenTafsirBtn" title="تفسير الآية الحالية">📖</button>
         <button class="dock-icon-btn" id="dockDiagBtn" title="تشخيص الميكروفون: سجّل 8 ثوانٍ من تلاوتك لتحليلها">🩺</button>
         <button class="dock-icon-btn dock-ears-btn" id="dockEarsBtn" title="تفعيل النموذج القرآني الدقيق">🧠</button>
@@ -3719,6 +3727,7 @@
       <div class="tafsir-modal-body">
         <div class="tafsir-ayah-box">
           <div class="tafsir-ayah-text" id="tafsirModalAyahText"></div>
+          <div id="ayahListsInfo" style="display: none;"></div>
           <div class="tafsir-audio-row">
             <div class="tafsir-audio-reciter">
               <span>🎙️</span>
@@ -3899,6 +3908,7 @@
           <button class="nav-btn" id="tafsirNextAyahBtn" title="تفسير الآية التالية">الآية التالية ◀</button>
         </div>
         <div class="tafsir-action-buttons">
+          <button class="btn btn-outline" id="tafsirSaveListBtn" title="حفظ الآية في قائمة وإضافة ملاحظة (B)">🔖 حفظ في قائمة</button>
           <button class="btn btn-outline" id="tafsirSetRangeBtn" title="تعيين هذه الآية كنطاق تلاوة في المشغل">🎯 حدد كنطاق تلاوة</button>
           <button class="btn btn-outline" id="tafsirCopyBtn" title="نسخ المحتوى الحالي">📋 نسخ النص</button>
           <button class="btn btn-gold" id="tafsirDoneBtn">إغلاق ✕</button>
@@ -3915,6 +3925,7 @@
   <script src="data/asbab_data.js"></script>
   <script src="data/word_boxes.js"></script>
     <script src="assets/js/recite-by-mic.js"></script>
+    <script src="assets/js/ayah-lists.js"></script>
   <script>
     // State
     let currentPage = 1;
@@ -6087,6 +6098,7 @@
       tafsirAyahBadge.textContent = `آية ${aya}`;
       tafsirPageBadge.textContent = `صفحة ${page}`;
       tafsirModalAyahText.textContent = `﴿ ${text} ﴾`;
+      if (window.AyahLists) AyahLists.renderAyahInfo(sura, aya);   // «محفوظة في…» + the ayah's note
 
       // Render Words Meanings from local dictionary
       renderWordMeanings(sura, aya);
@@ -6264,6 +6276,7 @@
               <button class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px; color: var(--gold-primary); border-color: var(--gold-primary);" onclick="openAyahTafsir(${suraNum}, ${ayaNum}); switchTafsirTab('nuzul');">
                 📜 سبب وموعد النزول
               </button>
+              <button class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;" title="حفظ في قائمة" onclick="AyahLists.openSaver(${suraNum}, ${ayaNum}, this)">🔖 حفظ</button>
               <button class="btn btn-gold" style="font-size: 0.8rem; padding: 4px 10px;" onclick="selectResult(${pageNum}, ${suraNum}, ${ayaNum}, '${suraName}')">
                 عرض وتظليل في المصحف ◀
               </button>
