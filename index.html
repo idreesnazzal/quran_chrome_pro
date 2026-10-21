@@ -2334,10 +2334,18 @@
 
     .filter-tags {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
     }
 
-    .filter-tag {
+    .filter-sep {
+      width: 1px;
+      align-self: stretch;
+      margin: 2px 4px;
+      background: var(--border-color);
+    }
+
+    .filter-tag, .match-tag {
       padding: 3px 12px;
       border-radius: 20px;
       background: var(--bg-primary);
@@ -2348,7 +2356,7 @@
       transition: 0.2s;
     }
 
-    .filter-tag.active {
+    .filter-tag.active, .match-tag.active {
       background: var(--gold-primary);
       color: var(--btn-gold-text);
       font-weight: bold;
@@ -3660,6 +3668,9 @@
           <span class="filter-tag active" data-filter="all">كل المصحف</span>
           <span class="filter-tag" data-filter="meccan">المكية</span>
           <span class="filter-tag" data-filter="medinan">المدنية</span>
+          <span class="filter-sep" aria-hidden="true"></span>
+          <span class="match-tag active" data-match="any" title="كل الكلمات موجودة في الآية، في أي مكان وبأي ترتيب">كلمات متفرقة</span>
+          <span class="match-tag" data-match="exact" title="الكلمات متتالية بالترتيب نفسه، كلمات كاملة">عبارة متصلة</span>
         </div>
         <div id="modalStatsText" style="color: var(--gold-primary);">جاهز للبحث في 6,236 آية</div>
       </div>
@@ -3911,6 +3922,10 @@
     let currentLeftPage = 2;
     let isDoublePageMode = localStorage.getItem('mushaf_view_mode') === 'double';
     let currentFilter = 'all';
+    // «any»: every word anywhere in the ayah (as before); «exact»: the words
+    // consecutive and in order, whole words (the last may still be typed)
+    let currentMatch = 'any';
+    try { if (localStorage.getItem('search_match') === 'exact') currentMatch = 'exact'; } catch (e) {}
     let activeData = [];
     let currentHighlightedAyah = null; // { sura, aya, suraName }
 
@@ -4541,6 +4556,17 @@
           filterTags.forEach(t => t.classList.remove('active'));
           tag.classList.add('active');
           currentFilter = tag.dataset.filter;
+          performSearch(modalSearchInput.value.trim());
+        });
+      });
+      const matchTags = document.querySelectorAll('.match-tag');
+      matchTags.forEach(tag => {
+        tag.classList.toggle('active', tag.dataset.match === currentMatch);
+        tag.addEventListener('click', () => {
+          matchTags.forEach(t => t.classList.remove('active'));
+          tag.classList.add('active');
+          currentMatch = tag.dataset.match;
+          try { localStorage.setItem('search_match', currentMatch); } catch (e) {}
           performSearch(modalSearchInput.value.trim());
         });
       });
@@ -6136,6 +6162,20 @@
       currentHighlightedAyah = null;
     }
 
+    // the query words appear consecutively, in order, as whole words; the last
+    // one may be a prefix (still being typed): «الا ابليس» -> 2:34, not 15:32
+    function phraseInAyah(normText, words) {
+      const t = normText.split(/\s+/).filter(Boolean), n = words.length;
+      for (let i = 0; i + n <= t.length; i++) {
+        let ok = true;
+        for (let k = 0; k < n && ok; k++) {
+          ok = k === n - 1 ? t[i + k].startsWith(words[k]) : t[i + k] === words[k];
+        }
+        if (ok) return true;
+      }
+      return false;
+    }
+
     // Search Engine
     function performSearch(rawQuery) {
       if (!rawQuery) {
@@ -6171,7 +6211,7 @@
           }
         }
 
-        if (words.every(word => normText.includes(word))) {
+        if (currentMatch === 'exact' ? phraseInAyah(normText, words) : words.every(word => normText.includes(word))) {
           matches.push(aya);
           surahsFound.add(suraNum);
         }
