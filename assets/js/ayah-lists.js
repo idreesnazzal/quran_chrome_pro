@@ -74,13 +74,14 @@
   }
   function ayahText(s, a) { var r = ayahRow(s, a); return r ? String(r[4]).replace(/\s*\(\d+\)\s*$/, '') : ''; }
   function ago(t) {
+    if (!isFinite(t)) return '—';
     var d = (t - Date.now()) / 1000, rtf;
     try { rtf = new Intl.RelativeTimeFormat('ar', { numeric: 'auto' }); } catch (e) { return new Date(t).toLocaleDateString('ar'); }
     var u = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
     for (var i = 0; i < u.length; i++) if (Math.abs(d) >= u[i][1] * 0.97) return rtf.format(Math.round(d / u[i][1]), u[i][0]);
     return rtf.format(Math.round(d), 'second');
   }
-  function isDue(it) { return (it.next || 0) <= Date.now(); }
+  function isDue(it) { return !isFinite(it.next) || (it.next || 0) <= Date.now(); }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
 
   /* =========================== the saver ============================= */
@@ -224,7 +225,7 @@
   }
   function close() {
     if (!modal) return;
-    stopAudio();
+    stopAudio(); closeSaver();
     modal.classList.remove('show');
     var m = modal; modal = null;
     setTimeout(function () { m.remove(); }, 200);
@@ -284,6 +285,11 @@
       due: function (x, y) { return (x.next || 0) - (y.next || 0); }
     }[l.sort] || function () { return 0; };
     it.sort(by);
+    if (l.group) {   // one block per surah (duplicate headers with a non-mushaf sort), surahs in order of first appearance
+      var firstAt = {};
+      it.forEach(function (x, n) { if (firstAt[x.s] === undefined) firstAt[x.s] = n; });
+      it = it.map(function (x, n) { return [x, n]; }).sort(function (A, B) { return (firstAt[A[0].s] - firstAt[B[0].s]) || (A[1] - B[1]); }).map(function (A) { return A[0]; });
+    }
     return it;
   }
 
@@ -355,7 +361,8 @@
     var rev = '';
     if (l.review) {
       var dueNow = isDue(x);
-      rev = '<div class="al-rev"><span class="al-lvl" title="مستوى الإتقان">' + '●'.repeat(Math.min(x.lvl || 0, 6)) + '<b>' + '●'.repeat(Math.max(0, 6 - (x.lvl || 0))) + '</b></span>' +
+      var lv = Math.max(0, Math.min(6, (x.lvl | 0)));   // clamp: imported data may be anything
+      rev = '<div class="al-rev"><span class="al-lvl" title="مستوى الإتقان">' + '●'.repeat(lv) + '<b>' + '●'.repeat(6 - lv) + '</b></span>' +
         '<span class="al-next' + (dueNow ? ' due' : '') + '">' + (dueNow ? '⏰ مستحقة الآن' : 'المراجعة ' + ago(x.next)) + '</span>' +
         '<button class="al-btn ok" data-rev="ok" title="راجعتها وأتقنتها: تعود بعد مدة أطول">✓ أتقنتها</button>' +
         '<button class="al-btn bad" data-rev="bad" title="أخطأت فيها: تعود قريبًا">✗ أخطأت</button></div>';
@@ -363,7 +370,7 @@
     return '<article class="al-card" data-s="' + x.s + '" data-a="' + x.a + '" style="--lc:' + esc(l.color) + '">' +
       '<div class="al-card-head"><span class="al-ref">سورة ' + esc(r[3]) + ' <b>' + x.a + '</b></span><span class="al-page">ص ' + r[2] + '</span>' +
       '<span class="al-when" title="' + esc(new Date(x.added).toLocaleString('ar')) + '">أُضيفت ' + ago(x.added) + '</span>' +
-      (l.sort === 'manual' ? '<span class="al-move"><button data-move="-1" ' + (i === 0 ? 'disabled' : '') + ' title="إلى الأعلى">▲</button><button data-move="1" ' + (i === n - 1 ? 'disabled' : '') + ' title="إلى الأسفل">▼</button></span>' : '') +
+      (l.sort === 'manual' && !ui.q.trim() && ui.filter === 'all' && !l.group ? '<span class="al-move"><button data-move="-1" ' + (i === 0 ? 'disabled' : '') + ' title="إلى الأعلى">▲</button><button data-move="1" ' + (i === n - 1 ? 'disabled' : '') + ' title="إلى الأسفل">▼</button></span>' : '') +
       '</div>' +
       '<div class="al-text' + (hidden ? ' quiz' : '') + '"' + (hidden ? ' title="انقر لكشف الآية"' : '') + '>' + shown + ' <span class="al-num">﴿' + x.a + '﴾</span></div>' +
       '<div class="al-note' + (note ? ' has' : '') + '"><textarea rows="1" placeholder="📝 أضف ملاحظة…">' + esc(note) + '</textarea></div>' +
@@ -482,6 +489,7 @@
     if (ui.playing === key) { stopAudio(); renderMain(); return; }
     stopAudio();
     var f = g('getAyahAudioUrl'); if (typeof f !== 'function') { toast('التلاوة الصوتية غير متاحة'); return; }
+    var main = g('quranAudio'); if (main && !main.paused) { try { main.pause(); } catch (e) {} }   // one recitation at a time
     ui.audio = new Audio(f(s, a)); ui.playing = key;
     ui.audio.onended = function () { stopAudio(); if (modal) renderMain(); };
     ui.audio.onerror = function () { stopAudio(); toast('تعذّر تشغيل التلاوة (تحتاج اتصالًا بالإنترنت)'); if (modal) renderMain(); };
@@ -518,9 +526,9 @@
         var added = 0;
         d.lists.forEach(function (nl) {
           if (!nl || !Array.isArray(nl.items)) return;
-          var cur = listById(nl.id);
+          var cur = listById(nl.id) || st.lists.filter(function (x) { return x.name === nl.name; })[0];   // same name = same list
           if (!cur) { st.lists.push(newList(nl)); added++; return; }
-          nl.items.forEach(function (it) { if (!hasItem(cur, it.s, it.a)) cur.items.push(it); });
+          nl.items.forEach(function (it) { if (it && +it.s > 0 && +it.a > 0 && !hasItem(cur, +it.s, +it.a)) cur.items.push(Object.assign({}, it, { s: +it.s, a: +it.a })); });
         });
         Object.keys(d.notes || {}).forEach(function (key) { if (!st.notes[key]) st.notes[key] = d.notes[key]; });
         save(); renderModal(); toast('استُوردت القوائم (' + added + ' جديدة، والباقي دُمج)');
@@ -562,6 +570,6 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
-  window.AyahLists = { open: open, close: close, openSaver: openSaver, renderAyahInfo: function (s, a) { renderAyahInfo(s, a); paintSaveButtons(); },
+  window.AyahLists = { open: open, close: close, openSaver: openSaver, stopAudio: function () { if (ui.audio) { stopAudio(); if (modal) renderMain(); } }, renderAyahInfo: function (s, a) { renderAyahInfo(s, a); paintSaveButtons(); },
     _state: function () { return load(); } };
 })();

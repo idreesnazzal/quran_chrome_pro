@@ -2,12 +2,17 @@
 
 /* ---------- effects of the new settings ---------- */
 /* the whole page on screen: height = window - sticky header - the recite dock */
+/* (specificity must beat `.book-spread.single-page .mushaf-card.right-page { width: 100% }`) */
+body.ui-fit .book-spread.single-page .mushaf-card.right-page,
 body.ui-fit .book-spread .mushaf-card {
   width: min(100%, 680px, calc((100vh - 112px - var(--dock-h, 0px)) * 700 / 1100));
   min-height: 0;
   flex: 0 0 auto;
 }
 body.ui-fit .book-spread.double-page .mushaf-card { width: min(48%, 620px, calc((100vh - 112px - var(--dock-h, 0px)) * 700 / 1100)); }
+@media (max-width: 860px) {   /* spreads stack on narrow screens: each page gets the full width */
+  body.ui-fit .book-spread.double-page .mushaf-card { width: min(100%, calc((100vh - 112px - var(--dock-h, 0px)) * 700 / 1100)); }
+}
 body.ui-fit .book-spread.double-page { justify-content: center; }
 body.ui-no-hint #mushafHint { display: none !important; }
 body.ui-no-floatnav .floating-nav-btn { display: none !important; }
@@ -83,3 +88,14 @@ body.ui-no-heard .dock-speech-row { display: none !important; }
 
 /* page buttons at page 1 / 604 */
 .nav-btn:disabled, .floating-nav-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+/* tablets (761-1100 px): the header buttons with their labels overflowed (897 px in 768);
+   icons only there — the title attribute still names each button */
+@media (min-width: 761px) and (max-width: 1100px) {
+  #settingsBtn > span:last-child, #ayahListsBtn > span:last-child, #audioToggleBtn > span:last-child,
+  #voiceReciteToggleBtn > span:nth-child(2) { display: none; }
+  #settingsBtn, #ayahListsBtn, #audioToggleBtn, #voiceReciteToggleBtn { padding-inline: 12px; }
+  #openSearchBtn { white-space: nowrap; min-width: 0; }
+  #openSearchBtn .trigger-left { min-width: 0; overflow: hidden; }
+  #openSearchBtn .trigger-left > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

@@ -212,6 +212,8 @@ class Handler(BaseHTTPRequestHandler):
         """multipart/form-data -> {name: Field(file, filename)}.
         (The cgi module this used was removed in Python 3.13.)"""
         length = int(self.headers.get("Content-Length", "0") or 0)
+        if length > 30_000_000:   # refuse before reading, as the other upload route does
+            return self._json(413, {"error": "body too large"})
         body = self.rfile.read(length) if length > 0 else b""
         head = ("Content-Type: " + self.headers.get("Content-Type", "") + "\r\n\r\n").encode("latin-1")
         msg = BytesParser(policy=HTTP).parsebytes(head + body)

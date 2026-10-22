@@ -105,6 +105,9 @@ review agents' findings, reproduced then fixed (3.3.7)
   ok   after a restart, Android's re-sent previous final is not committed twice
   ok   cold «مثقال غره خيرا يرى» … «شرا يرى» shows 99:7 then ends on 99:8 (was: nothing at all)
   ok   «يرى» matches «يره» (a final ه read as ى)
+  ok   66:9 = 9:73 word for word: 5 shared words show nothing (9:73 was pruned-in at 90%: beam ties kept)
+  ok   after 112:1, a split takbir «الله | اكبر» does not advance to 112:2#2 «الصمد»
+  ok   page-end auto-turn 7 -> 8 told to the engine: the first word of 2:49 shows at once
   ok   100 letter names in one interim tokenize in < 500 ms (was 1.3 s)
 
-99 passed, 0 failed
+102 passed, 0 failed

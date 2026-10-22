@@ -364,6 +364,20 @@ console.log('review agents\' findings, reproduced then fixed (3.3.7)');
   const z1 = live(207, ['مثقال غره خيرا يرى', 'فميان المتقاضره', 'شرا يرى']);
   check('cold «مثقال غره خيرا يرى» … «شرا يرى» shows 99:7 then ends on 99:8 (was: nothing at all)', everAt(z1.seen, 99, 7) && at(z1.last, 99, 8, 6), where(z1.last));
   check('«يرى» matches «يره» (a final ه read as ى)', R.wordSim('يري', 'يره') >= 0.8, String(R.wordSim('يري', 'يره')));
+  // full-debug review 2026-10-22 (F-02, F-07, F-01)
+  const tw = live(1, [ayahText(66, 9).split(' ').slice(0, 5).join(' ')], { noInterim: true });
+  check('66:9 = 9:73 word for word: 5 shared words show nothing (9:73 was pruned-in at 90%: beam ties kept)', tw.seen.every(s => s === null), where(tw.last));
+  const TT = new R.Tracker(C); TT.setPrior([idx(112, 1)], 30);
+  TT.push(R.tokenize('قل هو الله احد')); TT.push(R.tokenize('الله')); TT.push(R.tokenize('اكبر'));
+  const tr = TT.result();
+  check('after 112:1, a split takbir «الله | اكبر» does not advance to 112:2#2 «الصمد»', !(tr.ayah.sura === 112 && tr.ayah.aya === 2 && tr.wordIdx >= 1), `${tr.ayah.sura}:${tr.ayah.aya}#${tr.wordIdx + 1}`);
+  {
+    e.start(7); const w48 = ayahText(2, 48);
+    e.event({ results: [{ t: w48, fin: true }], resultIndex: 0 });
+    R._ui.autoPage = 8; e.ctx.currentPage = 8;   // what index.html does on the page-end turn
+    e.event({ results: [{ t: w48, fin: true }, { t: ayahText(2, 49).split(' ')[0], fin: false }], resultIndex: 1 });
+    check('page-end auto-turn 7 -> 8 told to the engine: the first word of 2:49 shows at once', at(e.shown(), 2, 49, 1), where(e.shown()));
+  }
   const t0 = Date.now(); R.tokenize(('ميم ').repeat(100));
   check('100 letter names in one interim tokenize in < 500 ms (was 1.3 s)', Date.now() - t0 < 500, (Date.now() - t0) + ' ms');
 }

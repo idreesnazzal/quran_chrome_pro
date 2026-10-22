@@ -151,6 +151,11 @@
         if (a === 'reset' && confirm('إعادة كل الإعدادات إلى الافتراضي؟ (القوائم والملاحظات تبقى)')) {
           try { ['mushaf_ui', 'mushaf_theme', 'mushaf_brightness', 'mushaf_eye_comfort', 'search_match'].forEach(function (k) { localStorage.removeItem(k); }); } catch (x) {}
           call('setTheme', 'dark'); call('setBrightness', '100'); call('setEyeComfort', false); applyUi();
+          // every setting the drawer shows: view mode, reciter, speed, repeat, tafsir
+          call('setViewMode', 'single', true);
+          var rc = g('RECITERS_CONFIG'); call('setReciter', rc && rc.minshawi_murattal ? 'minshawi_murattal' : Object.keys(rc || {})[0]);
+          call('setAudioSpeed', 1); call('setAudioRepeatTarget', '1');
+          var ts = document.getElementById('tafsirSourceSelect'); if (ts && ts.value !== 'muyassar') { ts.value = 'muyassar'; ts.dispatchEvent(new Event('change')); }
           var m = document.querySelector('.match-tag[data-match=any]'); if (m) m.click();
           render(); call('showToast', 'أُعيدت الإعدادات الافتراضية');
         }

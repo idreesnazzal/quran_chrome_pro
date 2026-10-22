@@ -48,10 +48,11 @@
 (function (G) {
 'use strict';
 
-var RECITE_VERSION = '3.3.8-hmm+wait-until-unique';
+var RECITE_VERSION = '3.3.9-hmm+wait-until-unique';
 
 var CFG = {
-  BEAM: 96,              // states kept after each word (64..320 give the same accuracy; 96 = margin)
+  BEAM: 96,
+  BEAM_TIE_CAP: 640,     // ...plus states tied with the 96th (shared phrases), up to this many              // states kept after each word (64..320 give the same accuracy; 96 = margin)
   PRUNE: 20,             // drop states this far (log) below the best
   T_NEXT: 0.80,          // P(next word)
   T_SKIP: [0, 0, 0.06, 0.02, 0.008, 0.005, 0.004], // index = distance d (2..6)
@@ -547,7 +548,11 @@ function stepAlpha(C, alpha, h, hPrev, priorSet, teleLog) {
   arr.sort(function (x, y) { return y[1] - x[1]; });
   var best = arr.length ? arr[0][1] : 0;
   var out = new Map();
-  for (var j = 0; j < arr.length && j < CFG.BEAM; j++) {
+  // beyond BEAM, states TIED with the last kept one stay too: a phrase shared
+  // by more than BEAM places («يا ايها» 142x) otherwise kept the first 96 in
+  // mushaf order and pruned the rest (66:9 = 9:73 word for word: 9:73 «90%»)
+  var cut = arr.length > CFG.BEAM ? arr[CFG.BEAM - 1][1] - 1e-9 : -Infinity;
+  for (var j = 0; j < arr.length && (j < CFG.BEAM || (arr[j][1] >= cut && j < CFG.BEAM_TIE_CAP)); j++) {
     if (arr[j][1] < best - CFG.PRUNE) break;
     out.set(arr[j][0], arr[j][1] - best); // renormalise: best = 0
   }
@@ -710,7 +715,11 @@ Tracker.prototype.push = function (words) {
       continue;
     }
     this.opener.afterAllah = false;
-    var rel = openerBypass(this.C, this.alpha, this.opener, words[i], this.prev) ? [words[i]] : openerPush(this.opener, words[i]);
+    var byp = openerBypass(this.C, this.alpha, this.opener, words[i], this.prev);
+    var rel = byp ? [words[i]] : openerPush(this.opener, words[i]);
+    // «الله» let through as text: a following «اكبر» is still a takbir unless
+    // the text goes on with it (after 112:1, «الله | اكبر» moved to 112:2#1)
+    if (byp && words[i] === 'الله') this.opener.afterAllah = true;
     for (var j = 0; j < rel.length; j++) {
       var before = this.alpha;
       var nx = this._feed(before, rel[j], this.prev, this.steps);
@@ -756,17 +765,25 @@ Tracker.prototype.peek = function (words) {
   while (k < words.length && k < cache.length && cache[k].w === words[k]) k++;
   cache.length = k;
   var base = k ? cache[k - 1] : { alpha: this.alpha, prev: this.prev,
-    hold: this.opener.hold, gains: this.gains, steps: this.steps, cu: this.coldUntil };
+    hold: this.opener.hold, gains: this.gains, steps: this.steps, cu: this.coldUntil, aa: this.opener.afterAllah };
   var alpha = base.alpha, prev = base.prev, st = openerState(base.hold), gains = base.gains.slice(), steps = base.steps;
-  var cs = { coldUntil: base.cu };
+  var cs = { coldUntil: base.cu }, aa = !!base.aa;
   for (var i = k; i < words.length; i++) {
-    var rel = openerBypass(this.C, alpha, st, words[i], prev) ? [words[i]] : openerPush(st, words[i]);
+    if (aa && words[i] === 'اكبر' && !heldMatchesActivePath(this.C, alpha, ['اكبر'], prev)) {   // takbir (as in push)
+      aa = false;
+      cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice(), steps: steps, cu: cs.coldUntil, aa: false });
+      continue;
+    }
+    aa = false;
+    var byp = openerBypass(this.C, alpha, st, words[i], prev);
+    var rel = byp ? [words[i]] : openerPush(st, words[i]);
+    if (byp && words[i] === 'الله') aa = true;
     for (var j = 0; j < rel.length; j++) {
       alpha = this._feed(alpha, rel[j], prev, steps++, cs);
       gains.push(alpha.rawBest); if (gains.length > 6) gains.shift();
       prev = rel[j];
     }
-    cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice(), steps: steps, cu: cs.coldUntil });
+    cache.push({ w: words[i], alpha: alpha, prev: prev, hold: st.hold.slice(), gains: gains.slice(), steps: steps, cu: cs.coldUntil, aa: aa });
   }
   if (st.hold.length && heldMatchesActivePath(this.C, alpha, st.hold, prev)) {
     for (var hIdx = 0; hIdx < st.hold.length; hIdx++) {
@@ -941,14 +958,14 @@ function decide(res, tentative) {
     isJump: isJump, tentative: !!tentative, basmala: res.basmala } };
 }
 
-function paintAtPos(p, baseM) {
+function paintAtPos(p, baseM, first) {
   UI.paintedPos = p;
   var ai = CORPUS.ayahOf[p], ay = CORPUS.ayahs[ai];
   var wIdx = CORPUS.virt[p] ? -1 : CORPUS.wordOf[p];
   var m = (p === baseM.pos) ? baseM : {
     bestIdx: ai, bestAyah: ay, activeWordIdx: wIdx, pos: p,
     score: baseM.score, baseScore: baseM.baseScore, confidence: baseM.confidence,
-    isJump: false, tentative: baseM.tentative, basmala: !!CORPUS.virt[p]
+    isJump: !!(first && baseM.isJump), tentative: baseM.tentative, basmala: !!CORPUS.virt[p]
   };
   try { onVoiceAyahDetected(m, null); } catch (e) { log('ui err', e); }
 }
@@ -976,7 +993,7 @@ function paint(d, transcript) {
   } else {
     steps.push(targetPos);
   }
-  paintAtPos(steps[0], d.m);
+  paintAtPos(steps[0], d.m, true);
   if (!d.m.isJump) setStatus(d.m.basmala ? 'البسملة... تابع' : 'متابعة التسميع جارية... 🎙️');
   if (steps.length > 1) {
     var idx = 1, baseM = d.m;

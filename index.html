@@ -4144,6 +4144,7 @@
     };
 
     const quranAudio = new Audio();
+    quranAudio.addEventListener('play', () => { if (window.AyahLists && AyahLists.stopAudio) AyahLists.stopAudio(); });
     let currentReciterKey = localStorage.getItem('preferred_reciter') || 'minshawi_murattal';
     let currentAudioSpeed = parseFloat(localStorage.getItem('preferred_audio_speed')) || 1.0;
     let audioRepeatTarget = localStorage.getItem('preferred_audio_repeat') || '1'; // '1', '2', '3', '5', '7', '10', 'infinite'
@@ -5517,6 +5518,9 @@
         const still = isDoublePageMode ? (currentLeftPage || currentRightPage) : currentPage;
         // still there, and the reader has not moved on or back meanwhile
         if (still === lastVisible && voiceLastDetectedIdx === detIdx && voiceActiveWordIdx === wordIdx && isVoiceReciteActive) {
+          // tell the engine the turn was automatic: as a "manual" turn it spread a
+          // x50 prior over the new page and the next word fell to 19% confidence
+          if (window.ReciteByMic && ReciteByMic._ui) ReciteByMic._ui.autoPage = lastVisible + 1;
           goToPage(lastVisible + 1);
         }
       }, 450);
@@ -5773,7 +5777,8 @@
       // Sync dropdowns
       if (window.QURAN_DATA.surahs) {
         const SS = window.QURAN_DATA.surahs, picked = surahSelect.selectedIndex > 0 ? SS[surahSelect.selectedIndex - 1] : null;
-        let si = picked && picked.page_start === currentPage ? surahSelect.selectedIndex - 1 : SS.findIndex(x => x.page_start === currentPage);
+        const vis = isDoublePageMode ? [currentRightPage, currentLeftPage] : [currentPage];   // a spread shows two pages
+        let si = picked && vis.indexOf(picked.page_start) >= 0 ? surahSelect.selectedIndex - 1 : SS.findIndex(x => x.page_start === currentPage);
         if (si < 0) for (let i = SS.length - 1; i >= 0; i--) if (SS[i].page_start <= currentPage) { si = i; break; }
         if (si >= 0) surahSelect.selectedIndex = si + 1;   // option values are page numbers: shared by several surahs
       }
@@ -5784,8 +5789,12 @@
       }
 
       if (window.QURAN_DATA.juz) {
-        const juz = [...window.QURAN_DATA.juz].reverse().find(j => currentPage >= j.page);
-        if (juz) juzSelect.value = juz.page;
+        const vis = isDoublePageMode ? [currentRightPage, currentLeftPage] : [currentPage];
+        const pickedJ = juzSelect.value ? parseInt(juzSelect.value) : NaN;
+        if (!(vis.indexOf(pickedJ) >= 0)) {   // keep a juz the reader picked if it starts on a visible page
+          const juz = [...window.QURAN_DATA.juz].reverse().find(j => currentPage >= j.page);
+          if (juz) juzSelect.value = juz.page;
+        }
       }
     }
 
@@ -6034,7 +6043,9 @@
     }
 
     // Load Selected Tafsir Content (Local or Online API)
+    let tafsirReqSeq = 0;
     async function loadSelectedTafsirContent(sura, aya) {
+      const req = ++tafsirReqSeq;   // a later call (another ayah or source) supersedes this one
       const cfg = TAFSIR_CONFIG[currentTafsirSource] || TAFSIR_CONFIG.muyassar;
       tafsirSourceTitle.textContent = `✨ ${cfg.name} للآية الكريمة:`;
       tafsirAuthorSub.textContent = cfg.author || '';
@@ -6105,6 +6116,8 @@
           console.warn('QuranEnc fallback failed', e);
         }
       }
+
+      if (req !== tafsirReqSeq) return;   // stale: the reader moved to another ayah/source meanwhile
 
       // Update UI
       if (fetchedText) {
@@ -6235,6 +6248,16 @@
       return false;
     }
 
+    function escapeHtml(x) {
+      return String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    // a normalised word -> a pattern for the RAW ayah text: each letter matches
+    // its unnormalised forms, with optional tashkeel between letters
+    function arabicLooseRegex(w) {
+      const cls = { 'ا': '[اأإآٱ]', 'ي': '[يى]', 'ه': '[هة]', 'ء': '[ءئؤأإ]' };
+      return [...w].map(ch => (cls[ch] || ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) + '[\u064B-\u0652\u0670]*').join('');
+    }
+
     // Search Engine
     function performSearch(rawQuery) {
       if (!rawQuery) {
@@ -6250,7 +6273,7 @@
       }
 
       const normQuery = normalizeArabic(rawQuery);
-      if (!normQuery) return;
+      if (!normQuery) { performSearch(''); return; }   // punctuation only: the empty state, not stale results
 
       const words = normQuery.split(/\s+/).filter(w => w.length > 0);
       const matches = [];
@@ -6282,7 +6305,7 @@
         modalResultsList.innerHTML = `
           <div class="empty-modal-state">
             <div style="font-size: 38px; margin-bottom: 10px;">🔍</div>
-            <h3>لا توجد نتائج مطابقة لـ "${rawQuery}"</h3>
+            <h3>لا توجد نتائج مطابقة لـ "${escapeHtml(rawQuery)}"</h3>
             <p style="margin-top: 6px; font-size: 0.88rem;">جرّب كتابة كلمة أخرى أو البحث بدون سوابق ولواحق.</p>
           </div>
         `;
@@ -6301,7 +6324,7 @@
         // Highlight matched word in preview
         let highlighted = rawText;
         words.forEach(w => {
-          const reg = new RegExp(`(${w})`, 'gi');
+          const reg = new RegExp(`(${arabicLooseRegex(w)})`, 'g');
           highlighted = highlighted.replace(reg, '<span class="highlight-span">$1</span>');
         });
 
