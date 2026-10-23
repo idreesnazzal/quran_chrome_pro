@@ -58,7 +58,7 @@
       document.body.appendChild(dr);
     }
     render();
-    requestAnimationFrame(function () { dr.classList.add('show'); });
+    var d0 = dr; requestAnimationFrame(function () { if (d0 === dr) d0.classList.add('show'); });
   }
   function close() { if (!dr) return; dr.classList.remove('show'); var d = dr; dr = null; setTimeout(function () { d.remove(); }, 220); }
 
@@ -131,6 +131,14 @@
         [['Ctrl + K', 'البحث'], ['/', 'البحث'], ['→  ←', 'الصفحة السابقة / التالية'], ['B', 'حفظ الآية المظللة في قائمة'], ['Esc', 'إغلاق النوافذ']].map(function (k) {
           return '<div><kbd>' + k[0] + '</kbd><span>' + k[1] + '</span></div>'; }).join('') + '</div></section>' +
 
+      '<section class="st-sec"><h3>📴 دون إنترنت وتثبيت التطبيق</h3>' +
+        '<div class="st-row"><span><b>صفحات المصحف على هذا الجهاز</b><small id="stPagesInfo">…</small></span>' +
+        '<button class="st-btn" data-act="cachepages">📥 تنزيل كل الصفحات</button></div>' +
+        '<p class="st-note">بعد التنزيل يعمل المصحف والبحث والتفسير الميسر والقوائم دون إنترنت. تعرّف Chrome على الصوت والتلاوة الصوتية والتفاسير الأخرى تحتاج الاتصال.</p>' +
+        (window.ReaderPlus && window.ReaderPlus.canInstall() ? '<div class="st-btns"><button class="st-btn" data-act="install">📲 تثبيت المصحف كتطبيق</button></div>' :
+          '<p class="st-note">للتثبيت كتطبيق: قائمة المتصفح ← «تثبيت التطبيق» (أو «إضافة إلى الشاشة الرئيسية» على الهاتف).</p>') +
+      '</section>' +
+
       '<section class="st-sec"><h3>💾 البيانات</h3>' +
         '<p class="st-note">كل الإعدادات والقوائم (' + lists + ') محفوظة في هذا المتصفح فقط.</p>' +
         '<div class="st-btns"><button class="st-btn" data-act="lists">📚 قوائمي والنسخ الاحتياطي</button>' +
@@ -138,6 +146,10 @@
       '</section>' +
       '</div>';
     wire();
+    var pi = dr.querySelector('#stPagesInfo');
+    if (pi && window.ReaderPlus) window.ReaderPlus.cachedPages().then(function (n) {
+      pi.textContent = n >= 604 ? '✅ كل الصفحات محفوظة (604)' : (n ? n + ' من 604 محفوظة (كل صفحة تُحفظ عند فتحها)' : 'لم تُنزّل بعد — كل صفحة تُحفظ عند فتحها');
+    });
   }
 
   function wire() {
@@ -148,6 +160,17 @@
         var a = b.getAttribute('data-act');
         if (a === 'close') close();
         if (a === 'lists') { close(); if (window.AyahLists) window.AyahLists.open(); }
+        if (a === 'install' && window.ReaderPlus) { window.ReaderPlus.install().then(function () { if (dr) render(); }); }
+        if (a === 'cachepages' && window.ReaderPlus) {
+          b.disabled = true;
+          var info = d.querySelector('#stPagesInfo');
+          window.ReaderPlus.downloadAllPages(function (pr) {
+            if (info) info.textContent = 'جارٍ التنزيل… ' + pr.done + ' / ' + pr.total + (pr.failed ? ' (تعذّر ' + pr.failed + ')' : '');
+          }).then(function (pr) {
+            call('showToast', pr.failed ? 'نُزّلت الصفحات إلا ' + pr.failed : '✅ نُزّلت صفحات المصحف الـ604 — يعمل الآن دون إنترنت');
+            if (dr) render();
+          }, function () { call('showToast', 'التنزيل يحتاج فتح التطبيق عبر الخادم (http) لا كملف'); b.disabled = false; });
+        }
         if (a === 'reset' && confirm('إعادة كل الإعدادات إلى الافتراضي؟ (القوائم والملاحظات تبقى)')) {
           try { ['mushaf_ui', 'mushaf_theme', 'mushaf_brightness', 'mushaf_eye_comfort', 'search_match'].forEach(function (k) { localStorage.removeItem(k); }); } catch (x) {}
           call('setTheme', 'dark'); call('setBrightness', '100'); call('setEyeComfort', false); applyUi();

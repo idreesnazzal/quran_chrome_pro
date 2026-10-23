@@ -221,7 +221,7 @@
     }
     ui.editing = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {};
     renderModal();
-    requestAnimationFrame(function () { modal.classList.add('show'); });
+    var m0 = modal; requestAnimationFrame(function () { if (m0 === modal) m0.classList.add('show'); });   // closed meanwhile: nothing
   }
   function close() {
     if (!modal) return;

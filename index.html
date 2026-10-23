@@ -3151,6 +3151,14 @@
   </style>
   <link rel="stylesheet" href="assets/css/ayah-lists.css">
   <link rel="stylesheet" href="assets/css/settings.css">
+  <link rel="stylesheet" href="assets/css/reader-plus.css">
+  <!-- installable app (PWA): manifest + icons; sw.js registered by assets/js/reader-plus.js -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f1522">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
 
@@ -3929,11 +3937,12 @@
 
   <!-- Data Scripts -->
   <script src="data/quran_data.js"></script>
-  <script src="data/asbab_data.js"></script>
+  <script src="data/quran_meta.js"></script>
   <script src="data/word_boxes.js"></script>
     <script src="assets/js/recite-by-mic.js"></script>
     <script src="assets/js/ayah-lists.js"></script>
     <script src="assets/js/settings.js"></script>
+    <script src="assets/js/reader-plus.js"></script>
   <script>
     // State
     let currentPage = 1;
@@ -5796,6 +5805,7 @@
           if (juz) juzSelect.value = juz.page;
         }
       }
+      if (window.ReaderPlus) ReaderPlus.onPage();   // hizb/sajda strip, resume point, #link
     }
 
     // Robust Multi-tier Image Loader with local & online fallback
@@ -6159,6 +6169,7 @@
       tafsirPageBadge.textContent = `صفحة ${page}`;
       tafsirModalAyahText.textContent = `﴿ ${text} ﴾`;
       if (window.AyahLists) AyahLists.renderAyahInfo(sura, aya);   // «محفوظة في…» + the ayah's note
+      if (window.ReaderPlus) ReaderPlus.onAyah(sura, aya);         // «۩ آية سجدة»
 
       // Render Words Meanings from local dictionary
       renderWordMeanings(sura, aya);
