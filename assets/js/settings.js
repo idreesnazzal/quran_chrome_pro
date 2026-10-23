@@ -120,6 +120,8 @@
         sw('autoTurn', 'قلب الصفحة تلقائيًا', p.autoTurn, 'ينتقل المصحف إلى صفحة الآية التي تتلوها') +
         sw('karaoke', 'شريط كلمات الآية', p.karaoke, 'كلمات الآية الحالية كلمةً كلمة في شريط التسميع') +
         sw('heard', 'إظهار ما التقطه المايك', p.heard, 'النص الذي سمعه التعرّف') +
+        '<div class="st-row"><span><b>🙈 اختبار الحفظ</b><small>تُخفى كلمات الصفحة وتظهر كل كلمة حين تتلوها، وتُعلَّم الكلمات المتجاوزة</small></span>' +
+          '<button class="st-btn" data-act="hifz">' + (window.HifzTest && window.HifzTest.isOn() ? 'إنهاء الاختبار' : 'ابدأ الاختبار') + '</button></div>' +
       '</section>' +
 
       '<section class="st-sec"><h3>📚 التفسير والبحث</h3>' +
@@ -160,6 +162,7 @@
         var a = b.getAttribute('data-act');
         if (a === 'close') close();
         if (a === 'lists') { close(); if (window.AyahLists) window.AyahLists.open(); }
+        if (a === 'hifz') { close(); if (window.HifzTest) window.HifzTest.toggle(); }
         if (a === 'install' && window.ReaderPlus) { window.ReaderPlus.install().then(function () { if (dr) render(); }); }
         if (a === 'cachepages' && window.ReaderPlus) {
           b.disabled = true;

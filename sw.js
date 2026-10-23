@@ -9,10 +9,11 @@
  *  - everything else (recitation audio, online tafsir, the local server's
  *    endpoints, POSTs): straight to the network, never cached
  */
-const VERSION = 'mushaf-v1';
+const VERSION = 'mushaf-v2';
 const CODE = VERSION + '-code', ASSETS = VERSION + '-assets', PAGES = 'mushaf-pages';   // pages survive version bumps
 const PRECACHE_CODE = ['./', 'index.html', 'manifest.webmanifest', 'assets/js/recite-by-mic.js', 'assets/js/ayah-lists.js',
-  'assets/js/settings.js', 'assets/js/reader-plus.js', 'assets/css/ayah-lists.css', 'assets/css/settings.css', 'assets/css/reader-plus.css'];
+  'assets/js/settings.js', 'assets/js/reader-plus.js', 'assets/js/hifz-test.js', 'assets/css/ayah-lists.css', 'assets/css/settings.css',
+  'assets/css/reader-plus.css', 'assets/css/hifz-test.css'];
 const PRECACHE_ASSETS = ['data/quran_data.js', 'data/word_boxes.js', 'data/quran_meta.js', 'data/asbab_data.js',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/favicon-32.png'];
 

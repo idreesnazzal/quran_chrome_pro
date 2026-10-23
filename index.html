@@ -3152,6 +3152,7 @@
   <link rel="stylesheet" href="assets/css/ayah-lists.css">
   <link rel="stylesheet" href="assets/css/settings.css">
   <link rel="stylesheet" href="assets/css/reader-plus.css">
+  <link rel="stylesheet" href="assets/css/hifz-test.css">
   <!-- installable app (PWA): manifest + icons; sw.js registered by assets/js/reader-plus.js -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f1522">
@@ -3943,6 +3944,7 @@
     <script src="assets/js/ayah-lists.js"></script>
     <script src="assets/js/settings.js"></script>
     <script src="assets/js/reader-plus.js"></script>
+    <script src="assets/js/hifz-test.js"></script>
   <script>
     // State
     let currentPage = 1;
@@ -5501,6 +5503,7 @@
 
       // the last word of the LAST visible page: turn now, before the first word there
       maybeTurnAfterPageEnd(bestAyah, activeWordIdx, bestIdx);
+      if (window.HifzTest) HifzTest.onWord(matchResult);   // hifz test: reveal the recited word
 
       if (isNewAyah && isJump) {
         showToast(`🎙️ تم التعرف والانتقال إلى سورة ${bestAyah.suraName} - آية ${bestAyah.aya}`);
@@ -5806,6 +5809,7 @@
         }
       }
       if (window.ReaderPlus) ReaderPlus.onPage();   // hizb/sajda strip, resume point, #link
+      if (window.HifzTest) HifzTest.onPage();         // hifz test: mask the new page's words
     }
 
     // Robust Multi-tier Image Loader with local & online fallback
