@@ -1047,7 +1047,6 @@ function commitWords(words, raw) {
   S.heard = S.heard.concat(words).slice(-200);
   S.heardRaw = (S.heardRaw || []).concat(rawFor(words, raw)).slice(-200);
   RECENT_TOKS = S.heard.slice(-30);
-  if (G.HifzTest && G.HifzTest.onHeard) { try { G.HifzTest.onHeard(words); } catch (e) {} }   // hifz test: what was said, to find skipped words
   emit(TRACKER.push(words), S.heardRaw, false);
 }
 

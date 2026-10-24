@@ -571,20 +571,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
   window.AyahLists = { open: open, close: close, openSaver: openSaver, stopAudio: function () { if (ui.audio) { stopAudio(); if (modal) renderMain(); } }, renderAyahInfo: function (s, a) { renderAyahInfo(s, a); paintSaveButtons(); },
-    _state: function () { return load(); },
-    // hifz test results: into «أخطاء التسميع» (made again if deleted); an ayah
-    // already there goes back to the start of its review
-    addMistakes: function (items) {
-      load();
-      var l = st.lists.filter(function (x) { return x.name === 'أخطاء التسميع'; })[0];
-      if (!l) { l = newList({ name: 'أخطاء التسميع', icon: '🎙️', color: COLORS[4], review: true, sort: 'due',
-        desc: 'آيات أخطأتُ فيها أثناء التسميع — تُعرض للمراجعة على فترات متباعدة' }); st.lists.push(l); }
-      var added = 0;
-      (items || []).forEach(function (it) {
-        if (addItem(l, +it.s, +it.a)) added++;
-        else l.items.forEach(function (x) { if (x.s === +it.s && x.a === +it.a) { x.lvl = 0; x.next = Date.now(); } });
-      });
-      save(); paintSaveButtons();
-      return added;
-    } };
+    _state: function () { return load(); } };
 })();
