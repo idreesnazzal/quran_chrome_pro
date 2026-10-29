@@ -141,6 +141,7 @@
 
       '<section class="st-sec"><h3>💾 البيانات</h3>' +
         '<p class="st-note">كل الإعدادات والقوائم (' + lists + ') محفوظة في هذا المتصفح فقط.</p>' +
+        '<div class="st-btns"><button class="st-btn" data-act="stats">📊 إحصاءاتي وخطة الختمة</button></div>' +
         '<div class="st-btns"><button class="st-btn" data-act="lists">📚 قوائمي والنسخ الاحتياطي</button>' +
         '<button class="st-btn danger" data-act="reset">↺ الإعدادات الافتراضية</button></div>' +
       '</section>' +
@@ -160,6 +161,7 @@
         var a = b.getAttribute('data-act');
         if (a === 'close') close();
         if (a === 'lists') { close(); if (window.AyahLists) window.AyahLists.open(); }
+        if (a === 'stats') { close(); if (window.ReadingStats) window.ReadingStats.open(); }
         if (a === 'install' && window.ReaderPlus) { window.ReaderPlus.install().then(function () { if (dr) render(); }); }
         if (a === 'cachepages' && window.ReaderPlus) {
           b.disabled = true;

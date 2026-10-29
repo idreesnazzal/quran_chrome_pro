@@ -43,6 +43,7 @@
     el.id = 'readerStrip'; el.className = 'rp-strip'; el.setAttribute('dir', 'rtl');
     bar.parentNode.insertBefore(el, bar.nextSibling);
     el.addEventListener('click', function (e) {
+      if (e.target.closest('[data-stats]')) { if (window.ReadingStats) window.ReadingStats.open(); return; }
       var b = e.target.closest('[data-go]'); if (!b) return;
       var v = b.getAttribute('data-go').split(':').map(Number);
       highlight(v[0], v[1], v[2]);
@@ -53,6 +54,7 @@
     var el = ensureStrip(); if (!el) return;
     var pages = visible(), Q = meta().quarters, chips = [];
     var cur = quarterAt(pages[0] || 1);
+    if (window.ReadingStats) chips.push(window.ReadingStats.pill());   // streak + today's goal / wird
     if (cur >= 0) chips.push('<span class="rp-pill rp-hizb" title="الحزب والربع الذي أنت فيه">۞ ' + quarterLabel(cur) + '</span>');
     Q.forEach(function (q, i) {
       if (pages.indexOf(q[2]) >= 0) chips.push('<button class="rp-pill rp-q" data-go="' + q[0] + ':' + q[1] + ':' + q[2] + '" title="بداية ' + quarterLabel(i) + ' — انقر للتظليل">' +
@@ -185,6 +187,6 @@
     onPage: onPage, onAyah: onAyah, downloadAllPages: downloadAllPages, cachedPages: cachedPages,
     canInstall: function () { return !!deferredInstall; },
     install: function () { if (!deferredInstall) return Promise.resolve(false); var d = deferredInstall; deferredInstall = null; d.prompt(); return d.userChoice.then(function (c) { return c && c.outcome === 'accepted'; }); },
-    quarterAt: quarterAt
+    quarterAt: quarterAt, refresh: renderStrip
   };
 })();
