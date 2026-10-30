@@ -109,6 +109,8 @@
       '</section>' +
 
       '<section class="st-sec"><h3>🎧 التلاوة الصوتية</h3>' +
+        sw('player', 'لوحة المشغّل فوق المصحف', !!(document.getElementById('quranAudioPlayerBar') || {}).classList && document.getElementById('quranAudioPlayerBar').classList.contains('active'),
+          'تُفتح وتُغلق أيضًا بزر 🎧 في الأعلى، ويُحفظ اختيارك') +
         '<div class="st-row"><span><b>القارئ</b></span>' + cloneSelect('modalReciterSelect', 'reciter', g('currentReciterKey')) + '</div>' +
         '<div class="st-row"><span><b>السرعة</b></span>' + cloneSelect('modalAudioSpeedSelect', 'speed', String(g('currentAudioSpeed'))) + '</div>' +
         '<div class="st-row"><span><b>تكرار الآية</b></span>' + cloneSelect('modalAudioRepeatSelect', 'repeat', g('audioRepeatTarget')) + '</div>' +
@@ -180,6 +182,7 @@
           call('setViewMode', 'single', true);
           var rc = g('RECITERS_CONFIG'); call('setReciter', rc && rc.minshawi_murattal ? 'minshawi_murattal' : Object.keys(rc || {})[0]);
           call('setAudioSpeed', 1); call('setAudioRepeatTarget', '1');
+          call('setAudioPanel', window.innerWidth >= 768);   // the panel's default: open, closed on a phone
           var ts = document.getElementById('tafsirSourceSelect'); if (ts && ts.value !== 'muyassar') { ts.value = 'muyassar'; ts.dispatchEvent(new Event('change')); }
           var m = document.querySelector('.match-tag[data-match=any]'); if (m) m.click();
           render(); call('showToast', 'أُعيدت الإعدادات الافتراضية');
@@ -199,7 +202,9 @@
     d.querySelectorAll('[data-ui]').forEach(function (cb) {
       cb.onchange = function () {
         var k = cb.getAttribute('data-ui');
-        if (k === 'eye') call('setEyeComfort', cb.checked); else setUi(k, cb.checked);
+        if (k === 'eye') call('setEyeComfort', cb.checked);
+        else if (k === 'player') call('setAudioPanel', cb.checked);
+        else setUi(k, cb.checked);
       };
     });
     var r = d.querySelector('[data-range=bright]');

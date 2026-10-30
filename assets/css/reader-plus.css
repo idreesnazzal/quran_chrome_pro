@@ -3,12 +3,12 @@
   font-family: 'Cairo', system-ui, sans-serif; }
 .rp-pill { font-family: inherit; font-size: 0.78rem; font-weight: 700; padding: 3px 12px; border-radius: 20px; line-height: 1.7;
   border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-muted); white-space: nowrap; }
-.rp-hizb { color: var(--gold-primary); border-color: color-mix(in srgb, var(--gold-primary) 45%, transparent); }
+.rp-hizb { color: var(--gold-ink); border-color: color-mix(in srgb, var(--gold-primary) 45%, transparent); }
 button.rp-pill { cursor: pointer; transition: 0.15s; }
-button.rp-pill:hover { color: var(--gold-primary); border-color: var(--gold-primary); }
+button.rp-pill:hover { color: var(--gold-ink); border-color: var(--gold-primary); }
 .rp-q { color: var(--text-main); }
-.rp-sajda { color: #0e9f6e; border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.08); }
-.rp-sajda-badge { background: rgba(16, 185, 129, 0.14) !important; color: #0e9f6e !important; border-color: rgba(16, 185, 129, 0.5) !important; }
+.rp-sajda { color: var(--ok-ink); border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.08); }
+.rp-sajda-badge { background: rgba(16, 185, 129, 0.14) !important; color: var(--ok-ink) !important; border-color: rgba(16, 185, 129, 0.5) !important; }
 #hizbSelect { max-width: 220px; }
 @media (max-width: 560px) { .rp-pill { font-size: 0.72rem; padding: 2px 10px; } }
 /* three jump selects (surah, juz, hizb) wrap on phones instead of pushing the page sideways */

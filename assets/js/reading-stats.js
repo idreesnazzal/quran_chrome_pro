@@ -44,9 +44,22 @@
 
   function load() {
     var s = null; try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
-    if (!s || typeof s !== 'object' || !s.days) s = { v: 1, days: {}, goal: 5, khatma: null, done: [] };
-    s.done = s.done || []; if (s.goal == null) s.goal = 5;
-    return s;
+    // anything stored may be damaged: keep only what has the right shape
+    if (!s || typeof s !== 'object' || Array.isArray(s)) s = {};
+    var days = {};
+    if (s.days && typeof s.days === 'object') Object.keys(s.days).forEach(function (k) {
+      var d = s.days[k];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(k) && d && typeof d === 'object')
+        days[k] = { p: Array.isArray(d.p) ? d.p.filter(validPage) : [], s: +d.s > 0 ? +d.s : 0 };
+    });
+    var k = s.khatma, khatma = null;
+    if (k && typeof k === 'object' && validPage(k.from) && +k.days >= 1 && typeof k.end === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(k.end))
+      khatma = { start: +k.start || Date.now(), from: +k.from, days: +k.days, end: k.end,
+        covered: Array.isArray(k.covered) ? k.covered.filter(validPage) : [], log: k.log && typeof k.log === 'object' ? k.log : {} };
+    return { v: 1, days: days, goal: [0, 1, 2, 4, 5, 10, 20].indexOf(+s.goal) >= 0 ? +s.goal : 5, khatma: khatma,
+      done: Array.isArray(s.done) ? s.done.filter(function (x) { return x && +x.days > 0; }) : [] };
+  }
+  function validPage(p) { return typeof p === 'number' && p >= 1 && p <= TOTAL && p === Math.floor(p);
   }
   function save() {
     var keys = Object.keys(st.days).sort();
@@ -167,7 +180,8 @@
     render();
   }
   function close() { if (modal) { modal.remove(); modal = null; } }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal) close(); });
+  // capture + stop: one Escape closes this panel only, not the window under it
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal) { close(); e.stopPropagation(); } }, true);
 
   function render() {
     var s = streak(), t = st.days[dk()] || { p: [], s: 0 }, gs = goalState(), kp = khatmaPlan();

@@ -31,7 +31,7 @@ body.ui-no-heard .dock-speech-row { display: none !important; }
   transform: translateX(-100%); transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .st-backdrop.show .st-drawer { transform: none; }
 .st-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-color); background: var(--bg-primary); }
-.st-title { font-size: 1.15rem; font-weight: 900; color: var(--gold-primary); }
+.st-title { font-size: 1.15rem; font-weight: 900; color: var(--gold-ink); }
 .st-x { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; }
 .st-x:hover { color: var(--text-main); border-color: var(--gold-primary); }
 .st-body { flex: 1; overflow-y: auto; padding: 14px 16px 30px; display: flex; flex-direction: column; gap: 14px; }
@@ -42,7 +42,7 @@ body.ui-no-heard .dock-speech-row { display: none !important; }
 .st-row > span { display: flex; flex-direction: column; min-width: 0; }
 .st-row b { font-size: 0.86rem; font-weight: 700; }
 .st-row small { font-size: 0.72rem; color: var(--text-muted); line-height: 1.5; }
-.st-val { font-weight: 800; color: var(--gold-primary); font-size: 0.85rem; }
+.st-val { font-weight: 800; color: var(--gold-ink); font-size: 0.85rem; }
 
 .st-themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .st-theme { font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; cursor: pointer;
@@ -76,8 +76,8 @@ body.ui-no-heard .dock-speech-row { display: none !important; }
 .st-note { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
 .st-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .st-btn { font-family: inherit; font-size: 0.8rem; font-weight: 700; padding: 6px 12px; border-radius: 9px; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); }
-.st-btn:hover { border-color: var(--gold-primary); color: var(--gold-primary); }
-.st-btn.danger:hover { border-color: #ef4444; color: #ef4444; }
+.st-btn:hover { border-color: var(--gold-primary); color: var(--gold-ink); }
+.st-btn.danger:hover { border-color: var(--danger-ink); color: var(--danger-ink); }
 
 @media (max-width: 560px) {
   .st-drawer { width: 100%; }
