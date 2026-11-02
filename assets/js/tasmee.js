@@ -1,6 +1,8 @@
-/* وضع التسميع (Tasmee): the words of the chosen range are covered, and the
- * reciter uncovers them one by one, by voice (strict: nothing moves on until
- * the word is said exactly) or by eye (Home = next word, End = previous).
+/* وضع التسميع (Tasmee): one press of 🧠 covers the open page; the reciter
+ * uncovers the words one by one, by voice (strict: nothing moves on until the
+ * word is said exactly; where they start is found from their first words) or
+ * by eye (a setting: Home = next word, End = previous). The covers follow the
+ * reciter page after page until 🧠 / ✕ / Esc ends the mode.
  * Spec: docs/TASMEE_SPEC.md.
  *
  * Core (pure, tests/tasmee_core.js): a cursor over the expected words E.
@@ -59,12 +61,14 @@
       reveal: o.reveal == null ? 3 : o.reveal, pauseOnFinal: o.pauseOnFinal !== false,
       sim: o.sim || function (a, b) { return a === b ? 1 : 0; } };
   }
-  function create(N) {
-    return { i: 0, st: new Uint8Array(N), tries: new Uint8Array(N), ty: new Uint16Array(N),
+  // base: the first word of the test (the reciter started mid-ayah); the words before it are left open
+  function create(N, base) {
+    base = base || 0;
+    return { i: base, base: base, st: new Uint8Array(N), tries: new Uint8Array(N), ty: new Uint16Array(N),
       run: -1, runLen: 0, runKind: 0, runTok: '', runNew: false, shadow: -1, opt: -1, optJ: 0 };
   }
   function clone(T) {
-    return { i: T.i, st: T.st.slice(), tries: T.tries.slice(), ty: T.ty.slice(), run: T.run, runLen: T.runLen,
+    return { i: T.i, base: T.base, st: T.st.slice(), tries: T.tries.slice(), ty: T.ty.slice(), run: T.run, runLen: T.runLen,
       runKind: T.runKind, runTok: T.runTok, runNew: T.runNew, shadow: T.shadow, opt: T.opt, optJ: T.optJ };
   }
   function matchAt(X, i, t, nx) {
@@ -170,7 +174,7 @@
     return true;
   }
   function eyeBack(T) {
-    if (T.i <= 0) return false;
+    if (T.i <= (T.base || 0)) return false;
     T.i--; T.st[T.i] = S_HID;
     return true;
   }
@@ -181,8 +185,8 @@
     T.ty[k] |= T_MARK; T.tries[k] = Math.min(255, T.tries[k] + 1); T.st[k] = S_MARK; return 1;
   }
   function summary(T, X) {
-    var n = { reached: 0, ok: 0, err: 0, types: {} };
-    for (var k = 0; k < X.N; k++) {
+    var n = { reached: 0, ok: 0, err: 0, types: {} }, end = Math.min(X.N - 1, T.i);
+    for (var k = T.base || 0; k <= end; k++) {   // nothing past the cursor was touched
       if (k >= T.i && T.st[k] === S_HID) continue;
       n.reached++;
       if (T.ty[k]) { n.err++; TYPES.forEach(function (ty) { if (T.ty[k] & ty[0]) n.types[ty[0]] = (n.types[ty[0]] || 0) + 1; }); }
@@ -224,10 +228,12 @@
   function triesTxt(n) { return plural(n, 'محاولة واحدة', 'محاولتان', 'محاولات', 'محاولة'); }
   function ayahTxt(n) { return plural(n, 'آية واحدة', 'آيتان', 'آيات', 'آية'); }
   function sessTxt(n) { return plural(n, 'جلسة واحدة', 'جلستين', 'جلسات', 'جلسة'); }
+  function wordsTxt(n) { return plural(n, 'كلمة واحدة', 'كلمتان', 'كلمات', 'كلمة'); }
   function typeNames(bits) { return TYPES.filter(function (t) { return bits & t[0]; }).map(function (t) { return t[1]; }); }
   function dateTxt(ts) { try { return new Date(ts).toLocaleDateString('ar-u-nu-latn', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
 
-  var prefs = Object.assign({ mode: 'voice', range: 'page', level: 'strict', reveal: 3, cs: 1, ca1: 1, ca2: 7 }, readJSON(PREF_KEY, {}));
+  var prefs = Object.assign({ mode: 'voice', level: 'strict', reveal: 3 }, readJSON(PREF_KEY, {}));
+  if (prefs.mode !== 'eye') prefs.mode = 'voice';
   function savePrefs() { writeJSON(PREF_KEY, prefs); }
 
   /* raw words of an ayah as the page shows them (boxes follow these), and the
@@ -241,158 +247,307 @@
     raw.forEach(function (w, r) { if (R().normalize(w)) idx.push(r); });
     return (rawCache[ai] = { raw: raw, idx: idx });
   }
+  var pageAyahs = null;   // page -> its ayah indices
+  function ayahsOn(page) {
+    if (!pageAyahs) { pageAyahs = {}; C().ayahs.forEach(function (a, i) { (pageAyahs[a.page] = pageAyahs[a.page] || []).push(i); }); }
+    return pageAyahs[page] || [];
+  }
 
-  /* ------------------------------ test state ---------------------------- */
-  var st = null;   // the running test, null = off
+  /* ------------------------------ the mode ------------------------------
+   * st = the running mode (null = off). One mode = one or more segments: a
+   * segment is a test from where the reciter started (voice: found from the
+   * first words, like the highlight; eye: the top of the page) onward, page
+   * after page. Turning the page by hand ends the segment and starts another
+   * there. st.X/T = the segment's test, null while waiting for the start.
+   * st.acc = what the closed segments added up to. */
+  var st = null;
+
+  function newAcc() { return { reached: 0, ok: 0, err: 0, types: {}, errs: [], added: 0, t0: Date.now(), first: null, fixed: null }; }
 
   // ayah indices -> expected words with their places
-  function buildTest(ayahIdx, o) {
-    var c = C(), E = [], as = [], pas = [], at = [], prevStart = -1, lastAi = -2;
+  function buildTest(ayahIdx, base) {
+    var c = C(), E = [], as = [], pas = [], at = [], first = {}, prevStart = -1, lastAi = -2;
     ayahIdx.forEach(function (ai) {
       var a = c.ayahs[ai], start = E.length, ps = (ai === lastAi + 1 && c.ayahs[ai].sura === c.ayahs[lastAi].sura) ? prevStart : -1;
+      first[ai] = start;
       for (var w = 0; w < a.words.length; w++) { E.push(a.words[w]); as.push(start); pas.push(ps); at.push({ ai: ai, w: w }); }
       prevStart = start; lastAi = ai;
     });
-    var X = makeCtx(E, as, pas, { level: o.level, reveal: o.reveal, sim: R().wordSim });
-    return { X: X, T: create(E.length), shown: null, at: at, ayahs: ayahIdx, mode: o.mode, t0: Date.now(), heard: [],
-      status: '', range: o.label || '', byPage: null };
+    st.X = makeCtx(E, as, pas, { level: prefs.level, reveal: +prefs.reveal, sim: R().wordSim });
+    st.T = st.shown = create(E.length, base || 0);
+    st.at = at; st.first = first; st.seg0 = Date.now();
+    if (!st.acc.first && !st.fixed) st.acc.first = { ai: ayahIdx[0], w: base || 0 };
   }
-  function ayahsInRange(kind) {
-    var c = C(), out = [], i;
-    var page = g('isDoublePageMode') ? g('currentRightPage') : g('currentPage');
-    var hl = g('currentHighlightedAyah');
-    var first = -1;
-    for (i = 0; i < c.ayahs.length; i++) if (c.ayahs[i].page === page) { first = i; break; }
-    var cur = first;
-    if (hl) for (i = 0; i < c.ayahs.length; i++) if (c.ayahs[i].sura === hl.sura && c.ayahs[i].aya === hl.aya) { cur = i; break; }
-    if (kind === 'page') {
-      var pages = visiblePages();
-      for (i = 0; i < c.ayahs.length; i++) if (pages.indexOf(c.ayahs[i].page) >= 0) out.push(i);
-    } else if (kind === 'fromAyah' || kind === 'sura') {
-      var s = c.ayahs[cur].sura;
-      for (i = 0; i < c.ayahs.length; i++) if (c.ayahs[i].sura === s && (kind === 'sura' || i >= cur)) out.push(i);
-    } else if (kind === 'custom') {
-      for (i = 0; i < c.ayahs.length; i++) {
-        var A = c.ayahs[i];
-        if (A.sura === +prefs.cs && A.aya >= +prefs.ca1 && A.aya <= +prefs.ca2) out.push(i);
-      }
-    }
-    return out;
+  // a test from word w of ayah ai to the end of the Quran
+  function anchorAt(ai, w) {
+    var list = [];
+    for (var i = ai; i < C().ayahs.length; i++) list.push(i);
+    buildTest(list, w);
   }
-  function label(ayahIdx) {
-    var c = C(), a = c.ayahs[ayahIdx[0]], b = c.ayahs[ayahIdx[ayahIdx.length - 1]];
-    if (a.sura === b.sura) return 'سورة ' + a.suraName + ' ' + a.aya + (b.aya !== a.aya ? '–' + b.aya : '');
-    return a.suraName + ' ' + a.aya + ' – ' + b.suraName + ' ' + b.aya;
+  function anchorPageTop() {
+    var page = visiblePages()[0], list = ayahsOn(page);
+    if (list.length) anchorAt(list[0], 0);
   }
 
-  function start(ayahIdx, mode) {
+  function start(o) {
+    o = o || {};
     if (!C()) { toast('بيانات المصحف لم تُحمّل بعد'); return false; }
-    if (!ayahIdx || !ayahIdx.length) { toast('النطاق فارغ'); return false; }
     if (st) stop(true);
-    mode = mode || prefs.mode;
+    closeDone(); closeModal();
+    var mode = o.mode || prefs.mode;
     if (mode === 'voice' && !(G.SpeechRecognition || G.webkitSpeechRecognition) && localStorage.getItem('recite_ears') !== 'quran') {
-      toast('المتصفح لا يدعم التعرّف الصوتي هنا: استعمل التسميع بالعين'); mode = 'eye';
+      toast('المتصفح لا يدعم التعرّف الصوتي هنا: التسميع بالعين'); mode = 'eye';
     }
-    st = buildTest(ayahIdx, { mode: mode, level: prefs.level, reveal: +prefs.reveal, label: label(ayahIdx) });
-    st.shown = st.T;
+    st = { mode: mode, X: null, T: null, shown: null, at: null, first: null, pre: [], heard: [], lastHeard: '', warn: '',
+      acc: newAcc(), fixed: o.ayahs && o.ayahs.length ? o.ayahs.slice() : null };
+    st.acc.fixed = st.fixed;
+    if (st.fixed) buildTest(st.fixed, 0);
+    else if (o.at) anchorAt(o.at.ai, o.at.w);
+    else if (mode === 'eye') anchorPageTop();
     document.body.classList.add('tsm-on');
     document.body.classList.toggle('tsm-voice', mode === 'voice');
     document.body.classList.toggle('tsm-eye', mode === 'eye');
-    closeModal();
-    followCursor();
+    headerBtn();
+    if (st.X) followCursor();
     buildLayers();
     if (mode === 'voice') {
-      if (!micOn()) call('startVoiceRecitation');
-      st.ownMic = true;
-      st.status = 'ابدأ التلاوة من: ' + where(0);
-    } else st.status = touch() ? 'انقر الصفحة أو «التالية» لتكشف الكلمة، و✗ إن أخطأت فيها' : 'Home للكلمة التالية، End للسابقة، Delete إن أخطأت';
+      var dock = document.getElementById('voiceFloatingDock');
+      st.dockWas = !!(dock && dock.classList.contains('show'));
+      st.ownMic = !micOn();
+      if (st.ownMic) call('startVoiceRecitation');
+      watchWarnings();
+    }
+    setIdleStatus();
     paint();
+    showPage();
     return true;
   }
+  // the covered page in view, under the sticky header and the bar
+  function showPage() {
+    var card = cardFor(visiblePages()[0]), bar = document.getElementById('tsmBar'), hd = document.querySelector('header');
+    if (!card || !G.scrollTo) return;
+    var top = card.getBoundingClientRect().top, above = (hd && getComputedStyle(hd).position === 'sticky' ? hd.offsetHeight : 0) + (bar ? bar.offsetHeight + 12 : 0);
+    if (top < above || top > G.innerHeight * 0.5) G.scrollTo({ top: G.scrollY + top - above - 6, behavior: 'smooth' });
+  }
+  // end the mode: covers off, the session saved, a short summary
   function stop(silent) {
     if (!st) return;
-    if (st.ownMic && micOn()) call('stopVoiceRecitation');
+    var s = st;
+    s.stopping = true;
+    closeSegment();
     st = null;
+    if (s.ownMic && micOn()) call('stopVoiceRecitation');
+    if (s.warnObs) s.warnObs.disconnect();
+    var alert = document.getElementById('dockMicAlertBanner');   // the mode opened the dock: close it, unless it holds a mic alert
+    if (s.mode === 'voice' && !s.dockWas && !(alert && alert.style.display === 'flex')) call('minimizeVoiceDock');
     document.querySelectorAll('.tsm-layer').forEach(function (el) { el.remove(); });
     var bar = document.getElementById('tsmBar'); if (bar) bar.remove();
     document.body.classList.remove('tsm-on', 'tsm-voice', 'tsm-eye');
-    if (!silent) toast('انتهى التسميع');
+    headerBtn();
+    lastAcc = s.acc;
+    if (silent) return;
+    if (s.acc.reached) showDone(s.acc);
+    else toast('أُوقف وضع التسميع');
+  }
+  function toggle() { if (st) stop(); else start(); }
+  function setIdleStatus() {
+    if (!st) return;
+    if (st.mode === 'eye') st.status = touch() ? 'انقر الصفحة أو «التالية» لتكشف الكلمة، و✗ إن أخطأت فيها' : 'Home للكلمة التالية، End للسابقة، Delete إن أخطأت';
+    else if (!st.X) st.status = 'اقرأ من أي موضع: أعرف مكانك من أول كلماتك';
+    else st.status = 'التالية من ' + where(st.shown.i);
   }
   function where(k) {
     var c = C(), p = st.at[Math.min(k, st.at.length - 1)], a = c.ayahs[p.ai];
     return a.suraName + ' ' + a.aya;
   }
 
+  /* close the running segment: into the log and the mode's totals */
+  function closeSegment() {
+    if (!st || !st.X) return;
+    st.T = st.shown = st.T;   // drop an interim replay
+    var n = summary(st.T, st.X);
+    if (n.reached) {
+      var r = record(), A = st.acc;
+      A.reached += n.reached; A.ok += n.ok; A.err += n.err; A.added += r.added;
+      Object.keys(n.types).forEach(function (t) { A.types[t] = (A.types[t] || 0) + n.types[t]; });
+      A.errs = A.errs.concat(r.errs);
+    }
+    st.X = st.T = st.shown = st.at = st.first = null;
+    st.pre = [];
+  }
+  // the reader turned the page by hand: the test moves there
+  function rearm() {
+    closeSegment();
+    if (st.mode === 'eye') anchorPageTop();
+    setIdleStatus();
+  }
+
   /* ------------------------------ heard words ---------------------------- */
-  function takesWords() { return !!(st && st.mode === 'voice' && !st.finished); }
+  function takesWords() { return !!(st && st.mode === 'voice'); }
+  // where the reciter started: the corpus position from which all the heard
+  // words (noise at the start dropped) run on exactly. The open page wins;
+  // elsewhere the words must single out one place. -> {pos, from} | null = wait
+  function locate(toks) {
+    var c = C(), W = c.words, eq = prefs.level === 'very' ? eqVery : eqStrict, pages = visiblePages();
+    for (var s = 0; s < toks.length; s++) {
+      var t0 = toks[s], seeds = [];
+      [t0, 'و' + t0, 'ف' + t0].forEach(function (v) { var l = c.uni.get(v); if (l) seeds = seeds.concat(l); });
+      var cands = seeds.filter(function (p) {
+        if (c.virt[p]) return false;
+        for (var j = s; j < toks.length; j++) { var q = p + j - s; if (q >= c.L || !eq(W[q], toks[j])) return false; }
+        return true;
+      });
+      if (!cands.length) continue;
+      var n = toks.length - s;
+      var vis = cands.filter(function (p) { return pages.indexOf(c.ayahs[c.ayahOf[p]].page) >= 0; });
+      if (vis.length) {
+        var p0 = vis[0];
+        if (vis.length === 1 && (n >= 2 || c.wordOf[p0] === 0)) return { pos: p0, from: s };
+        return n >= 5 ? { pos: p0, from: s } : null;
+      }
+      if (cands.length === 1 && n >= 3) return { pos: cands[0], from: s };
+      if (n >= 7) {   // still twins: the one nearest the open page
+        var pg = pages[0];
+        cands.sort(function (a, b) { return Math.abs(c.ayahs[c.ayahOf[a]].page - pg) - Math.abs(c.ayahs[c.ayahOf[b]].page - pg); });
+        return { pos: cands[0], from: s };
+      }
+      return null;
+    }
+    return null;
+  }
+  // the isti'adha / basmala before the first word: dropped (page 1 keeps its
+  // basmala, it is 1:1); a phrase still being said -> null = wait
+  function dropOpeners(toks) {
+    if (visiblePages().indexOf(1) >= 0) return toks;
+    for (var again = true; again;) {
+      again = false;
+      for (var z = 0; z < OPT.length; z++) {
+        var p = OPT[z], m = 0;
+        while (m < p.length && m < toks.length && p[m] === toks[m]) m++;
+        if (!m) continue;
+        if (m === toks.length && m < p.length) return null;
+        if (m === p.length) { toks = toks.slice(m); again = true; break; }
+      }
+    }
+    return toks;
+  }
+  function tryAnchor(committed, interim) {
+    var all = committed.concat(interim.slice(0, -1)), toks = dropOpeners(all);
+    if (!toks || !toks.length) return false;
+    var hit = locate(toks);
+    if (!hit) return false;
+    var c = C(), pos = hit.pos, skipped = all.length - toks.length + hit.from;
+    anchorAt(c.ayahOf[pos], c.wordOf[pos]);
+    var cm = committed.slice(Math.min(skipped, committed.length));
+    if (cm.length) feed(st.T, st.X, cm, true);
+    st.shown = st.T;
+    st.pre = [];
+    st.skipIv = Math.max(0, skipped - committed.length);   // the utterance still being said begins before the start
+    followCursor();
+    buildLayers();
+    return true;
+  }
   function heard(words, raw, final) {
     if (!takesWords()) return;
     var S = R()._session;
-    st.X.pauseOnFinal = !(S && S.ears === 'local');   // the local model commits mid-speech
-    if (final) { if (words.length) { feed(st.T, st.X, words, true); st.heard = st.heard.concat(raw || words).slice(-12); } st.shown = st.T; }
-    else st.shown = words.length ? feed(clone(st.T), st.X, words, false) : st.T;
-    var shownHeard = final ? st.heard : st.heard.concat(raw || words).slice(-12);
+    st.warn = '';
+    var shownHeard = final ? (st.heard = st.heard.concat(raw || words).slice(-12)) : st.heard.concat(raw || words).slice(-12);
     var sp = document.getElementById('dockSpeechText'); if (sp) sp.textContent = '"' + shownHeard.slice(-8).join(' ') + '"';
     st.lastHeard = shownHeard.slice(-6).join(' ');
+    if (!st.X) {   // where does the reciter start?
+      if (final) st.pre = st.pre.concat(words).slice(-24);
+      if (!tryAnchor(st.pre, final ? [] : words)) {
+        if (final && st.pre.length >= 4) st.status = 'لم أعرف موضعك بعد… تابع القراءة، أو 💡 لتبدأ من أول الصفحة';
+        renderBar();
+        return;
+      }
+      if (final) { st.skipIv = 0; afterChange(); return; }
+    }
+    st.X.pauseOnFinal = !(S && S.ears === 'local');   // the local model commits mid-speech
+    var ws = st.skipIv ? words.slice(st.skipIv) : words;
+    if (final) { st.skipIv = 0; if (ws.length) feed(st.T, st.X, ws, true); st.shown = st.T; }
+    else st.shown = ws.length ? feed(clone(st.T), st.X, ws, false) : st.T;
     afterChange();
   }
   function afterChange() {
+    if (!st || !st.X) { renderBar(); return; }
     var T = st.shown, X = st.X;
     if (T.i < X.N && T.st[T.i] === S_ERR) {
       var left = X.reveal ? X.reveal - T.tries[T.i] : 0;
       st.status = '✗ ' + typeNames(T.ty[T.i] & 31).join('، ') + ' — أعد الكلمة الحمراء' +
         (X.reveal ? ' (' + triesTxt(T.tries[T.i]) + '، تنكشف بعد ' + (left === 1 ? 'محاولة أخرى' : left === 2 ? 'محاولتين' : left + ' محاولات') + ')' : ' (' + triesTxt(T.tries[T.i]) + ')');
-    } else if (T.i < X.N) st.status = st.mode === 'voice' ? 'التالية من ' + where(T.i) : st.status;
+    } else if (T.i < X.N && st.mode === 'voice') st.status = 'التالية من ' + where(T.i);
     followCursor();
     paint();
-    if (st.T.i >= X.N && !st.finished) finish();
+    if (st.T.i >= X.N) stop();   // the end of the range (or of the Quran)
   }
+  // the engine's own warnings (no speech, no network...) land in the dock, which the mode hides
+  function watchWarnings() {
+    var el = document.getElementById('dockSpeechText');
+    if (!el || typeof MutationObserver === 'undefined') return;
+    st.warnObs = new MutationObserver(function () {
+      if (!st) return;
+      var t = el.textContent || '';
+      if (/^\s*⚠/.test(t) && t !== st.warn) { st.warn = t; renderBar(); }
+    });
+    st.warnObs.observe(el, { childList: true, characterData: true, subtree: true });
+  }
+  // the mic was switched off outside the mode (its dock or header button, a denied permission): the mode ends with it
+  function onMicStop() { if (st && st.mode === 'voice' && !st.pausing && !st.stopping) stop(); }
 
   /* --------------------------------- actions ---------------------------- */
   function doHint() {
     if (!st) return;
     if (st.mode === 'eye') return doNext();
-    if (hint(st.T, st.X)) { st.shown = st.T; afterChange(); }
+    if (!st.X) { anchorPageTop(); followCursor(); buildLayers(); }
+    if (st.X && hint(st.T, st.X)) { st.shown = st.T; afterChange(); }
   }
   function doNext(ayah) {
     if (!st) return;
     if (st.mode === 'voice') return doHint();
+    if (!st.X) anchorPageTop();
     var T = st.T, X = st.X, a = T.i < X.N ? st.at[T.i].ai : -1;
     do { if (!eyeNext(T, X)) break; } while (ayah && T.i < X.N && st.at[T.i].ai === a);
     st.shown = T; afterChange();
   }
   function doBack(ayah) {
-    if (!st || st.mode !== 'eye') return;
+    if (!st || st.mode !== 'eye' || !st.X) return;
     var T = st.T;
     if (ayah) {   // to the start of this ayah, or of the one before when already there
-      if (T.i > 0 && T.i < st.X.N && st.X.as[T.i] === T.i) eyeBack(T);
-      var s = T.i < st.X.N ? st.X.as[T.i] : st.X.as[T.i - 1];
+      if (T.i > T.base && T.i < st.X.N && st.X.as[T.i] === T.i) eyeBack(T);
+      var s = Math.max(T.base, T.i < st.X.N ? st.X.as[T.i] : st.X.as[T.i - 1]);
       while (T.i > s && eyeBack(T)) {}
     } else eyeBack(T);
-    st.shown = T; st.finished = false; afterChange();
+    st.shown = T; afterChange();
   }
   function doMark() {
-    if (!st) return;
-    if (st.mode !== 'eye') return;
-    var r = eyeMark(st.T);
-    if (!r) { toast('اكشف كلمة أولًا (Home)'); return; }
+    if (!st || st.mode !== 'eye' || !st.X) return;
+    if (!eyeMark(st.T)) { toast(touch() ? 'اكشف كلمة أولًا' : 'اكشف كلمة أولًا (Home)'); return; }
     st.shown = st.T; afterChange();
   }
-  function restartAyah() {
-    if (!st) return;
-    var T = st.T, k = Math.min(T.i, st.X.N - 1);
-    if (st.mode === 'eye') { doBack(true); return; }
-    T.shadow = -1; T.run = -1;
-    st.status = 'أعد من أول ' + where(st.X.as[k]); st.shown = T; paint();
+  function togglePause() {
+    if (!st || st.mode !== 'voice') return;
+    if (micOn()) { st.pausing = true; call('stopVoiceRecitation'); st.pausing = false; st.status = '⏸ المايك متوقف: ▶ للمتابعة'; }
+    else { call('startVoiceRecitation'); st.ownMic = true; setIdleStatus(); }
+    renderBar();
+    setTimeout(renderBar, 80);
   }
 
   /* --------------------------------- pages ------------------------------ */
-  function followCursor() {
-    if (!st) return;
-    var k = Math.min(st.shown.i, st.X.N - 1), page = C().ayahs[st.at[k].ai].page;
-    if (visiblePages().indexOf(page) < 0) call('goToPage', page);
+  function cursorPage() {
+    var k = Math.min(st.shown.i, st.X.N - 1);
+    return C().ayahs[st.at[k].ai].page;
   }
-  function onPage() { if (st) buildLayers(); }
+  function followCursor() {
+    if (!st || !st.X) return;
+    var page = cursorPage();
+    if (visiblePages().indexOf(page) < 0) { st.turning = true; try { call('goToPage', page); } finally { if (st) st.turning = false; } }
+  }
+  function onPage() {
+    if (!st) return;
+    if (st.X && !st.turning && !st.fixed && visiblePages().indexOf(cursorPage()) < 0) rearm();
+    buildLayers();
+  }
   function buildLayers() {
     document.querySelectorAll('.tsm-layer').forEach(function (el) { el.remove(); });
     if (!st) return;
@@ -403,17 +558,21 @@
       var card = cardFor(page); if (!card) return;
       var layer = document.createElement('div');
       layer.className = 'tsm-layer'; layer.setAttribute('data-page', page);
-      var lastAi = -1, boxes = null, ro = null;
-      for (var k = 0; k < st.at.length; k++) {
-        var p = st.at[k];
-        if (p.ai !== lastAi) { lastAi = p.ai; var a = c.ayahs[p.ai]; boxes = getBoxes(a.sura, a.aya) || []; ro = rawOf(p.ai); }
-        var b = boxes[ro.idx[p.w]];
-        if (!b || b.page !== page) continue;
-        var el = document.createElement('div');
-        el.className = 'tsm-w'; el.setAttribute('data-k', k);
-        place(el, b, -3);   // a little taller than the box: no letter tails or marks peek out
-        layer.appendChild(el);
-      }
+      ayahsOn(page).forEach(function (ai) {
+        var k0 = -1;
+        if (st.X) { if (!(ai in st.first)) return; k0 = st.first[ai]; }   // not in the test: left open
+        var a = c.ayahs[ai], boxes = getBoxes(a.sura, a.aya) || [], ro = rawOf(ai);
+        for (var w = 0; w < a.words.length; w++) {
+          var b = boxes[ro.idx[w]];
+          if (!b || b.page !== page) continue;
+          var k = k0 >= 0 ? k0 + w : -1;
+          if (st.X && k < st.T.base) continue;   // before where the reciter started
+          var el = document.createElement('div');
+          el.className = 'tsm-w'; el.setAttribute('data-k', k);
+          place(el, b, -3);   // a little taller than the box: no letter tails or marks peek out
+          layer.appendChild(el);
+        }
+      });
       card.appendChild(layer);
     });
     paint();
@@ -424,10 +583,18 @@
     var T = st.shown;
     document.querySelectorAll('.tsm-w').forEach(function (el) {
       var k = +el.getAttribute('data-k');
-      var c = 'tsm-w' + CLS[T.st[k]] + (k === T.i ? ' tsm-cur' : '');
+      var c = T && k >= 0 ? 'tsm-w' + CLS[T.st[k]] + (k === T.i ? ' tsm-cur' : '') : 'tsm-w';
       if (el.className !== c) el.className = c;
     });
     renderBar();
+  }
+  function headerBtn() {
+    var b = document.getElementById('tasmeeBtn'); if (!b) return;
+    var on = !!st;
+    b.classList.toggle('tsm-active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.title = on ? 'إنهاء وضع التسميع (Esc)' : 'وضع التسميع: تُغطّى الكلمات وتنكشف حين تقرؤها صحيحة';
+    var t = b.querySelector('span:nth-child(2)'); if (t) t.textContent = on ? 'إنهاء التسميع' : 'وضع التسميع';
   }
 
   /* ---------------------------------- bar ------------------------------- */
@@ -442,14 +609,13 @@
     bar.addEventListener('click', function (e) {
       var b = e.target.closest('[data-tsm]'); if (!b || !st) return;
       var a = b.getAttribute('data-tsm');
-      if (a === 'mic') { if (micOn()) call('stopVoiceRecitation'); else { call('startVoiceRecitation'); st.ownMic = true; } setTimeout(paint, 60); }
+      if (a === 'mic') togglePause();
       if (a === 'next') doNext();
       if (a === 'back') doBack();
       if (a === 'hint') doHint();
       if (a === 'mark') doMark();
-      if (a === 'again') restartAyah();
       if (a === 'log') openLog();
-      if (a === 'finish') finish();
+      if (a === 'end') stop();
     });
     return bar;
   }
@@ -458,49 +624,37 @@
     var bar = ensureBar(); if (!bar || !st) return;
     var hd = document.querySelector('header');   // sticks under the sticky header, not over it
     bar.style.top = ((hd && getComputedStyle(hd).position === 'sticky' ? hd.offsetHeight : 0) + 6) + 'px';
-    var T = st.shown, X = st.X, n = summary(T, X), voice = st.mode === 'voice';
-    var errNow = T.i < X.N && T.st[T.i] === S_ERR;
+    var voice = st.mode === 'voice', T = st.shown, X = st.X, A = st.acc;
+    var n = X ? summary(T, X) : { reached: 0, ok: 0, err: 0 };
+    var ok = A.ok + n.ok, err = A.err + n.err;
+    var errNow = X && T.i < X.N && T.st[T.i] === S_ERR;
+    var place = X ? where(T.i) : 'ص ' + visiblePages().join('–');
+    var status = st.warn && voice ? st.warn : st.status;
     bar.innerHTML =
       '<div class="tsm-row">' +
-        '<span class="tsm-title">' + (voice ? '🎙️' : '👁') + ' التسميع' + '<small>' + esc(st.range) + '</small></span>' +
-        '<span class="tsm-c" title="الكلمات التي كُشفت من النطاق">' + Math.min(T.i, X.N) + ' / ' + X.N + '</span>' +
-        '<span class="tsm-c tsm-c-ok" title="صحيحة من أول مرة">✓ ' + n.ok + '</span>' +
-        '<span class="tsm-c tsm-c-err" title="كلمات فيها خطأ">✗ ' + n.err + '</span>' +
+        '<span class="tsm-title">' + (voice ? '🎙️' : '👁') + ' التسميع<small>' + esc(place) + '</small></span>' +
+        '<span class="tsm-c tsm-c-ok" title="صحيحة من أول مرة">✓ ' + ok + '</span>' +
+        '<span class="tsm-c tsm-c-err" title="كلمات فيها خطأ">✗ ' + err + '</span>' +
         '<span class="tsm-sp"></span>' +
-        (voice ? '<button class="tsm-b' + (micOn() ? '' : ' tsm-gold') + '" data-tsm="mic">' + (micOn() ? '⏸' + lbl('إيقاف المايك') : '🎙️' + lbl('شغّل المايك')) + '</button>' +
-          '<button class="tsm-b" data-tsm="hint" title="اكشف الكلمة التالية (Home) — تُسجَّل خطأً">💡' + lbl('مساعدة') + '</button>' +
-          '<button class="tsm-b" data-tsm="again" title="ابدأ الآية من أولها">↺' + lbl('أعد الآية') + '</button>'
+        (voice ? '<button class="tsm-b" data-tsm="mic" title="' + (micOn() ? 'أوقف المايك مؤقتًا' : 'شغّل المايك') + '">' + (micOn() ? '⏸' + lbl('إيقاف مؤقت') : '▶' + lbl('متابعة')) + '</button>' +
+          '<button class="tsm-b" data-tsm="hint" title="اكشف الكلمة التالية (Home) — تُسجَّل خطأً">💡' + lbl('مساعدة') + '</button>'
         : '<button class="tsm-b" data-tsm="back" title="الكلمة السابقة (End)">→' + lbl('السابقة') + '</button>' +
           '<button class="tsm-b tsm-gold" data-tsm="next" title="الكلمة التالية (Home)">التالية ←</button>' +
           '<button class="tsm-b tsm-red" data-tsm="mark" title="أخطأت في الكلمة التي كشفتها (Delete)">✗' + lbl('أخطأت') + '</button>') +
         '<button class="tsm-b" data-tsm="log" title="سجل الأخطاء">📋</button>' +
-        '<button class="tsm-b" data-tsm="finish" title="إنهاء وعرض النتيجة">🏁' + lbl('إنهاء') + '</button>' +
+        '<button class="tsm-b tsm-end" data-tsm="end" title="إنهاء التسميع (Esc)">✕' + lbl('إنهاء') + '</button>' +
       '</div>' +
-      '<div class="tsm-status' + (errNow ? ' tsm-status-err' : '') + '">' + esc(st.status) +
+      '<div class="tsm-status' + (errNow ? ' tsm-status-err' : '') + (st.warn && voice ? ' tsm-status-warn' : '') + '">' +
+        '<span class="tsm-cm"><i class="tsm-cm-ok">✓' + ok + '</i> <i class="tsm-cm-err">✗' + err + '</i></span>' + esc(status) +
         (voice && st.lastHeard ? '<span class="tsm-heard">سمعت: «' + esc(st.lastHeard) + '»</span>' : '') + '</div>';
   }
 
   /* ------------------------------- results ------------------------------ */
-  function finish() {
-    if (!st) return;
-    if (st.ownMic && micOn()) call('stopVoiceRecitation');
-    st.T = st.shown = st.T;   // drop an interim replay
-    st.finished = true;
-    var n = summary(st.T, st.X);
-    if (!n.reached) { stop(true); return; }
-    if (!st.saved) { st.saved = true; st.result = record(); }
-    paint();
-    showResults();
-  }
-  function errorAyahs() {
-    var T = st.T, X = st.X, out = [], seen = {};
-    for (var k = 0; k < X.N; k++) if (T.ty[k] && !seen[st.at[k].ai]) { seen[st.at[k].ai] = 1; out.push(st.at[k].ai); }
-    return out;
-  }
-  // the session into the log; the error ayahs into «أخطاء التسميع»
+  // the segment into the log; its error ayahs into «أخطاء التسميع»
   function record() {
-    var c = C(), T = st.T, X = st.X, L = loadLog(), now = Date.now(), reachedAyah = {};
-    for (var k = 0; k < X.N; k++) {
+    var c = C(), T = st.T, X = st.X, L = loadLog(), now = Date.now(), reachedAyah = {}, byAyah = {}, order = [];
+    var end = Math.min(X.N - 1, T.i);
+    for (var k = T.base; k <= end; k++) {
       if (k >= T.i && T.st[k] === S_HID) continue;
       var p = st.at[k], a = c.ayahs[p.ai], ak = a.sura + ':' + a.aya, key = ak + ':' + p.w;
       if (!reachedAyah[ak]) { reachedAyah[ak] = 1; L.reach[ak] = (L.reach[ak] || 0) + 1; }
@@ -508,15 +662,20 @@
       if (T.ty[k]) {
         if (!e) e = L.words[key] = { n: (L.reach[ak] || 1) - 1, e: 0, t: 0, ty: 0, last: 0, ok: false, w: rawOf(p.ai).raw[rawOf(p.ai).idx[p.w]] || a.words[p.w] };
         e.n++; e.e++; e.t += Math.max(1, T.tries[k]); e.ty |= T.ty[k]; e.last = now; e.ok = false;
+        if (!byAyah[p.ai]) { byAyah[p.ai] = {}; order.push(p.ai); }
+        byAyah[p.ai][p.w] = typeNames(T.ty[k]).join('، ') + (T.tries[k] > 1 ? ' — ' + triesTxt(T.tries[k]) : '');
       } else if (e) { e.n++; e.ok = true; }
     }
     var n = summary(T, X);
-    L.sessions.unshift({ t: now, mode: st.mode, range: st.range, words: n.reached, ok: n.ok, err: n.err, types: n.types, dur: Math.round((now - st.t0) / 1000) });
+    var a0 = c.ayahs[st.at[T.base].ai], a1 = c.ayahs[st.at[end].ai];
+    var range = a0.sura === a1.sura ? a0.suraName + ' ' + a0.aya + (a1.aya !== a0.aya ? '–' + a1.aya : '') : a0.suraName + ' ' + a0.aya + ' – ' + a1.suraName + ' ' + a1.aya;
+    L.sessions.unshift({ t: now, mode: st.mode, range: range, words: n.reached, ok: n.ok, err: n.err, types: n.types, dur: Math.round((now - st.seg0) / 1000) });
     L.sessions = L.sessions.slice(0, 100);
     if (!writeJSON(LOG_KEY, L)) toast('تعذّر حفظ سجل الأخطاء في المتصفح');
-    var items = errorAyahs().map(function (ai) { return { s: c.ayahs[ai].sura, a: c.ayahs[ai].aya }; });
+    var items = order.map(function (ai) { return { s: c.ayahs[ai].sura, a: c.ayahs[ai].aya }; });
     var added = items.length && G.AyahLists && G.AyahLists.addMistakes ? G.AyahLists.addMistakes(items) : 0;
-    return { added: added, items: items.length };
+    st.acc.range = st.acc.range ? st.acc.range + '، ' + range : range;
+    return { added: added, errs: order.map(function (ai) { return { ai: ai, marks: byAyah[ai] }; }) };
   }
   function loadLog() {
     var L = readJSON(LOG_KEY, null);
@@ -531,6 +690,27 @@
     return L;
   }
 
+  // the small card after the mode ends; the full result is one tap away
+  var lastAcc = null, doneT = 0;
+  function closeDone() { clearTimeout(doneT); var d = document.getElementById('tsmDone'); if (d) d.remove(); }
+  function showDone(A) {
+    closeDone();
+    var tm = document.getElementById('toastMsg'); if (tm) tm.classList.remove('show');   // an older toast sits on the same spot
+    var pct = A.reached ? Math.round(100 * A.ok / A.reached) : 0;
+    var d = document.createElement('div');
+    d.id = 'tsmDone'; d.className = 'tsm-done'; d.setAttribute('dir', 'rtl'); d.setAttribute('role', 'status');
+    d.innerHTML = '<b>🧠 انتهى التسميع</b><span>' + wordsTxt(A.reached) + ' · <i class="tsm-d-ok">✓ ' + A.ok + '</i> · <i class="tsm-d-err">✗ ' + A.err + '</i> · ' + pct + '%</span>' +
+      '<button class="tsm-b tsm-gold" data-d="res">النتيجة</button><button class="tsm-x" data-d="x" title="إغلاق">✕</button>';
+    d.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-d]'); if (!b) return;
+      closeDone();
+      if (b.getAttribute('data-d') === 'res') showResults(A);
+    });
+    d.addEventListener('mouseenter', function () { clearTimeout(doneT); });
+    document.body.appendChild(d);
+    doneT = setTimeout(closeDone, 12000);
+  }
+
   var modal = null;
   function closeModal() { if (modal) { modal.remove(); modal = null; } }
   function openModal(html, cls) {
@@ -538,7 +718,7 @@
     modal = document.createElement('div');
     modal.className = 'tsm-modal'; modal.setAttribute('dir', 'rtl');
     modal.innerHTML = '<div class="tsm-card ' + (cls || '') + '" role="dialog" aria-modal="true">' + html + '</div>';
-    modal.addEventListener('mousedown', function (e) { if (e.target === modal) { var m = modal; closeModal(); if (m.onclose) m.onclose(); } });
+    modal.addEventListener('mousedown', function (e) { if (e.target === modal) closeModal(); });
     document.body.appendChild(modal);
     return modal;
   }
@@ -550,52 +730,48 @@
     });
     return html.join(' ');
   }
-  function showResults() {
-    var c = C(), T = st.T, X = st.X, n = summary(T, X), pct = n.reached ? Math.round(100 * n.ok / n.reached) : 0;
-    var mins = Math.max(1, Math.round((Date.now() - st.t0) / 60000));
-    var byAyah = {};
-    for (var k = 0; k < X.N; k++) if (T.ty[k]) {
-      var p = st.at[k];
-      (byAyah[p.ai] = byAyah[p.ai] || {})[p.w] = typeNames(T.ty[k]).join('، ') + (T.tries[k] > 1 ? ' — ' + triesTxt(T.tries[k]) : '');
-    }
-    var list = errorAyahs().map(function (ai) {
-      var a = c.ayahs[ai], marks = byAyah[ai];
+  function showResults(A) {
+    A = A || lastAcc; if (!A) return;
+    var c = C(), pct = A.reached ? Math.round(100 * A.ok / A.reached) : 0;
+    var mins = Math.max(1, Math.round((Date.now() - A.t0) / 60000));
+    var errAyahs = [];
+    var list = A.errs.map(function (x) {
+      var ai = x.ai, a = c.ayahs[ai], marks = x.marks;
+      if (errAyahs.indexOf(ai) < 0) errAyahs.push(ai);
       var detail = Object.keys(marks).map(function (w) {
         return '<li><b>' + esc(rawOf(ai).raw[rawOf(ai).idx[w]] || a.words[w]) + '</b> (الكلمة ' + (+w + 1) + '): ' + esc(marks[w]) + '</li>';
       }).join('');
       return '<div class="tsm-ay" data-go="' + ai + '"><div class="tsm-ay-h">' + esc(a.suraName) + ' ' + a.aya + ' <small>ص ' + a.page + '</small></div>' +
         '<div class="tsm-ay-t">' + ayahHtml(ai, marks) + '</div><ul>' + detail + '</ul></div>';
     }).join('');
-    var chips = TYPES.filter(function (t) { return n.types[t[0]]; }).map(function (t) {
-      return '<span class="tsm-chip">' + t[1] + ' <b>' + n.types[t[0]] + '</b></span>'; }).join('');
+    var chips = TYPES.filter(function (t) { return A.types[t[0]]; }).map(function (t) {
+      return '<span class="tsm-chip">' + t[1] + ' <b>' + A.types[t[0]] + '</b></span>'; }).join('');
     var m = openModal(
       '<header class="tsm-head"><b>🏁 نتيجة التسميع</b><button class="tsm-x" data-r="close" title="إغلاق (Esc)">✕</button></header>' +
       '<div class="tsm-body">' +
-        '<div class="tsm-score"><b>' + pct + '%</b><span>' + n.ok + ' من ' + n.reached + ' كلمة صحيحة من أول مرة · ' + esc(st.range) + ' · ' +
+        '<div class="tsm-score"><b>' + pct + '%</b><span>' + A.ok + ' من ' + A.reached + ' كلمة صحيحة من أول مرة · ' + esc(A.range || '') + ' · ' +
           (mins === 1 ? 'دقيقة' : mins === 2 ? 'دقيقتان' : mins + (mins <= 10 ? ' دقائق' : ' دقيقة')) + '</span></div>' +
         (chips ? '<div class="tsm-chips">' + chips + '</div>' : '<p class="tsm-perfect">ما شاء الله، لا أخطاء 🌟</p>') +
-        (st.result && st.result.items ? '<p class="tsm-note">' + (st.result.added ? 'أُضيفت ' + ayahTxt(st.result.added) + ' إلى «أخطاء التسميع» في قوائمي.' : 'آيات الأخطاء موجودة في «أخطاء التسميع» في قوائمي، وأُعيدت إلى أول المراجعة.') + '</p>' : '') +
+        (errAyahs.length ? '<p class="tsm-note">' + (A.added ? 'أُضيفت ' + ayahTxt(A.added) + ' إلى «أخطاء التسميع» في قوائمي.' : 'آيات الأخطاء موجودة في «أخطاء التسميع» في قوائمي، وأُعيدت إلى أول المراجعة.') + '</p>' : '') +
         (list ? '<h4>الآيات التي فيها أخطاء</h4>' + list : '') +
       '</div>' +
       '<footer class="tsm-foot">' +
         '<button class="tsm-b tsm-gold" data-r="again">⟲ أعد التسميع</button>' +
-        (list ? '<button class="tsm-b" data-r="errs">🎯 سمّع الأخطاء فقط</button>' : '') +
+        (errAyahs.length ? '<button class="tsm-b" data-r="errs">🎯 سمّع الأخطاء فقط</button>' : '') +
         '<button class="tsm-b" data-r="log">📋 سجل الأخطاء</button>' +
         '<button class="tsm-b" data-r="close">إغلاق</button>' +
       '</footer>', 'tsm-results');
-    m.onclose = function () { stop(true); };
     m.addEventListener('click', function (e) {
       var b = e.target.closest('[data-r]'), go = e.target.closest('[data-go]');
-      var ayahs = st ? st.ayahs.slice() : [], mode = st ? st.mode : prefs.mode;
       if (b) {
         var a = b.getAttribute('data-r');
-        if (a === 'close') { closeModal(); stop(true); }
-        if (a === 'again') start(ayahs, mode);
-        if (a === 'errs') start(errorAyahs(), mode);
-        if (a === 'log') { stop(true); openLog(); }
+        if (a === 'close') closeModal();
+        if (a === 'again') { closeModal(); start(A.fixed ? { ayahs: A.fixed } : A.first ? { at: A.first } : {}); }
+        if (a === 'errs') { closeModal(); start({ ayahs: errAyahs.slice().sort(function (x, y) { return x - y; }) }); }
+        if (a === 'log') openLog();
         return;
       }
-      if (go) { var ai = +go.getAttribute('data-go'); closeModal(); stop(true); goAyah(ai); }
+      if (go) { closeModal(); goAyah(+go.getAttribute('data-go')); }
     });
   }
   function goAyah(ai, w) {
@@ -665,7 +841,7 @@
         (rows.length ? '<p class="tsm-note">' + rows.length + ' كلمة أخطأت فيها في ' + L.sessions.length + ' جلسة تسميع' + (shown.length !== rows.length ? '، يظهر منها ' + shown.length : '') + '. انقر أي صف لتذهب إلى الكلمة.</p>' +
           '<div class="tsm-lh"><span>الكلمة</span><span>الموضع</span><span>النوع</span><span>كم مرة</span><span>آخر مرة</span></div>' +
           (body || '<p class="tsm-empty">لا شيء يطابق التصفية.</p>')
-        : '<p class="tsm-empty">لا أخطاء مسجّلة بعد. ابدأ تسميعًا، وكل كلمة تخطئ فيها تظهر هنا مع عدد مرات الخطأ.</p>') +
+        : '<p class="tsm-empty">لا أخطاء مسجّلة بعد. كل كلمة تخطئ فيها في وضع التسميع تظهر هنا مع عدد مرات الخطأ.</p>') +
       '</div>' +
       '<footer class="tsm-foot">' +
         (shown.length ? '<button class="tsm-b tsm-gold" data-l="drill">🎯 سمّع هذه فقط</button>' : '') +
@@ -690,103 +866,38 @@
           var want = {}, list = [];
           shown.forEach(function (r) { want[r.s + ':' + r.a] = 1; });
           c.ayahs.forEach(function (A, i) { if (want[A.sura + ':' + A.aya]) list.push(i); });
-          closeModal(); start(list);
+          closeModal(); start({ ayahs: list });
         }
         return;
       }
       if (row) {
         var p = row.getAttribute('data-key').split(':').map(Number), ai = -1;
         for (var i = 0; i < c.ayahs.length; i++) if (c.ayahs[i].sura === p[0] && c.ayahs[i].aya === p[1]) { ai = i; break; }
-        if (ai >= 0) { closeModal(); if (st) stop(true); goAyah(ai, p[2]); }
+        if (ai >= 0) { closeModal(); if (st) stop(); goAyah(ai, p[2]); }
       }
     });
-  }
-
-  /* ------------------------------- start panel -------------------------- */
-  function openStart() {
-    var c = C(); if (!c) { toast('بيانات المصحف لم تُحمّل بعد'); return; }
-    var suras = [], seen = {};
-    c.ayahs.forEach(function (a) { if (!seen[a.sura]) { seen[a.sura] = 1; suras.push({ s: a.sura, name: a.suraName, n: 0 }); } suras[suras.length - 1].n = a.aya; });
-    var cs = suras[(+prefs.cs || 1) - 1] || suras[0];
-    function seg(name, items, cur) {
-      return '<div class="tsm-seg" data-seg="' + name + '">' + items.map(function (it) {
-        return '<button type="button" data-v="' + it[0] + '"' + (String(cur) === String(it[0]) ? ' class="on"' : '') + '>' + it[1] + '</button>'; }).join('') + '</div>';
-    }
-    var counts = {}; ['page', 'fromAyah', 'sura', 'custom'].forEach(function (k) { counts[k] = ayahsInRange(k); });
-    function rlabel(k) { var l = counts[k]; return l.length ? label(l) : '—'; }
-    var m = openModal(
-      '<header class="tsm-head"><b>🧠 وضع التسميع</b><button class="tsm-x" data-s="close" title="إغلاق (Esc)">✕</button></header>' +
-      '<div class="tsm-body tsm-form">' +
-        '<div class="tsm-fr"><span>الطريقة</span>' + seg('mode', [['voice', '🎙️ بالصوت'], ['eye', '👁 بالعين (بلا صوت)']], prefs.mode) + '</div>' +
-        '<div class="tsm-fr"><span>النطاق</span><div class="tsm-ranges">' +
-          [['page', 'الصفحة الحالية'], ['fromAyah', 'من الآية الحالية إلى آخر السورة'], ['sura', 'السورة كاملة'], ['custom', 'نطاق أختاره']].map(function (r) {
-            return '<label class="tsm-rad"><input type="radio" name="tsmRange" value="' + r[0] + '"' + (prefs.range === r[0] ? ' checked' : '') + '><b>' + r[1] + '</b>' +
-              (r[0] !== 'custom' ? '<small>' + esc(rlabel(r[0])) + '</small>' : '') + '</label>'; }).join('') +
-          '<div class="tsm-custom"><select data-c="s" aria-label="السورة">' + suras.map(function (s) {
-              return '<option value="' + s.s + '"' + (s.s === cs.s ? ' selected' : '') + '>' + s.s + '. ' + esc(s.name) + '</option>'; }).join('') + '</select>' +
-            '<label>من <input type="number" data-c="a1" min="1" max="' + cs.n + '" value="' + Math.min(+prefs.ca1 || 1, cs.n) + '"></label>' +
-            '<label>إلى <input type="number" data-c="a2" min="1" max="' + cs.n + '" value="' + Math.min(+prefs.ca2 || cs.n, cs.n) + '"></label></div>' +
-        '</div></div>' +
-        '<div class="tsm-fr tsm-voice-only"><span>الصرامة</span>' + seg('level', [['strict', 'صارم'], ['very', 'صارم جدًا']], prefs.level) +
-          '<small>' + (prefs.level === 'very' ? 'يطابق كل حرف، وأي «و» أو «ف» لم يكتبها Chrome تُحسب خطأً.' : 'يتسامح فقط مع ما يكتبه Chrome خطأً لقراءة صحيحة، مثل حذف «و» و«ف» المنطوقتين.') + '</small></div>' +
-        '<div class="tsm-fr tsm-voice-only"><span>عند الخطأ</span>' + seg('reveal', [['3', 'اكشف الكلمة بعد 3 محاولات'], ['0', 'لا تكشف أبدًا']], prefs.reveal) + '</div>' +
-        '<p class="tsm-note">' + (prefs.mode === 'voice'
-          ? 'تُغطّى الكلمات، وتنكشف كل كلمة حين تقرؤها صحيحة. عند الخطأ تصبح الكلمة حمراء ويقف التسميع عندها حتى تقرأها صحيحة. التشكيل والتجويد لا يُكشفان: التعرّف الصوتي يكتب حروفًا بلا حركات.'
-          : 'تُغطّى الكلمات وتكشفها بنفسك: <kbd>Home</kbd> للكلمة التالية و<kbd>End</kbd> للسابقة، ومع <kbd>Shift</kbd> آية كاملة، و<kbd>Delete</kbd> إن أخطأت في الكلمة التي كشفتها. على الهاتف: انقر الصفحة للكلمة التالية.') + '</p>' +
-      '</div>' +
-      '<footer class="tsm-foot"><button class="tsm-b tsm-gold" data-s="go">ابدأ التسميع</button>' +
-        '<button class="tsm-b" data-s="log">📋 سجل الأخطاء</button><button class="tsm-b" data-s="close">إلغاء</button></footer>', 'tsm-start');
-    m.classList.toggle('tsm-m-eye', prefs.mode === 'eye');
-    function readCustom() {
-      var s = +m.querySelector('[data-c=s]').value, n = suras[s - 1].n;
-      var a1 = Math.max(1, Math.min(n, Math.round(+m.querySelector('[data-c=a1]').value) || 1));
-      var a2 = Math.max(a1, Math.min(n, Math.round(+m.querySelector('[data-c=a2]').value) || n));
-      prefs.cs = s; prefs.ca1 = a1; prefs.ca2 = a2;
-    }
-    m.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-s]'), sg = e.target.closest('.tsm-seg button');
-      if (sg) { prefs[sg.parentNode.getAttribute('data-seg')] = sg.getAttribute('data-v'); savePrefs(); openStart(); return; }
-      if (!b) return;
-      var a = b.getAttribute('data-s');
-      if (a === 'close') closeModal();
-      if (a === 'log') openLog();
-      if (a === 'go') {
-        var r = m.querySelector('input[name=tsmRange]:checked'); prefs.range = r ? r.value : 'page';
-        if (prefs.range === 'custom') readCustom();
-        savePrefs();
-        start(ayahsInRange(prefs.range));
-      }
-    });
-    m.addEventListener('change', function (e) {
-      if (e.target.name === 'tsmRange') { prefs.range = e.target.value; savePrefs(); }
-      if (e.target.getAttribute('data-c')) {
-        if (e.target.getAttribute('data-c') === 's') { prefs.cs = +e.target.value; prefs.ca1 = 1; prefs.ca2 = suras[prefs.cs - 1].n; prefs.range = 'custom'; savePrefs(); openStart(); return; }
-        readCustom(); prefs.range = 'custom'; savePrefs();
-        var rc = m.querySelector('input[value=custom]'); if (rc) rc.checked = true;
-      }
-    });
-    var go = m.querySelector('[data-s=go]'); if (go) go.focus();
   }
 
   /* ------------------------------- input -------------------------------- */
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && modal) { var mm = modal; closeModal(); if (mm.onclose) mm.onclose(); e.stopPropagation(); e.preventDefault(); return; }
-    if (!st || st.finished || modal || typing(e.target) || otherOverlay() || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === 'Escape' && modal) { closeModal(); e.stopPropagation(); e.preventDefault(); return; }
+    if (!st || modal || typing(e.target) || otherOverlay() || e.ctrlKey || e.altKey || e.metaKey) return;
     var k = e.key;
-    if (k === 'Home') { e.preventDefault(); e.stopPropagation(); if (st.mode === 'eye') doNext(e.shiftKey); else doHint(); }
+    if (k === 'Escape') { e.preventDefault(); e.stopPropagation(); stop(); }
+    else if (k === 'Home') { e.preventDefault(); e.stopPropagation(); if (st.mode === 'eye') doNext(e.shiftKey); else doHint(); }
     else if (k === 'End') { e.preventDefault(); e.stopPropagation(); doBack(e.shiftKey); }
     else if ((k === 'Delete' || k === 'Backspace') && st.mode === 'eye') { e.preventDefault(); e.stopPropagation(); doMark(); }
   }, true);
   // a tap on the page: eye mode = next word; never the tafsir of a covered ayah
   function onCardClick(e) {
-    if (!st || st.finished || !e.target.closest('#mushafCardRight, #mushafCardLeft')) return;
+    if (!st || !e.target.closest('#mushafCardRight, #mushafCardLeft')) return;
     e.stopPropagation(); e.preventDefault();
     if (st.mode === 'eye') doNext();
   }
   document.addEventListener('click', onCardClick, true);
 
-  G.Tasmee = { open: openStart, start: start, stop: stop, finish: finish, openLog: openLog, closeModal: closeModal,
-    heard: heard, takesWords: takesWords, onPage: onPage, isOn: function () { return !!st; },
+  G.Tasmee = { toggle: toggle, open: toggle, start: start, stop: stop, openLog: openLog, showResults: showResults, closeModal: closeModal,
+    heard: heard, takesWords: takesWords, onPage: onPage, onMicStop: onMicStop, isOn: function () { return !!st; },
     prefs: function () { return prefs; }, setPref: function (k, v) { prefs[k] = v; savePrefs(); },
     next: doNext, back: doBack, mark: doMark, hint: doHint,
     _state: function () { return st; }, _log: loadLog, Core: Core };

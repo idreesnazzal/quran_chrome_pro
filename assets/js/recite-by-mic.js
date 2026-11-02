@@ -1462,6 +1462,7 @@ function stopVoiceRecitation() {
   micMonitorStop();
   evlogStop();
   try { updateVoiceReciteUI(false); } catch (e) {}
+  if (G.Tasmee && G.Tasmee.onMicStop) G.Tasmee.onMicStop();   // وضع التسميع ends with its mic
 }
 
 function toggleVoiceRecitation() {

@@ -125,11 +125,13 @@
       '</section>' +
 
       (window.Tasmee ? '<section class="st-sec"><h3>🧠 وضع التسميع</h3>' +
+        '<div class="st-row"><span><b>الطريقة</b><small>زر 🧠 في الأعلى يبدأ التسميع بها مباشرةً، واضغطه مرة أخرى للإنهاء</small></span>' +
+          seg('tsmMode', [['voice', '🎙️ بالصوت'], ['eye', '👁 بالعين (بلا صوت)']], window.Tasmee.prefs().mode) + '</div>' +
         '<div class="st-row"><span><b>الصرامة</b><small>' + (window.Tasmee.prefs().level === 'very' ? 'كل حرف، و«و» و«ف» التي لم يكتبها Chrome تُحسب خطأً' : 'يتسامح فقط مع ما يكتبه Chrome خطأً لقراءة صحيحة') + '</small></span>' +
           seg('tsmLevel', [['strict', 'صارم'], ['very', 'صارم جدًا']], window.Tasmee.prefs().level) + '</div>' +
         '<div class="st-row"><span><b>عند الخطأ</b><small>الكلمة الحمراء تنتظر حتى تقرأها صحيحة</small></span>' +
           seg('tsmReveal', [['3', 'اكشفها بعد 3 محاولات'], ['0', 'لا تكشفها أبدًا']], String(window.Tasmee.prefs().reveal)) + '</div>' +
-        '<div class="st-btns"><button class="st-btn" data-act="tasmee">🧠 ابدأ التسميع</button><button class="st-btn" data-act="tasmeelog">📋 سجل الأخطاء</button></div>' +
+        '<div class="st-btns"><button class="st-btn" data-act="tasmee">' + (window.Tasmee.isOn() ? '✕ إنهاء التسميع' : '🧠 ابدأ التسميع') + '</button><button class="st-btn" data-act="tasmeelog">📋 سجل الأخطاء</button></div>' +
       '</section>' : '') +
 
       '<section class="st-sec"><h3>📚 التفسير والبحث</h3>' +
@@ -172,7 +174,7 @@
         if (a === 'close') close();
         if (a === 'lists') { close(); if (window.AyahLists) window.AyahLists.open(); }
         if (a === 'stats') { close(); if (window.ReadingStats) window.ReadingStats.open(); }
-        if (a === 'tasmee') { close(); if (window.Tasmee) window.Tasmee.open(); }
+        if (a === 'tasmee') { close(); if (window.Tasmee) window.Tasmee.toggle(); }
         if (a === 'tasmeelog') { close(); if (window.Tasmee) window.Tasmee.openLog(); }
         if (a === 'install' && window.ReaderPlus) { window.ReaderPlus.install().then(function () { if (dr) render(); }); }
         if (a === 'cachepages' && window.ReaderPlus) {
@@ -193,7 +195,7 @@
           var rc = g('RECITERS_CONFIG'); call('setReciter', rc && rc.minshawi_murattal ? 'minshawi_murattal' : Object.keys(rc || {})[0]);
           call('setAudioSpeed', 1); call('setAudioRepeatTarget', '1');
           call('setAudioPanel', window.innerWidth >= 768);   // the panel's default: open, closed on a phone
-          if (window.Tasmee) { window.Tasmee.setPref('level', 'strict'); window.Tasmee.setPref('reveal', 3); }
+          if (window.Tasmee) { window.Tasmee.setPref('mode', 'voice'); window.Tasmee.setPref('level', 'strict'); window.Tasmee.setPref('reveal', 3); }
           var ts = document.getElementById('tafsirSourceSelect'); if (ts && ts.value !== 'muyassar') { ts.value = 'muyassar'; ts.dispatchEvent(new Event('change')); }
           var m = document.querySelector('.match-tag[data-match=any]'); if (m) m.click();
           render(); call('showToast', 'أُعيدت الإعدادات الافتراضية');
@@ -205,6 +207,7 @@
         var name = b.parentNode.getAttribute('data-seg'), v = b.getAttribute('data-v');
         if (name === 'view') call('setViewMode', v);
         if (name === 'fit') setUi('fit', v === '1');
+        if (name === 'tsmMode' && window.Tasmee) window.Tasmee.setPref('mode', v);
         if (name === 'tsmLevel' && window.Tasmee) window.Tasmee.setPref('level', v);
         if (name === 'tsmReveal' && window.Tasmee) window.Tasmee.setPref('reveal', +v);
         if (name === 'match') { var t = document.querySelector('.match-tag[data-match=' + v + ']'); if (t) t.click(); else try { localStorage.setItem('search_match', v); } catch (x) {} }

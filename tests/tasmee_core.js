@@ -159,5 +159,22 @@ Core.eyeMark(t.T);
 ok('eye: «أخطأت» again = undo', t.T.st[1] === S.OK && !(t.T.ty[1] & TY.MARK) && t.T.tries[1] === 0);
 ok('summary counts reached words only', Core.summary(t.T, t.X).reached === 2);
 
+// 12. a test that starts mid-ayah (the reciter began at word 3 of 2:8)
+{
+  const E = [], as = [], pas = [], l = ayahIdx(2, 8, 9);
+  l.forEach((ai, n) => { const s0 = E.length; C.ayahs[ai].words.forEach((w) => { E.push(w); as.push(s0); pas.push(n ? 0 : -1); }); });
+  const X = Core.makeCtx(E, as, pas, { sim: RM.wordSim }), T = Core.create(E.length, 3);
+  ok('base: the cursor starts at the base word', T.i === 3 && T.base === 3);
+  Core.feed(T, X, tok('يقول امنا بالله'), true);
+  const n = Core.summary(T, X);
+  ok('base: the words before it are not counted', T.i === 6 && n.reached === 3 && n.ok === 3, n);
+  Core.feed(T, X, tok('ومن الناس من يقول امنا بالله وباليوم'), true);
+  ok('base: restarting the ayah from its first word is no mistake', T.i === 7 && Core.summary(T, X).err === 0, { i: T.i, n: Core.summary(T, X) });
+  const T2 = Core.create(E.length, 3);
+  Core.eyeNext(T2, X); Core.eyeBack(T2); Core.eyeBack(T2);
+  ok('base: End stops at the base word', T2.i === 3);
+  ok('base: a clone keeps it', Core.clone(T2).base === 3);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
