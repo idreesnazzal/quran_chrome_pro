@@ -1042,6 +1042,7 @@ function rawFor(words, raw) { return raw && raw.length === words.length ? raw : 
 function rawSplit(text) { return String(text || '').trim().split(/\s+/).filter(Boolean); }
 
 function commitWords(words, raw) {
+  if (G.Tasmee && G.Tasmee.takesWords()) { if (words.length) G.Tasmee.heard(words, rawFor(words, raw), true); return; }   // وضع التسميع judges the words itself
   if (!words.length || !TRACKER) return;
   onUserPageCheck();
   S.heard = S.heard.concat(words).slice(-200);
@@ -1051,6 +1052,7 @@ function commitWords(words, raw) {
 }
 
 function tentativeWords(words, raw) {
+  if (G.Tasmee && G.Tasmee.takesWords()) { G.Tasmee.heard(words, rawFor(words, raw), false); return; }
   if (!TRACKER) return;
   onUserPageCheck();
   if (!words.length) return;

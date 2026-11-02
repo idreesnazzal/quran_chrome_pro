@@ -124,13 +124,21 @@
         sw('heard', 'إظهار ما التقطه المايك', p.heard, 'النص الذي سمعه التعرّف') +
       '</section>' +
 
+      (window.Tasmee ? '<section class="st-sec"><h3>🧠 وضع التسميع</h3>' +
+        '<div class="st-row"><span><b>الصرامة</b><small>' + (window.Tasmee.prefs().level === 'very' ? 'كل حرف، و«و» و«ف» التي لم يكتبها Chrome تُحسب خطأً' : 'يتسامح فقط مع ما يكتبه Chrome خطأً لقراءة صحيحة') + '</small></span>' +
+          seg('tsmLevel', [['strict', 'صارم'], ['very', 'صارم جدًا']], window.Tasmee.prefs().level) + '</div>' +
+        '<div class="st-row"><span><b>عند الخطأ</b><small>الكلمة الحمراء تنتظر حتى تقرأها صحيحة</small></span>' +
+          seg('tsmReveal', [['3', 'اكشفها بعد 3 محاولات'], ['0', 'لا تكشفها أبدًا']], String(window.Tasmee.prefs().reveal)) + '</div>' +
+        '<div class="st-btns"><button class="st-btn" data-act="tasmee">🧠 ابدأ التسميع</button><button class="st-btn" data-act="tasmeelog">📋 سجل الأخطاء</button></div>' +
+      '</section>' : '') +
+
       '<section class="st-sec"><h3>📚 التفسير والبحث</h3>' +
         '<div class="st-row"><span><b>التفسير الافتراضي</b></span>' + cloneSelect('tafsirSourceSelect', 'tafsir', g('currentTafsirSource')) + '</div>' +
         '<div class="st-row"><span><b>البحث بعدة كلمات</b></span>' + seg('match', [['any', 'كلمات متفرقة'], ['exact', 'عبارة متصلة']], match) + '</div>' +
       '</section>' +
 
       '<section class="st-sec"><h3>⌨️ اختصارات لوحة المفاتيح</h3><div class="st-keys">' +
-        [['Ctrl + K', 'البحث'], ['/', 'البحث'], ['→  ←', 'الصفحة السابقة / التالية'], ['B', 'حفظ الآية المظللة في قائمة'], ['Esc', 'إغلاق النوافذ']].map(function (k) {
+        [['Ctrl + K', 'البحث'], ['/', 'البحث'], ['→  ←', 'الصفحة السابقة / التالية'], ['B', 'حفظ الآية المظللة في قائمة'], ['Home / End', 'التسميع بالعين: الكلمة التالية / السابقة'], ['Delete', 'التسميع بالعين: أخطأت'], ['Esc', 'إغلاق النوافذ']].map(function (k) {
           return '<div><kbd>' + k[0] + '</kbd><span>' + k[1] + '</span></div>'; }).join('') + '</div></section>' +
 
       '<section class="st-sec"><h3>📴 دون إنترنت وتثبيت التطبيق</h3>' +
@@ -164,6 +172,8 @@
         if (a === 'close') close();
         if (a === 'lists') { close(); if (window.AyahLists) window.AyahLists.open(); }
         if (a === 'stats') { close(); if (window.ReadingStats) window.ReadingStats.open(); }
+        if (a === 'tasmee') { close(); if (window.Tasmee) window.Tasmee.open(); }
+        if (a === 'tasmeelog') { close(); if (window.Tasmee) window.Tasmee.openLog(); }
         if (a === 'install' && window.ReaderPlus) { window.ReaderPlus.install().then(function () { if (dr) render(); }); }
         if (a === 'cachepages' && window.ReaderPlus) {
           b.disabled = true;
@@ -183,6 +193,7 @@
           var rc = g('RECITERS_CONFIG'); call('setReciter', rc && rc.minshawi_murattal ? 'minshawi_murattal' : Object.keys(rc || {})[0]);
           call('setAudioSpeed', 1); call('setAudioRepeatTarget', '1');
           call('setAudioPanel', window.innerWidth >= 768);   // the panel's default: open, closed on a phone
+          if (window.Tasmee) { window.Tasmee.setPref('level', 'strict'); window.Tasmee.setPref('reveal', 3); }
           var ts = document.getElementById('tafsirSourceSelect'); if (ts && ts.value !== 'muyassar') { ts.value = 'muyassar'; ts.dispatchEvent(new Event('change')); }
           var m = document.querySelector('.match-tag[data-match=any]'); if (m) m.click();
           render(); call('showToast', 'أُعيدت الإعدادات الافتراضية');
@@ -194,6 +205,8 @@
         var name = b.parentNode.getAttribute('data-seg'), v = b.getAttribute('data-v');
         if (name === 'view') call('setViewMode', v);
         if (name === 'fit') setUi('fit', v === '1');
+        if (name === 'tsmLevel' && window.Tasmee) window.Tasmee.setPref('level', v);
+        if (name === 'tsmReveal' && window.Tasmee) window.Tasmee.setPref('reveal', +v);
         if (name === 'match') { var t = document.querySelector('.match-tag[data-match=' + v + ']'); if (t) t.click(); else try { localStorage.setItem('search_match', v); } catch (x) {} }
         if (name === 'ears' && v !== ls('recite_ears', 'browser')) { var eb = document.getElementById('dockEarsBtn'); if (eb) eb.click(); }
         setTimeout(render, 30); return;
