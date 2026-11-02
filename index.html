@@ -2120,7 +2120,8 @@
       width: 100%;
       max-width: 680px;
       aspect-ratio: 700 / 1100; /* = the page images: overlay % == image % */
-      min-height: 480px;
+      /* no min-height: under ~305px of width it made the card taller than the image
+         (object-fit: contain), so every overlay (covers, ayah highlight) drifted down */
       user-select: none;
       display: flex;
       align-items: center;
