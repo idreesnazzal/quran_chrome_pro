@@ -132,7 +132,7 @@ Core.feed(t.T, t.X, tok('الحمد لله رب العالمين'), true);
 ok('final: all 4', t.T.i === 4 && Core.summary(t.T, t.X).err === 0);
 t = test(ayahIdx(1, 2));
 sh = Core.feed(Core.clone(t.T), t.X, tok('الحمد للحق رب'), false);
-ok('interim with a wrong word: red in the replay only', sh.st[1] === S.ERR && t.T.st[1] === S.HID);
+ok('interim with a wrong word: not judged yet (Chrome may still change it), the cursor waits', sh.i === 1 && sh.st[1] === S.HID && t.T.st[1] === S.HID, { i: sh.i, st: Array.from(sh.st) });
 Core.feed(t.T, t.X, tok('الحمد لله رب'), true);
 ok('...the final corrects it: no stale mistake', t.T.st[1] === S.OK && t.T.ty[1] === 0, { st: states(t), ty: t.T.ty[1] });
 
@@ -175,6 +175,44 @@ ok('summary counts reached words only', Core.summary(t.T, t.X).reached === 2);
   ok('base: End stops at the base word', T2.i === 3);
   ok('base: a clone keeps it', Core.clone(T2).base === 3);
 }
+
+
+// 13. Chrome wrote a correctly said word otherwise: yellow, no mistake (the reader's real sessions, 2026-11-02)
+const a78 = ayahIdx(78, 1, 8);
+t = test(a78);
+['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
+Core.feed(t.T, t.X, tok('كل سيعلمون ثم كلا سيعلمون'), true);
+ok('«كل» for «كلا» (Chrome drops the alif): no mistake, all of 78:4-5', t.T.i === 14 && Core.summary(t.T, t.X).err === 0, { i: t.T.i, st: states(t, 15) });
+Core.feed(t.T, t.X, tok('الم نجعل الاردن هذا والجبال اوتادا'), true);
+ok('«الاردن هذا» for «الارض مهادا», then right: both yellow, no mistake', t.T.st[16] === S.UNS && t.T.st[17] === S.UNS && t.T.i === 20 && Core.summary(t.T, t.X).err === 0 && Core.summary(t.T, t.X).uns === 2, { i: t.T.i, st: states(t, 21) });
+t = test(a78);
+['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون', 'كلا سيعلمون', 'ثم كلا سيعلمون'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
+Core.feed(t.T, t.X, tok('الم نجعل الاردن هذا'), true);
+ok('...cut by a pause: red, waiting', t.T.i === 16 && t.T.st[16] === S.ERR, { i: t.T.i, st: states(t, 18) });
+Core.feed(t.T, t.X, tok('والجبال اوتادا'), true);
+ok('...the next words go on from after them: yellow, no mistake', t.T.st[16] === S.UNS && t.T.st[17] === S.UNS && t.T.i === 20 && Core.summary(t.T, t.X).err === 0, { i: t.T.i, st: states(t, 21), ty: t.T.ty[16] });
+t = test(a78);
+['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون', 'كلا سيعلمون', 'ثم كلا سيعلمون', 'الم نجعل الارض'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
+Core.feed(t.T, t.X, tok('مدادا'), true);
+ok('«مدادا» alone before a pause: red', t.T.st[17] === S.ERR);
+Core.feed(t.T, t.X, tok('مهادا والجبال اوتادا'), true);
+ok('...said again at once and heard right: yellow (Chrome misheard it), no mistake', t.T.st[17] === S.UNS && Core.summary(t.T, t.X).err === 0, { st: states(t, 21), ty: t.T.ty[17] });
+// still mistakes
+t = test(a78);
+['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون', 'كلا سيعلمون', 'ثم كلا سيعلمون'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
+Core.feed(t.T, t.X, tok('الم الارض مهادا'), true);
+ok('«نجعل» left out: a skip stays a mistake', t.T.st[15] === S.ERR && (t.T.ty[15] & TY.SKIP), { st: states(t, 18), ty: t.T.ty[15] });
+t = test(ayahIdx(1, 2));
+Core.feed(t.T, t.X, tok('الحمد في رب العالمين'), true);
+ok('a particle for a word («في» for «لله»): a mistake', t.T.st[1] === S.ERR, { st: states(t) });
+t = test(ayahIdx(1, 2), { level: 'very' });
+Core.feed(t.T, t.X, tok('الحمد للحق رب العالمين'), true);
+ok('very strict: no yellow, a mistake', t.T.st[1] === S.ERR, { st: states(t) });
+t = test(ayahIdx(1, 2));
+Core.feed(t.T, t.X, tok('الحمد للحق رب العالمين'), true);
+ok('strict: «للحق» for «لله», then right = yellow', t.T.st[1] === S.UNS && t.T.i === 4, { st: states(t) });
+sh = Core.feed(Core.clone(test(ayahIdx(1, 2)).T), t.X, tok('الحمد للحق رب'), false);
+ok('interim: not yellow yet while the confirming word may change', sh.i === 1 && sh.st[1] === S.HID, { i: sh.i, st: Array.from(sh.st) });
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
