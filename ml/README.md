@@ -105,3 +105,27 @@ parts (`model.bin.part0..3` + `config.json`, `tokenizer.json`,
 - Only 2 less-known reciters with matching audio+timings; the third is famous.
 - `العرب` is not in the Quran text; `الأعراب` is the donor.
 - Word-to-verdict latency is not measured; the Tilawi numbers are per clip.
+
+## Phase 2 — opt-in recorder + Kaggle notebook
+
+- `assets/js/tasmee_recorder.js` — opt-in recorder. It opens a separate
+  `getUserMedia` stream with the same constraints as the speech recogniser,
+  records WebM/Opus in 10 s chunks, and stores the audio + expected words +
+  verdicts in IndexedDB. Nothing is uploaded. The owner must tick a consent box.
+  The bar button (🎙️) opens the panel; the panel can start/stop/export/delete.
+- `assets/js/tasmee.js` — optional hooks only (`onStart`, `onHeard`, `onStop`)
+  and the 🎙️ button. The hooks are no-ops when the recorder module is absent.
+- `tests/tasmee_recorder.js` — 8/8 checks of the metadata builder.
+- `ml/kaggle/tasmee_ears_eval_finetune.ipynb` — Kaggle notebook: downloads the
+  Tilawi FastConformer, converts the exported sessions to 16 kHz mono, runs the
+  CTC model, computes per-word forced-alignment scores, reports false-mistake
+  and caught-mistake rates with a leave-one-session-out threshold, and includes
+  an optional NeMo fine-tuning template. `ml/kaggle/make_notebook.py` generates
+  it.
+- The exported session JSON is `{meta, audio:{mime, dataUrl}}`; the notebook
+  reads it directly. The audio stays local until the owner exports it.
+- The recorder is not tested on a real phone (Playwright Chromium download is
+  blocked in this sandbox). The Kaggle notebook is a template; it was not run
+  because HuggingFace is blocked in this sandbox.
+
+The Arabic Phase-2 report for the owner is `docs/PHASE2_RECORDER_REPORT.md`.

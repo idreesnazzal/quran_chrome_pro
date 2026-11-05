@@ -269,7 +269,7 @@
   function C() { var r = R(); if (!r) return null; if (!r.corpus()) r.buildIndex(); return r.corpus(); }
   function touch() { return !!(G.matchMedia && G.matchMedia('(pointer: coarse)').matches); }
   function typing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable); }
-  function otherOverlay() { return document.querySelector('.al-backdrop, .st-backdrop, .rs-modal, .al-pop, .search-modal-backdrop.active, .tafsir-modal-backdrop.active'); }
+  function otherOverlay() { return document.querySelector('.al-backdrop, .st-backdrop, .rs-modal, .al-pop, .search-modal-backdrop.active, .tafsir-modal-backdrop.active, .tsm-modal'); }
   function micOn() { var S = R() && R()._session; return !!(S && S.active); }
   function visiblePages() { return g('isDoublePageMode') ? [g('currentRightPage'), g('currentLeftPage')].filter(Boolean) : [g('currentPage')]; }
   function cardFor(page) {
@@ -376,6 +376,7 @@
     setIdleStatus();
     paint();
     showPage();
+    if (window.TasmeeRecorder) TasmeeRecorder.onStart(st);
     return true;
   }
   // the covered page in view, under the sticky header and the bar
@@ -390,6 +391,7 @@
     if (!st) return;
     var s = st;
     s.stopping = true;
+    if (window.TasmeeRecorder) TasmeeRecorder.onStop(s);
     closeSegment();
     st = null;
     if (s.ownMic && micOn()) call('stopVoiceRecitation');
@@ -514,6 +516,7 @@
     var shownHeard = final ? (st.heard = st.heard.concat(raw || words).slice(-12)) : st.heard.concat(raw || words).slice(-12);
     var sp = document.getElementById('dockSpeechText'); if (sp) sp.textContent = '"' + shownHeard.slice(-8).join(' ') + '"';
     st.lastHeard = shownHeard.slice(-6).join(' ');
+    if (final && window.TasmeeRecorder) TasmeeRecorder.onHeard(st, words, raw, final);
     if (!st.X) {   // where does the reciter start?
       if (final) st.pre = st.pre.concat(words).slice(-24);
       if (!tryAnchor(st.pre, final ? [] : words)) {
@@ -678,6 +681,7 @@
       if (a === 'next') doNext();
       if (a === 'back') doBack();
       if (a === 'hint') doHint();
+      if (a === 'rec') { if (window.TasmeeRecorder) TasmeeRecorder.openPanel(); }
       if (a === 'mark') doMark();
       if (a === 'log') openLog();
       if (a === 'end') stop();
@@ -702,7 +706,8 @@
         '<span class="tsm-c tsm-c-err" title="كلمات فيها خطأ">✗ ' + err + '</span>' +
         '<span class="tsm-sp"></span>' +
         (voice ? '<button class="tsm-b" data-tsm="mic" title="' + (micOn() ? 'أوقف المايك مؤقتًا' : 'شغّل المايك') + '">' + (micOn() ? '⏸' + lbl('إيقاف مؤقت') : '▶' + lbl('متابعة')) + '</button>' +
-          '<button class="tsm-b" data-tsm="hint" title="اكشف الكلمة التالية (Home) — تُسجَّل خطأً">💡' + lbl('مساعدة') + '</button>'
+          '<button class="tsm-b" data-tsm="hint" title="اكشف الكلمة التالية (Home) — تُسجَّل خطأً">💡' + lbl('مساعدة') + '</button>' +
+          '<button class="tsm-b tsm-rec' + (window.TasmeeRecorder && TasmeeRecorder.isRecording() ? ' tsm-rec-on' : '') + '" data-tsm="rec" title="تسجيل الجلسة (اختياري)">🎙️' + lbl('تسجيل') + '</button>'
         : '<button class="tsm-b" data-tsm="back" title="الكلمة السابقة (End)">→' + lbl('السابقة') + '</button>' +
           '<button class="tsm-b tsm-gold" data-tsm="next" title="الكلمة التالية (Home)">التالية ←</button>' +
           '<button class="tsm-b tsm-red" data-tsm="mark" title="أخطأت في الكلمة التي كشفتها (Delete)">✗' + lbl('أخطأت') + '</button>') +
