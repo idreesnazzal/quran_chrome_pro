@@ -2868,6 +2868,25 @@
       padding-top: 4px;
     }
 
+    /* unified meaning + where it comes from + the books' own words */
+    .word-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .word-src { font-size: 0.78rem; color: var(--text-muted); }
+    .word-src-own { color: var(--gold-ink); opacity: 0.85; }
+    .word-books summary {
+      cursor: pointer; font-size: 0.8rem; color: var(--gold-ink); width: fit-content;
+      padding: 2px 10px; border: 1px solid var(--border-color); border-radius: 12px; list-style: none;
+    }
+    .word-books summary::-webkit-details-marker { display: none; }
+    .word-books[open] summary { background: var(--gold-bg); }
+    .word-book { font-size: 0.92rem; line-height: 1.8; color: var(--text-main); padding: 6px 10px; margin-top: 6px;
+      border-inline-start: 3px solid var(--gold-primary); background: var(--bg-primary); border-radius: 4px; }
+    .word-book b { color: var(--gold-ink); font-weight: 700; }
+    .word-book .wb-term { font-family: 'Amiri', serif; }
+    @media (max-width: 480px) {
+      .word-card { flex-direction: column; gap: 8px; padding: 12px 14px; }
+      .word-term-badge { min-width: 0; white-space: normal; align-self: flex-start; }
+    }
+
     .words-empty-state {
       background: var(--bg-card);
       border: 1px dashed var(--border-color);
@@ -3903,14 +3922,14 @@
           <div class="tafsir-explanation-box" id="tafsirModalExplanation"></div>
         </div>
 
-        <!-- Tab 2: Words Meaning Panel (كتاب السراج في بيان غريب القرآن) -->
+        <!-- Tab 2: Words Meaning Panel (data/word_meanings.js: 5 gharib books + الميسر) -->
         <div class="tafsir-tab-content" id="wordsTabContent">
           <div class="words-panel-header">
             <div class="words-panel-title">
               <span>📖</span>
-              <span>معاني غريب الألفاظ والمفردات القرآنية</span>
+              <span>معاني الكلمات في سياق الآية</span>
             </div>
-            <div class="words-source-badge">كتاب السراج في بيان غريب القرآن (د. محمد الخضيري)</div>
+            <div class="words-source-badge" title="السراج للخضيري، كلمات القرآن لمخلوف، تذكرة الأريب لابن الجوزي، التبيان لابن الهائم، نزهة القلوب للسجستاني">من خمسة كتب في غريب القرآن والتفسير الميسر</div>
           </div>
           <div class="words-cards-list" id="wordsCardsList"></div>
         </div>
@@ -4577,9 +4596,9 @@
           const [sura, aya, page, suraName, text] = activeData[currentTafsirIndex];
           let copyText = '';
           if (currentActiveTab === 'words') {
-            const wordsKey = `${sura}_${aya}`;
-            const wordsText = (window.QURAN_DATA && window.QURAN_DATA.words && window.QURAN_DATA.words[wordsKey]) || 'ألفاظ الآية جلية واضحة المعنى.';
-            copyText = `سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${text} ﴾\n\nمعاني المفردات والكلمات (كتاب السراج في بيان غريب القرآن):\n${wordsText}`;
+            const wordsText = wordMeaningItems(sura, aya)
+              .map(([t, m, s, b]) => `${t}: ${m || (b && b[0] ? b[0][2] : '')}`).join('\n') || 'ألفاظ الآية جلية واضحة المعنى.';
+            copyText = `سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${text} ﴾\n\nمعاني الكلمات:\n${wordsText}`;
           } else if (currentActiveTab === 'nuzul') {
             const suraInfo = (window.QURAN_DATA && window.QURAN_DATA.surahs && window.QURAN_DATA.surahs[sura - 1]) || {};
             const asbabKey = `${sura}_${aya}`;
@@ -5995,12 +6014,26 @@
       }
     }
 
-    // Render Arabic Word Meanings (كتاب السراج في بيان غريب القرآن)
+    // Word meanings: data/word_meanings.js (loaded after the page, see reader-plus.js) gives per ayah
+    // [term, easy meaning, source letters, [[book, term, book text], ...]]; until it arrives, the old
+    // السراج lines in QURAN_DATA.words stand in
+    const WM_BOOK = { S: 'السراج', K: 'مخلوف', J: 'ابن الجوزي', H: 'ابن الهائم', N: 'السجستاني', Y: 'التفسير الميسر' };
+    const WM_TITLE = { S: 'السراج في بيان غريب القرآن (الخضيري)', K: 'كلمات القرآن (حسنين مخلوف)', J: 'تذكرة الأريب (ابن الجوزي)',
+      H: 'التبيان في تفسير غريب القرآن (ابن الهائم)', N: 'نزهة القلوب (السجستاني)' };
+    function wmEsc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+    function wordMeaningItems(sura, aya) {
+      const key = `${sura}_${aya}`;
+      if (window.WORD_MEANINGS) return window.WORD_MEANINGS[key] || [];
+      const raw = (window.QURAN_DATA && window.QURAN_DATA.words && window.QURAN_DATA.words[key]) || '';
+      return raw.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+        const c = l.indexOf(':');
+        return c === -1 ? ['بيان', l, 'S', []] : [l.slice(0, c).trim(), l.slice(c + 1).trim(), 'S', []];
+      });
+    }
     function renderWordMeanings(sura, aya) {
-      const wordsKey = `${sura}_${aya}`;
-      const rawText = (window.QURAN_DATA && window.QURAN_DATA.words && window.QURAN_DATA.words[wordsKey]) || '';
+      const items = wordMeaningItems(sura, aya);
 
-      if (!rawText.trim()) {
+      if (!items.length) {
         wordsCountBadge.textContent = '0';
         wordsCountBadge.style.display = 'none';
         wordsCardsList.innerHTML = `
@@ -6008,7 +6041,7 @@
             <span style="font-size: 2.2rem;">✨</span>
             <h4 style="color: var(--gold-ink); margin: 0; font-size: 1.1rem;">ألفاظ هذه الآية واضحة المعنى وجلية</h4>
             <p style="margin: 0; line-height: 1.85; max-width: 500px;">
-              لا تشتمل هذه الآية الكريمة على ألفاظ غريبة تستوجب البيان المفرد وفق كتاب السراج.<br>
+              لا تشتمل هذه الآية الكريمة على ألفاظ تحتاج إلى بيان مفرد.<br>
               يمكنك قراءة المعنى الإجمالي والتفسير الشامل من تبويب <b>[📖 التفسير]</b> أعلاه.
             </p>
           </div>
@@ -6016,32 +6049,24 @@
         return;
       }
 
-      const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      wordsCountBadge.textContent = lines.length;
+      wordsCountBadge.textContent = items.length;
       wordsCountBadge.style.display = 'inline-block';
 
-      let html = '';
-      lines.forEach(line => {
-        const colonIdx = line.indexOf(':');
-        let term = '';
-        let def = '';
-        if (colonIdx !== -1) {
-          term = line.substring(0, colonIdx).trim();
-          def = line.substring(colonIdx + 1).trim();
+      wordsCardsList.innerHTML = items.map(([term, meaning, src, books]) => {
+        const quotes = (books || []).map(([b, t, txt]) =>
+          `<div class="word-book"><b>${WM_TITLE[b] || b}:</b> <span class="wb-term">${wmEsc(t)}</span>: ${wmEsc(txt)}</div>`).join('');
+        let body;
+        if (!meaning) {   // only the books explain it
+          body = quotes;
         } else {
-          term = 'بيان';
-          def = line;
+          const from = [...(src || '')].map((c) => WM_BOOK[c]).filter(Boolean);
+          body = `<div class="word-definition-text">${wmEsc(meaning)}</div>` +
+            (from.length ? `<div class="word-src">📚 ${from.join(' · ')}</div>`
+                         : `<div class="word-src word-src-own">✦ بيان لغوي مضاف، ليس منقولًا من كتاب</div>`) +
+            (quotes ? `<details class="word-books"><summary>من كتب الغريب (${books.length}) ▾</summary>${quotes}</details>` : '');
         }
-
-        html += `
-          <div class="word-card">
-            <div class="word-term-badge">${term}</div>
-            <div class="word-definition-text">${def}</div>
-          </div>
-        `;
-      });
-
-      wordsCardsList.innerHTML = html;
+        return `<div class="word-card"><div class="word-term-badge">${wmEsc(term)}</div><div class="word-body">${body}</div></div>`;
+      }).join('');
     }
 
     // Render Ayah Revelation Context & Asbab al-Nuzul (أسباب وموعد النزول)

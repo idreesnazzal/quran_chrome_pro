@@ -151,6 +151,16 @@
     };
     document.body.appendChild(s);
   }
+  /* word meanings (several MB): same idea; the old السراج lines stand in until it arrives */
+  function loadWordMeanings() {
+    if (window.WORD_MEANINGS || document.getElementById('wordMeaningsScript')) return;
+    var s = document.createElement('script'); s.id = 'wordMeaningsScript'; s.src = 'data/word_meanings.js'; s.async = true;
+    s.onload = function () {
+      var bd = document.getElementById('tafsirModalBackdrop'), i = g('currentTafsirIndex'), data = g('activeData');
+      if (bd && bd.classList.contains('active') && data && i >= 0 && data[i]) call('renderWordMeanings', data[i][0], data[i][1]);
+    };
+    document.body.appendChild(s);
+  }
 
   /* ------------------------------ PWA -------------------------------- */
   function registerSW() {
@@ -180,6 +190,7 @@
     registerSW();
     resume();
     setTimeout(loadAsbab, 1200);
+    setTimeout(loadWordMeanings, 1500);
   }
   if (document.readyState === 'complete') setTimeout(init, 0); else window.addEventListener('load', init);
 
