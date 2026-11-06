@@ -132,6 +132,8 @@
         '<div class="st-row"><span><b>عند الخطأ</b><small>الكلمة الحمراء تنتظر حتى تقرأها صحيحة</small></span>' +
           seg('tsmReveal', [['3', 'اكشفها بعد 3 محاولات'], ['0', 'لا تكشفها أبدًا']], String(window.Tasmee.prefs().reveal)) + '</div>' +
         '<div class="st-btns"><button class="st-btn" data-act="tasmee">' + (window.Tasmee.isOn() ? '✕ إنهاء التسميع' : '🧠 ابدأ التسميع') + '</button><button class="st-btn" data-act="tasmeelog">📋 سجل الأخطاء</button></div>' +
+        '<div class="st-row"><span><b>الأذن</b><small>Chrome هو الافتراضي. النموذج القرآني (Tilawi) يراجع الكلمة المطلوبة بعد كل كلمة نهائية، ويمكنه تصحيح خطأ Chrome أو تأكيده.</small></span>' +
+          seg('tsmEars', [['chrome', '🎧 Chrome (الافتراضي)'], ['tilawi', '🧠 قرآني (Tilawi)']], window.Tasmee.prefs().ears || 'chrome') + '</div>' +
       '</section>' : '') +
 
       '<section class="st-sec"><h3>📚 التفسير والبحث</h3>' +
@@ -210,6 +212,7 @@
         if (name === 'tsmMode' && window.Tasmee) window.Tasmee.setPref('mode', v);
         if (name === 'tsmLevel' && window.Tasmee) window.Tasmee.setPref('level', v);
         if (name === 'tsmReveal' && window.Tasmee) window.Tasmee.setPref('reveal', +v);
+        if (name === 'tsmEars' && window.Tasmee) window.Tasmee.setPref('ears', v);
         if (name === 'match') { var t = document.querySelector('.match-tag[data-match=' + v + ']'); if (t) t.click(); else try { localStorage.setItem('search_match', v); } catch (x) {} }
         if (name === 'ears' && v !== ls('recite_ears', 'browser')) { var eb = document.getElementById('dockEarsBtn'); if (eb) eb.click(); }
         setTimeout(render, 30); return;

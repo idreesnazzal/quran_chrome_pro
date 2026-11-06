@@ -129,3 +129,31 @@ parts (`model.bin.part0..3` + `config.json`, `tokenizer.json`,
   because HuggingFace is blocked in this sandbox.
 
 The Arabic Phase-2 report for the owner is `docs/PHASE2_RECORDER_REPORT.md`.
+
+## Phase 3 — opt-in ears mode (Tilawi FastConformer)
+
+- `assets/js/tasmee_ears.js` — loads the Tilawi FastConformer (Quran CTC,
+  CC-BY-4.0) from HuggingFace with onnxruntime-web, keeps the last 4 s of mic
+  audio, and scores the expected word with a Viterbi CTC forced alignment.
+- `assets/vendor/onnxruntime/` — onnxruntime-web 1.31.1 (MIT), WASM build
+  (`ort.wasm.min.js` 53 KB + `ort-wasm-simd-threaded.wasm` 15 MB). The model
+  (88 MB) and the 12 MB `quran_ctc_tokens.json` are fetched from HuggingFace at
+  runtime and are **not** in git.
+- `assets/js/recite-by-mic.js` — a `tilawi` ears mode reuses the existing
+  `LW` capture (16 kHz) and feeds the audio to `TasmeeEars.feedAudio`.
+- `assets/js/tasmee.js` — after each final result, if the ears mode is on, it
+  calls `TasmeeEars.review` and applies a conservative second opinion: a
+  correct word whose score is below the threshold turns red; a false red word
+  whose score is above the threshold turns correct. Yellow words are untouched.
+- `assets/js/settings.js` — the setting is in ⚙️ الإعدادات ← 🧠 وضع التسميع ←
+  الأذن: Chrome (default) or Tilawi. The choice is stored in `tasmee_prefs.ears`.
+- `tests/tasmee_ears.js` — 6/6 checks of the CTC token boundaries and Viterbi
+  alignment.
+
+The browser tests (`tests/tasmee_e2e.py`, `tests/tasmee_real.py`,
+`tests/browser_e2e.py`) fail in this sandbox because Chrome is not installed
+and the Playwright Chromium download is blocked. The Node tests pass:
+`tasmee_core` 53/53, `run_tests` 102/102, `tasmee_recorder` 8/8,
+`tasmee_ears` 6/6.
+
+The Arabic Phase-3 report for the owner is `docs/PHASE3_EARS_REPORT.md`.

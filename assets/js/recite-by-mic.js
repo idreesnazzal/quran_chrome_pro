@@ -1358,6 +1358,7 @@ function startVoiceRecitation() {
   setStatus('ابدأ التلاوة من أي موضع...');
   // ONE ears at a time: the in-browser Quran model if chosen, else the
   // Whisper server if it is up, else the browser recogniser
+  if (earsPref() === 'tilawi' && lwSupported() && window.TasmeeEars) { tilawiStart(); return; }
   if (earsPref() === 'quran' && lwSupported()) { localStart(); return; }
   if (useServer) { S.ears = 'server'; serverStart(); return; }
   S.ears = 'browser';
@@ -1648,7 +1649,7 @@ function lwStartCapture() {
   if (CFG.testNoCapture) return; // tests push audio with ReciteByMic._lwFeed
   navigator.mediaDevices.getUserMedia(micConstraints({ channelCount: 1, echoCancellation: false,
     noiseSuppression: false, autoGainControl: true })).then(function (stream) {
-    if (!S.active || S.ears !== 'local') { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+    if (!S.active || (S.ears !== 'local' && S.ears !== 'tilawi')) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
     LW.stream = stream;
     var AC = G.AudioContext || G.webkitAudioContext;
     try { LW.ctx = new AC({ sampleRate: 16000 }); } catch (e) { LW.ctx = new AC(); }
@@ -1712,6 +1713,7 @@ function lwWave(on) {
 }
 
 function lwBlock(b) {
+  if (S.ears === 'tilawi') { if (window.TasmeeEars) TasmeeEars.feedAudio(b); return; }
   var e = 0;
   for (var i = 0; i < b.length; i++) e += b[i] * b[i];
   var rms = Math.sqrt(e / b.length);
@@ -1810,6 +1812,13 @@ function lwOnResult(m) {
     }
   }
   lwPump();
+}
+
+function tilawiStart() {
+  S.ears = 'tilawi';
+  lwStartCapture();
+  if (window.TasmeeEars) TasmeeEars.load();
+  setStatus('🧠 الأذن القرآنية تستمع...');
 }
 
 function localStart() {
