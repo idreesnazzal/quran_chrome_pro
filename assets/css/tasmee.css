@@ -137,3 +137,12 @@ html:has(.tsm-modal) { overflow: hidden; }
   .tsm-lr { grid-template-columns: auto 1fr; grid-template-areas: 'w p' 't t' 'n l'; gap: 4px 10px; }
   .tsm-lw { grid-area: w; } .tsm-lp { grid-area: p; } .tsm-lt { grid-area: t; } .tsm-ln { grid-area: n; } .tsm-ll { grid-area: l; text-align: left; }
 }
+
+
+/* opt-in tasmee recorder (Phase 2) */
+.tsm-rec-card { width: min(520px, 100%); }
+.tsm-rec-status { font-size: 0.85rem; color: var(--text-muted); padding: 10px 0; line-height: 1.8; }
+.tsm-rec-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tsm-rec-note { font-size: 0.78rem; color: var(--text-muted); line-height: 1.8; }
+.tsm-b.tsm-rec-on { color: var(--danger-ink); border-color: rgba(239, 68, 68, 0.5); }
+.tsm-b.tsm-rec-on::after { content: '●'; color: var(--danger-ink); font-size: 0.6rem; margin-inline-start: 2px; }

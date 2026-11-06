@@ -269,7 +269,7 @@
   function C() { var r = R(); if (!r) return null; if (!r.corpus()) r.buildIndex(); return r.corpus(); }
   function touch() { return !!(G.matchMedia && G.matchMedia('(pointer: coarse)').matches); }
   function typing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable); }
-  function otherOverlay() { return document.querySelector('.al-backdrop, .st-backdrop, .rs-modal, .al-pop, .search-modal-backdrop.active, .tafsir-modal-backdrop.active'); }
+  function otherOverlay() { return document.querySelector('.al-backdrop, .st-backdrop, .rs-modal, .al-pop, .search-modal-backdrop.active, .tafsir-modal-backdrop.active, .tsm-modal'); }
   function micOn() { var S = R() && R()._session; return !!(S && S.active); }
   function visiblePages() { return g('isDoublePageMode') ? [g('currentRightPage'), g('currentLeftPage')].filter(Boolean) : [g('currentPage')]; }
   function cardFor(page) {
@@ -288,7 +288,7 @@
   function typeNames(bits) { return TYPES.filter(function (t) { return bits & t[0]; }).map(function (t) { return t[1]; }); }
   function dateTxt(ts) { try { return new Date(ts).toLocaleDateString('ar-u-nu-latn', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
 
-  var prefs = Object.assign({ mode: 'voice', level: 'strict', reveal: 3 }, readJSON(PREF_KEY, {}));
+  var prefs = Object.assign({ mode: 'voice', level: 'strict', reveal: 3, ears: 'chrome' }, readJSON(PREF_KEY, {}));
   if (prefs.mode !== 'eye') prefs.mode = 'voice';
   function savePrefs() { writeJSON(PREF_KEY, prefs); }
 
@@ -376,6 +376,8 @@
     setIdleStatus();
     paint();
     showPage();
+    if (window.TasmeeRecorder) TasmeeRecorder.onStart(st);
+    if (prefs.ears === 'tilawi' && window.TasmeeEars) TasmeeEars.load();
     return true;
   }
   // the covered page in view, under the sticky header and the bar
@@ -390,6 +392,8 @@
     if (!st) return;
     var s = st;
     s.stopping = true;
+    if (window.TasmeeRecorder) TasmeeRecorder.onStop(s);
+    if (window.TasmeeEars) TasmeeEars.reset();
     closeSegment();
     st = null;
     if (s.ownMic && micOn()) call('stopVoiceRecitation');
@@ -514,6 +518,7 @@
     var shownHeard = final ? (st.heard = st.heard.concat(raw || words).slice(-12)) : st.heard.concat(raw || words).slice(-12);
     var sp = document.getElementById('dockSpeechText'); if (sp) sp.textContent = '"' + shownHeard.slice(-8).join(' ') + '"';
     st.lastHeard = shownHeard.slice(-6).join(' ');
+    if (final && window.TasmeeRecorder) TasmeeRecorder.onHeard(st, words, raw, final);
     if (!st.X) {   // where does the reciter start?
       if (final) st.pre = st.pre.concat(words).slice(-24);
       if (!tryAnchor(st.pre, final ? [] : words)) {
@@ -525,9 +530,29 @@
     }
     st.X.pauseOnFinal = !(S && S.ears === 'local');   // the local model commits mid-speech
     var ws = st.skipIv ? words.slice(st.skipIv) : words;
+    var k0 = st.T ? st.T.i : -1;
     if (final) { st.skipIv = 0; if (ws.length) feed(st.T, st.X, ws, true); st.shown = st.T; }
     else st.shown = ws.length ? feed(clone(st.T), st.X, ws, false) : st.T;
     afterChange();
+    if (final && prefs.ears === 'tilawi' && window.TasmeeEars && TasmeeEars.ready() && k0 >= 0) {
+      var snapshot = st;
+      var p0 = snapshot.at && snapshot.at[k0];
+      var a0 = p0 ? C().ayahs[p0.ai] : null;
+      if (a0) {
+        TasmeeEars.review(snapshot, k0, a0.sura, a0.aya, p0.w).then(function (res) {
+          if (!res || !res.ready || res.score == null || !snapshot.T || !snapshot.X) return;
+          var T = snapshot.T, X = snapshot.X;
+          if (k0 < 0 || k0 >= X.N) return;
+          var state = T.st[k0];
+          if (res.ok) {
+            if (state === 2) { T.st[k0] = 1; T.ty[k0] = 0; T.tries[k0] = 0; snapshot.status = '✅ «' + X.E[k0] + '» أكدت الأذن القرآنية صحتها'; }
+          } else {
+            if (state === 1) { T.st[k0] = 2; T.ty[k0] = 2; T.tries[k0] = 1; snapshot.status = '✗ «' + X.E[k0] + '» الأذن القرآنية لم تسمعها صحيحة'; }
+          }
+          if (st === snapshot) afterChange();
+        });
+      }
+    }
   }
   function afterChange() {
     if (!st || !st.X) { renderBar(); return; }
@@ -678,6 +703,7 @@
       if (a === 'next') doNext();
       if (a === 'back') doBack();
       if (a === 'hint') doHint();
+      if (a === 'rec') { if (window.TasmeeRecorder) TasmeeRecorder.openPanel(); }
       if (a === 'mark') doMark();
       if (a === 'log') openLog();
       if (a === 'end') stop();
@@ -702,7 +728,8 @@
         '<span class="tsm-c tsm-c-err" title="كلمات فيها خطأ">✗ ' + err + '</span>' +
         '<span class="tsm-sp"></span>' +
         (voice ? '<button class="tsm-b" data-tsm="mic" title="' + (micOn() ? 'أوقف المايك مؤقتًا' : 'شغّل المايك') + '">' + (micOn() ? '⏸' + lbl('إيقاف مؤقت') : '▶' + lbl('متابعة')) + '</button>' +
-          '<button class="tsm-b" data-tsm="hint" title="اكشف الكلمة التالية (Home) — تُسجَّل خطأً">💡' + lbl('مساعدة') + '</button>'
+          '<button class="tsm-b" data-tsm="hint" title="اكشف الكلمة التالية (Home) — تُسجَّل خطأً">💡' + lbl('مساعدة') + '</button>' +
+          '<button class="tsm-b tsm-rec' + (window.TasmeeRecorder && TasmeeRecorder.isRecording() ? ' tsm-rec-on' : '') + '" data-tsm="rec" title="تسجيل الجلسة (اختياري)">🎙️' + lbl('تسجيل') + '</button>'
         : '<button class="tsm-b" data-tsm="back" title="الكلمة السابقة (End)">→' + lbl('السابقة') + '</button>' +
           '<button class="tsm-b tsm-gold" data-tsm="next" title="الكلمة التالية (Home)">التالية ←</button>' +
           '<button class="tsm-b tsm-red" data-tsm="mark" title="أخطأت في الكلمة التي كشفتها (Delete)">✗' + lbl('أخطأت') + '</button>') +
@@ -945,6 +972,14 @@
     });
   }
 
+  function earsStatus(s) {
+    if (!st) return;
+    if (s === 'loading') st.status = '🧠 جارٍ تحميل الأذن القرآنية (مرة واحدة)...';
+    else if (s === 'ready') st.status = '🧠 الأذن القرآنية جاهزة';
+    else if (s === 'error') st.status = '⚠️ تعذّر تحميل الأذن القرآنية: ' + (window.TasmeeEars ? TasmeeEars.error() : '');
+    renderBar();
+  }
+
   /* ------------------------------- input -------------------------------- */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && modal) { closeModal(); e.stopPropagation(); e.preventDefault(); return; }
@@ -979,7 +1014,7 @@
 
   G.Tasmee = { toggle: toggle, open: toggle, start: start, stop: stop, openLog: openLog, showResults: showResults, closeModal: closeModal,
     heard: heard, takesWords: takesWords, onPage: onPage, onMicStop: onMicStop, isOn: function () { return !!st; },
-    prefs: function () { return prefs; }, setPref: function (k, v) { prefs[k] = v; savePrefs(); },
+    prefs: function () { return prefs; }, setPref: function (k, v) { prefs[k] = v; savePrefs(); }, earsStatus: earsStatus,
     next: doNext, back: doBack, mark: doMark, hint: doHint,
     _state: function () { return st; }, _log: loadLog, Core: Core };
 })(typeof window !== 'undefined' ? window : globalThis);

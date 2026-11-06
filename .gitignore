@@ -12,3 +12,14 @@ _debug/
 
 # exact pre-rebuild app for side-by-side comparison
 _old_version/
+
+# Phase-1 evaluation: audio, models and generated datasets stay local
+ml/.cache/
+ml/audio/
+ml/results/
+*.mp3
+*.wav
+*.onnx
+*.safetensors
+*.pt
+*.ckpt
