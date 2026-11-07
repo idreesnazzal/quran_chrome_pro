@@ -1,0 +1,801 @@
+{
+ "book": {
+  "id": 2919,
+  "name": "أسباب نزول القرآن - الواحدي",
+  "author": "أبو الحسن علي بن أحمد الواحدي النيسابوري"
+ },
+ "provenance": {
+  "note": "extracted from the app's previous data/asbab_data.js (Wahidi HTML as served by quranpedia.net book 2919)",
+  "source_sha256": "84e99922560bc1b39b3924730cfc10a9b2c100b34d5ac8b9732ec8920f20c327",
+  "ayahs": 501
+ },
+ "moves": [
+  {
+   "from": "2_2",
+   "to": "2_6",
+   "reason": "the entry quotes the words of 2:6 (5 words)"
+  },
+  {
+   "from": "2_137",
+   "to": "2_138",
+   "reason": "the book prints its ayah number as 138"
+  },
+  {
+   "from": "2_231",
+   "to": "2_232",
+   "reason": "the entry quotes the words of 2:232 (7 words)"
+  },
+  {
+   "from": "2_234",
+   "to": "2_240",
+   "reason": "the entry quotes the words of 2:240 (7 words)"
+  },
+  {
+   "from": "2_257",
+   "to": "2_256",
+   "reason": "the book prints its ayah number as 256"
+  },
+  {
+   "from": "3_183",
+   "to": "3_187",
+   "reason": "the entry quotes the words of 3:187 (5 words)"
+  },
+  {
+   "from": "5_44",
+   "to": "5_41",
+   "reason": "the entry quotes the words of 5:41 (9 words)"
+  },
+  {
+   "from": "8_80",
+   "to": "8_70",
+   "reason": "the entry quotes the words of 8:70 (9 words)"
+  },
+  {
+   "from": "17_35",
+   "to": "17_53",
+   "reason": "the book prints its ayah number as 53"
+  },
+  {
+   "from": "17_59",
+   "to": "17_29",
+   "reason": "the entry quotes the words of 17:29 (6 words)"
+  },
+  {
+   "from": "29_20",
+   "to": "29_60",
+   "reason": "the entry quotes the words of 29:60 (6 words)"
+  },
+  {
+   "from": "98_34",
+   "to": "9_34",
+   "reason": "the entry quotes the words of 9:34 (13 words); its key names sura 98"
+  },
+  {
+   "from": "2230_76",
+   "to": "23_76",
+   "reason": "the entry quotes the words of 23:76 (6 words); its key names sura 2230"
+  }
+ ],
+ "repeats": [
+  {
+   "from": "5_42",
+   "to": "5_41",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_43",
+   "to": "5_41",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_44",
+   "to": "5_41",
+   "reason": "a second fragment of the same entry, kept in order"
+  },
+  {
+   "from": "5_45",
+   "to": "5_41",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_46",
+   "to": "5_41",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_47",
+   "to": "5_41",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_83",
+   "to": "5_82",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_84",
+   "to": "5_82",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_85",
+   "to": "5_82",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "5_86",
+   "to": "5_82",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "6_110",
+   "to": "6_109",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "6_111",
+   "to": "6_109",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "7_190",
+   "to": "7_189",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "7_191",
+   "to": "7_189",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "8_68",
+   "to": "8_67",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "8_69",
+   "to": "8_67",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "9_24",
+   "to": "9_23",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "9_114",
+   "to": "9_113",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "16_102",
+   "to": "16_101",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "16_126",
+   "to": "16_125",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "16_127",
+   "to": "16_125",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_12",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_13",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_14",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_15",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_16",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_17",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_18",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_19",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_20",
+   "to": "24_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_28",
+   "to": "24_27",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "24_29",
+   "to": "24_27",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "25_69",
+   "to": "25_68",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "25_70",
+   "to": "25_68",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "39_18",
+   "to": "39_17",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "49_7",
+   "to": "49_6",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "49_8",
+   "to": "49_6",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "54_48",
+   "to": "54_47",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "54_49",
+   "to": "54_47",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "58_13",
+   "to": "58_12",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "58_15",
+   "to": "58_14",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "58_16",
+   "to": "58_14",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "58_17",
+   "to": "58_14",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "58_18",
+   "to": "58_14",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "65_3",
+   "to": "65_2",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "70_39",
+   "to": "70_38",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "93_5",
+   "to": "93_4",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "97_2",
+   "to": "97_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "97_3",
+   "to": "97_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "9_103",
+   "to": "9_102",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "20_2",
+   "to": "20_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "29_2",
+   "to": "29_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "30_2",
+   "to": "30_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "30_3",
+   "to": "30_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "53_34",
+   "to": "53_33",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_2",
+   "to": "74_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_3",
+   "to": "74_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_4",
+   "to": "74_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_12",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_13",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_14",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_15",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_16",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_17",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_18",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_19",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_20",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_21",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_22",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_23",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "74_24",
+   "to": "74_11",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "80_2",
+   "to": "80_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "86_2",
+   "to": "86_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "86_3",
+   "to": "86_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "92_6",
+   "to": "92_5",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "93_2",
+   "to": "93_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "93_3",
+   "to": "93_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "99_8",
+   "to": "99_7",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "102_2",
+   "to": "102_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "107_2",
+   "to": "107_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  },
+  {
+   "from": "108_2",
+   "to": "108_1",
+   "reason": "the same entry is scraped on every ayah of the span"
+  }
+ ],
+ "drops": [],
+ "kept_without_quote": [
+  "1_1",
+  "1_2",
+  "2_1",
+  "2_14",
+  "2_177",
+  "92_1",
+  "105_1",
+  "112_1",
+  "113_1",
+  "114_1"
+ ],
+ "ambiguous": [
+  {
+   "key": "2_278",
+   "other": "3_102",
+   "reason": "the book prints this ayah number but quotes words shared with 3_102"
+  },
+  {
+   "key": "4_51",
+   "other": "3_23",
+   "reason": "the book prints this ayah number but quotes words shared with 3_23"
+  },
+  {
+   "key": "4_59",
+   "other": "47_33",
+   "reason": "the book prints this ayah number but quotes words shared with 47_33"
+  },
+  {
+   "key": "5_51",
+   "other": "3_118",
+   "reason": "the book prints this ayah number but quotes words shared with 3_118"
+  },
+  {
+   "key": "5_57",
+   "other": "3_118",
+   "reason": "the book prints this ayah number but quotes words shared with 3_118"
+  },
+  {
+   "key": "22_52",
+   "other": "21_25",
+   "reason": "the book prints this ayah number but quotes words shared with 21_25"
+  },
+  {
+   "key": "29_10",
+   "other": "2_8",
+   "reason": "the book prints this ayah number but quotes words shared with 2_8"
+  },
+  {
+   "key": "61_1",
+   "other": "59_1",
+   "reason": "the book prints this ayah number but quotes words shared with 59_1"
+  },
+  {
+   "key": "81_29",
+   "other": "76_30",
+   "reason": "the book prints this ayah number but quotes words shared with 76_30"
+  }
+ ],
+ "ranges": [
+  {
+   "key": "5_41",
+   "range": [
+    41,
+    47
+   ]
+  },
+  {
+   "key": "5_82",
+   "range": [
+    82,
+    86
+   ]
+  },
+  {
+   "key": "6_109",
+   "range": [
+    109,
+    111
+   ]
+  },
+  {
+   "key": "7_189",
+   "range": [
+    189,
+    191
+   ]
+  },
+  {
+   "key": "8_67",
+   "range": [
+    67,
+    69
+   ]
+  },
+  {
+   "key": "9_23",
+   "range": [
+    23,
+    24
+   ]
+  },
+  {
+   "key": "9_102",
+   "range": [
+    102,
+    103
+   ]
+  },
+  {
+   "key": "9_113",
+   "range": [
+    113,
+    114
+   ]
+  },
+  {
+   "key": "16_101",
+   "range": [
+    101,
+    102
+   ]
+  },
+  {
+   "key": "16_125",
+   "range": [
+    125,
+    127
+   ]
+  },
+  {
+   "key": "20_1",
+   "range": [
+    1,
+    2
+   ]
+  },
+  {
+   "key": "24_11",
+   "range": [
+    11,
+    20
+   ]
+  },
+  {
+   "key": "24_27",
+   "range": [
+    27,
+    29
+   ]
+  },
+  {
+   "key": "25_68",
+   "range": [
+    68,
+    70
+   ]
+  },
+  {
+   "key": "29_1",
+   "range": [
+    1,
+    2
+   ]
+  },
+  {
+   "key": "30_1",
+   "range": [
+    1,
+    3
+   ]
+  },
+  {
+   "key": "39_17",
+   "range": [
+    17,
+    18
+   ]
+  },
+  {
+   "key": "49_6",
+   "range": [
+    6,
+    8
+   ]
+  },
+  {
+   "key": "53_33",
+   "range": [
+    33,
+    34
+   ]
+  },
+  {
+   "key": "54_47",
+   "range": [
+    47,
+    49
+   ]
+  },
+  {
+   "key": "58_12",
+   "range": [
+    12,
+    13
+   ]
+  },
+  {
+   "key": "58_14",
+   "range": [
+    14,
+    18
+   ]
+  },
+  {
+   "key": "65_2",
+   "range": [
+    2,
+    3
+   ]
+  },
+  {
+   "key": "70_38",
+   "range": [
+    38,
+    39
+   ]
+  },
+  {
+   "key": "74_1",
+   "range": [
+    1,
+    4
+   ]
+  },
+  {
+   "key": "74_11",
+   "range": [
+    11,
+    24
+   ]
+  },
+  {
+   "key": "80_1",
+   "range": [
+    1,
+    2
+   ]
+  },
+  {
+   "key": "86_1",
+   "range": [
+    1,
+    3
+   ]
+  },
+  {
+   "key": "92_5",
+   "range": [
+    5,
+    6
+   ]
+  },
+  {
+   "key": "93_1",
+   "range": [
+    1,
+    3
+   ]
+  },
+  {
+   "key": "93_4",
+   "range": [
+    4,
+    5
+   ]
+  },
+  {
+   "key": "97_1",
+   "range": [
+    1,
+    3
+   ]
+  },
+  {
+   "key": "99_7",
+   "range": [
+    7,
+    8
+   ]
+  },
+  {
+   "key": "102_1",
+   "range": [
+    1,
+    2
+   ]
+  },
+  {
+   "key": "107_1",
+   "range": [
+    1,
+    2
+   ]
+  },
+  {
+   "key": "108_1",
+   "range": [
+    1,
+    2
+   ]
+  }
+ ],
+ "kept": 420
+}

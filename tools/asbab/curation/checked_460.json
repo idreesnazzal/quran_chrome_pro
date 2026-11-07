@@ -1,0 +1,59 @@
+{
+ "note": "ayahs of المحرر (book 460) actually read in the per-ayah embed view; the entry text is copied verbatim into raw/asbab-book-460.json; the last two have no entry in the book at all",
+ "ayahs": [
+  {
+   "k": "2:144",
+   "seed": "٦",
+   "page": 224,
+   "verdict": "صحيح"
+  },
+  {
+   "k": "2:187",
+   "seed": "٨",
+   "page": 234,
+   "verdict": "صحيح"
+  },
+  {
+   "k": "3:188",
+   "seed": "٤١",
+   "page": 347,
+   "verdict": "صحيح"
+  },
+  {
+   "k": "33:37",
+   "seed": "١٤٢",
+   "page": 810,
+   "verdict": "صحيح"
+  },
+  {
+   "k": "36:1",
+   "seed": null,
+   "page": null,
+   "verdict": "لا سبب نزول في هذا الكتاب"
+  },
+  {
+   "k": "66:1",
+   "seed": "١٨٧",
+   "page": 1027,
+   "verdict": "صحيح"
+  },
+  {
+   "k": "74:15",
+   "seed": null,
+   "page": null,
+   "verdict": "لا سبب نزول في هذا الكتاب"
+  },
+  {
+   "k": "80:1",
+   "seed": "١٩٣",
+   "page": 1067,
+   "verdict": "ضعيف"
+  },
+  {
+   "k": "111:1",
+   "seed": "١٩٩",
+   "page": 1101,
+   "verdict": "صحيح"
+  }
+ ]
+}
