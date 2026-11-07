@@ -3074,6 +3074,44 @@
       margin-bottom: 0;
     }
 
+    .asbab-summary {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid #a7f3d0;
+      border-right: 4px solid #10b981;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 10px 0 14px 0;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #064e3b;
+    }
+    .asbab-summary > div:first-child {
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #065f46;
+    }
+    [data-theme="dark"] .asbab-summary,
+    [data-theme="oled"] .asbab-summary {
+      background: linear-gradient(135deg, #0f2922 0%, #133328 100%) !important;
+      border-color: #065f46 !important;
+      color: #a7f3d0 !important;
+    }
+    [data-theme="dark"] .asbab-summary > div:first-child,
+    [data-theme="oled"] .asbab-summary > div:first-child {
+      color: #6ee7b7 !important;
+    }
+    [data-theme="sepia"] .asbab-summary {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+      border-color: #d97706 !important;
+      color: #78350f !important;
+    }
+    [data-theme="light"] .asbab-summary {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border-color: #a7f3d0;
+      color: #064e3b;
+    }
+
+
     .nuzul-general-card {
       background: var(--bg-primary);
       border: 1px dashed var(--border-color);
