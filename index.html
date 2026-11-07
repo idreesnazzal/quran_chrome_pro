@@ -3116,6 +3116,168 @@
       text-align: right;
     }
 
+    /* سبب النزول: ملخّص سهل + حكم الكتاب + النص الأصلي */
+    .asbab-entry {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .asbab-entry + .asbab-entry {
+      margin-top: 12px;
+    }
+
+    .asbab-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .asbab-book-tag {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--gold-ink);
+      background: var(--gold-bg);
+      border: 1px solid var(--gold-primary);
+      border-radius: 10px;
+      padding: 1px 9px;
+    }
+
+    .asbab-range-tag {
+      font-size: 0.74rem;
+      color: var(--text-main);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1px 9px;
+    }
+
+    .asbab-grade {
+      font-size: 0.76rem;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 1px 10px;
+      border: 1px solid transparent;
+    }
+
+    .asbab-grade.g-sahih { color: #15803d; background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.45); }
+    .asbab-grade.g-hasan { color: #b45309; background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.45); }
+    .asbab-grade.g-daif  { color: #b91c1c; background: rgba(239, 68, 68, 0.13); border-color: rgba(239, 68, 68, 0.45); }
+    .asbab-grade.g-none  { color: var(--text-muted); background: var(--bg-card); border-color: var(--border-color); }
+
+    .asbab-summary {
+      margin: 0 0 10px;
+      font-size: 1.06rem;
+      line-height: 2;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .asbab-pending {
+      margin: 0 0 10px;
+      font-size: 0.92rem;
+      line-height: 1.9;
+      color: var(--text-muted);
+    }
+
+    .asbab-evidence {
+      font-size: 0.88rem;
+      line-height: 1.9;
+      color: var(--text-muted);
+      border-right: 3px solid var(--gold-primary);
+      background: var(--bg-card);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+    }
+
+    .asbab-note {
+      font-size: 0.88rem;
+      line-height: 1.9;
+      color: var(--text-main);
+      background: var(--gold-bg);
+      border: 1px dashed var(--gold-primary);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+    }
+
+    .asbab-texts {
+      margin-top: 6px;
+    }
+
+    .asbab-texts > summary {
+      cursor: pointer;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--gold-ink);
+      padding: 2px 0;
+    }
+
+    .asbab-texts[open] > summary {
+      margin-bottom: 8px;
+    }
+
+    .asbab-text-block {
+      margin-top: 8px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 8px;
+    }
+
+    .asbab-text-book {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .asbab-text-part {
+      font-size: 0.92rem;
+      line-height: 2.05;
+      color: var(--text-main);
+      text-align: justify;
+      margin: 0 0 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .asbab-text-part:last-child {
+      margin-bottom: 0;
+    }
+
+    .asbab-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+      padding: 18px 12px;
+    }
+
+    .asbab-empty-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .asbab-empty-sub {
+      font-size: 0.88rem;
+      line-height: 1.9;
+      color: var(--text-muted);
+      margin: 0;
+      max-width: 520px;
+    }
+
+    .asbab-loading {
+      padding: 16px;
+      text-align: center;
+      font-size: 0.94rem;
+      color: var(--text-muted);
+    }
+
     .tab-badge-pill.asbab-found {
       background: var(--gold-primary);
       color: var(--btn-gold-text);
@@ -3988,9 +4150,9 @@
               <div class="nuzul-card-header">
                 <div class="nuzul-card-title" id="nuzulReasonStatus">
                   <span>📜</span>
-                  <span>سبب النزول المروي</span>
+                  <span>سبب النزول الملخّص</span>
                 </div>
-                <div class="words-source-badge">كتاب أسباب النزول (الإمام الواحدي النيسابوري)</div>
+                <div class="words-source-badge" id="nuzulSourceLabel">من كتب أسباب النزول</div>
               </div>
               <div class="nuzul-card-body asbab-body-text" id="nuzulReasonBody">
                 <!-- Populated dynamically via JS -->
@@ -4600,11 +4762,7 @@
               .map(([t, m, s, b]) => `${t}: ${m || (b && b[0] ? b[0][2] : '')}`).join('\n') || 'ألفاظ الآية جلية واضحة المعنى.';
             copyText = `سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${text} ﴾\n\nمعاني الكلمات:\n${wordsText}`;
           } else if (currentActiveTab === 'nuzul') {
-            const suraInfo = (window.QURAN_DATA && window.QURAN_DATA.surahs && window.QURAN_DATA.surahs[sura - 1]) || {};
-            const asbabKey = `${sura}_${aya}`;
-            const rawAsbab = (window.ASBAB_DATA && window.ASBAB_DATA[asbabKey]) || '';
-            const cleanAsbab = rawAsbab ? rawAsbab.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : 'نزلت هذه الآية الكريمة ابتداءً لهداية الأمة وبيان العقائد والشرائع.';
-            copyText = `سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${text} ﴾\n\n📍 مكان ونوع السورة: ${suraInfo.type || 'مكية'}\n⏳ ترتيب النزول في تاريخ الوحي: السورة رقم ${suraInfo.order || '-'}\n\n📜 سبب النزول:\n${cleanAsbab}`;
+            copyText = asbabCopyText(sura, aya, suraName, page, text);
           } else {
             const tafsirText = tafsirModalExplanation.innerText || tafsirModalExplanation.textContent;
             const cfg = TAFSIR_CONFIG[currentTafsirSource] || TAFSIR_CONFIG.muyassar;
@@ -6069,6 +6227,94 @@
       }).join('');
     }
 
+    // ---------------------------------------------------------------------------
+    // أسباب النزول — data/asbab_data.js (lazy: reader-plus.js loads it after the page)
+    //   {v, books:{id:{n,a,s,note}}, checked:{'2919':1, '460':[ayah keys]},
+    //    entries:[{b,r,sw,na,n,s,g,e,t:[…]}], index:{'s_a':[entry ids]}}
+    // الواحدي (2919) والمحرر للمزيني (460). الملخّص مكتوب لهذا التطبيق من نص الكتاب
+    // وحده، والحكم حكم الكتاب نفسه ونصّه مقتَبس في e، والنص الكامل في t.
+    // ---------------------------------------------------------------------------
+    function asbabEsc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+    function asbabEntries(sura, aya) {
+      const A = window.ASBAB_DATA;
+      if (!A || !A.index) return null;                 // not loaded yet
+      return (A.index[`${sura}_${aya}`] || []).map((i) => A.entries[i]).filter(Boolean);
+    }
+    function asbabChecked(sura, aya) {
+      const A = window.ASBAB_DATA;
+      if (!A || !A.checked) return [];
+      const key = `${sura}_${aya}`;
+      return Object.keys(A.checked).filter((b) => A.checked[b] === 1 ||
+        (Array.isArray(A.checked[b]) && A.checked[b].indexOf(key) >= 0));
+    }
+    function asbabBook(b) { const A = window.ASBAB_DATA; return (A && A.books && A.books[b]) || {}; }
+    function asbabGradeClass(g) { return ({ 'صحيح': 'g-sahih', 'حسن': 'g-hasan', 'ضعيف': 'g-daif' })[g] || 'g-none'; }
+    function asbabWhere(e) {
+      if (e.sw) return 'السبب عام للسورة';
+      if (e.r) return `يخدم الآيات ${e.r[0]}–${e.r[1]}`;
+      return '';
+    }
+    function asbabEntryHtml(e) {
+      const bk = asbabBook(e.b), where = asbabWhere(e), parts = e.t || [];
+      const texts = parts.map((p) => `<p class="asbab-text-part">${asbabEsc(p)}</p>`).join('');
+      return `
+        <div class="asbab-entry">
+          <div class="asbab-top">
+            <span class="asbab-book-tag">${asbabEsc(bk.s || 'الكتاب')}</span>
+            ${where ? `<span class="asbab-range-tag">${asbabEsc(where)}</span>` : ''}
+            <span class="asbab-grade ${asbabGradeClass(e.g)}">${asbabEsc(e.g)}</span>
+          </div>
+          ${e.s ? `<p class="asbab-summary">${asbabEsc(e.s)}</p>`
+                : (e.na ? '' : `<p class="asbab-pending">لم يُكتب لهذا الأثر ملخّص سهل بعد؛ نص الكتاب كما هو أدناه.</p>`)}
+          ${e.e ? `<div class="asbab-evidence"><b>حكم الكتاب:</b> «${asbabEsc(e.e)}»</div>` : ''}
+          ${e.n ? `<div class="asbab-note">${asbabEsc(e.n)}</div>` : ''}
+          <details class="asbab-texts">
+            <summary>النص من الكتب (${parts.length}) ▾</summary>
+            <div class="asbab-text-block">
+              <div class="asbab-text-book">${asbabEsc(bk.n || '')}${bk.a ? ' — ' + asbabEsc(bk.a) : ''}</div>
+              ${texts}
+            </div>
+          </details>
+        </div>`;
+    }
+    function asbabEmptyHtml(checked) {
+      const names = checked.map((b) => asbabBook(b).s).filter(Boolean);
+      const full = checked.map((b) => { const k = asbabBook(b); return k.n ? `${k.n} — ${k.a || ''}`.replace(/ — $/, '') : ''; }).filter(Boolean);
+      const line = names.length >= 2
+        ? 'لم يرد في هذين الكتابين سبب نزول خاص لهذه الآية.'
+        : `لم يرد في ${names.length ? 'كتاب ' + names[0] : 'الكتب المُراجَعة'} سبب نزول خاص لهذه الآية.`;
+      return `
+        <div class="asbab-empty">
+          <span style="font-size: 1.9rem;">📖</span>
+          <p class="asbab-empty-title">${asbabEsc(line)}</p>
+          <p class="asbab-empty-sub">${asbabEsc('الكتابان المُراجَعان: ' + full.join(' · '))}</p>
+        </div>`;
+    }
+    function asbabCopyText(sura, aya, suraName, page, ayahText) {
+      const A = window.ASBAB_DATA || {};
+      const entries = (A.index && (A.index[`${sura}_${aya}`] || []).map((i) => A.entries[i]).filter(Boolean)) || [];
+      const suraInfo = (window.QURAN_DATA && window.QURAN_DATA.surahs && window.QURAN_DATA.surahs[sura - 1]) || {};
+      const head = `سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${ayahText} ﴾\n\n` +
+        `📍 مكان ونوع السورة: ${suraInfo.type || 'مكية'}\n⏳ ترتيب النزول في تاريخ الوحي: السورة رقم ${suraInfo.order || '-'}\n\n`;
+      if (!entries.length) {
+        const names = asbabChecked(sura, aya).map((b) => asbabBook(b).s).filter(Boolean);
+        const line = names.length >= 2 ? 'لم يرد في هذين الكتابين سبب نزول خاص لهذه الآية.'
+          : `لم يرد في ${names.length ? 'كتاب ' + names[0] : 'الكتب المُراجَعة'} سبب نزول خاص لهذه الآية.`;
+        return head + '📜 سبب النزول:\n' + line;
+      }
+      const body = entries.map((e) => {
+        const bk = asbabBook(e.b), where = asbabWhere(e);
+        let s = `📜 [${bk.s || 'الكتاب'}]${where ? ' — ' + where : ''}\n`;
+        if (e.s) s += `${e.s}\n`;
+        s += `الحكم: ${e.g}${e.e ? `\nحكم الكتاب: «${e.e}»` : ''}\n`;
+        s += `النص من ${bk.n || 'الكتاب'}${bk.a ? ' لـ' + bk.a : ''}:\n` + (e.t || []).join('\n\n') + '\n';
+        return s;
+      }).join('\n');
+      return head + body;
+    }
+
     // Render Ayah Revelation Context & Asbab al-Nuzul (أسباب وموعد النزول)
     function renderAyahRevelationContext(sura, aya, suraName) {
       const suraInfo = (window.QURAN_DATA && window.QURAN_DATA.surahs && window.QURAN_DATA.surahs[sura - 1]) || {};
@@ -6087,51 +6333,49 @@
         chipTimingVal.textContent = `السورة رقم ${order} نزولاً`;
       }
 
-      // Check Asbab dataset
-      const asbabKey = `${sura}_${aya}`;
-      const asbabHtml = (window.ASBAB_DATA && window.ASBAB_DATA[asbabKey]) || null;
+      // 2. Asbab al-Nuzul: the summary, the book's own grade, and its text
+      const entries = asbabEntries(sura, aya);
+      const checked = asbabChecked(sura, aya);
+      const sourceLabel = document.getElementById('nuzulSourceLabel');
 
-      if (asbabHtml) {
+      if (entries === null) {          // data/asbab_data.js has not arrived yet
         if (chipReasonVal) {
-          chipReasonVal.textContent = 'متوفر بالرواية ✨';
-          chipReasonVal.classList.add('has-asbab');
-        }
-        if (nuzulStatusBadge) {
-          nuzulStatusBadge.textContent = 'متوفر بالرواية ✨';
-          nuzulStatusBadge.className = 'tab-badge-pill asbab-found';
-        }
-        if (nuzulReasonStatus) {
-          nuzulReasonStatus.innerHTML = `<span>📜</span><span>سبب النزول المروي (الإمام الواحدي)</span>`;
-        }
-        if (nuzulReasonBody) {
-          nuzulReasonBody.innerHTML = asbabHtml;
-        }
-      } else {
-        if (chipReasonVal) {
-          chipReasonVal.textContent = 'نزلت ابتداءً';
+          chipReasonVal.textContent = 'جارٍ التحميل…';
           chipReasonVal.classList.remove('has-asbab');
         }
         if (nuzulStatusBadge) {
-          nuzulStatusBadge.textContent = 'عام';
+          nuzulStatusBadge.textContent = '…';
           nuzulStatusBadge.className = 'tab-badge-pill asbab-general';
         }
         if (nuzulReasonStatus) {
-          nuzulReasonStatus.innerHTML = `<span>📖</span><span>مقصد النزول العام وبيان الآية</span>`;
+          nuzulReasonStatus.innerHTML = `<span>📜</span><span>سبب النزول</span>`;
         }
         if (nuzulReasonBody) {
-          nuzulReasonBody.innerHTML = `
-            <div class="nuzul-general-card">
-              <div class="nuzul-general-badge">نزول عام ابتداءً لهداية الأمة</div>
-              <p class="nuzul-general-p">
-                <b>هذه الآية الكريمة نزلت ابتداءً</b> لبيان أصول التوحيد والهداية وأحكام الشريعة ومقاصد الدين الحنيف، ولم يرد في كتب الصحاح والآثار سبب نزول خاص مقترن بواقعة عينية أو سؤال محدد لهذه الآية بعينها.
-              </p>
-              <div class="nuzul-scholarly-note">
-                <b>💡 فائدة جليلة في علوم القرآن (للإمام السيوطي في "الإتقان في علوم القرآن"):</b><br>
-                «القرآن قسمان: قسم نزل ابتداءً وهو الأكثر والأغلب، وقسم نزل عقب واقعة أو سؤال. ونزول الآيات ابتداءً هو الأصل الأصيل لإرساء قواعد الهدى ومناهج التقوى وبيان الأحكام».
-              </div>
-            </div>
-          `;
+          nuzulReasonBody.innerHTML = `<div class="asbab-loading">جارٍ تحميل أسباب النزول…</div>`;
         }
+        return;
+      }
+
+      const hasSabab = entries.length > 0;
+      if (chipReasonVal) {
+        chipReasonVal.textContent = hasSabab
+          ? (entries[0].g === 'لم يُحكم عليه' ? 'مذكور في الكتب' : entries[0].g)
+          : 'لا سبب خاص';
+        chipReasonVal.classList.toggle('has-asbab', hasSabab);
+      }
+      if (nuzulStatusBadge) {
+        nuzulStatusBadge.textContent = hasSabab ? (entries[0].g === 'لم يُحكم عليه' ? 'مذكور' : entries[0].g) : 'لا سبب خاص';
+        nuzulStatusBadge.className = 'tab-badge-pill ' + (hasSabab ? 'asbab-found' : 'asbab-general');
+      }
+      if (nuzulReasonStatus) {
+        nuzulReasonStatus.innerHTML = `<span>📜</span><span>سبب النزول الملخّص</span>`;
+      }
+      if (sourceLabel) {
+        const names = checked.map((b) => asbabBook(b).s).filter(Boolean);
+        sourceLabel.textContent = names.length ? 'المُراجَع: ' + names.join(' · ') : 'من كتب أسباب النزول';
+      }
+      if (nuzulReasonBody) {
+        nuzulReasonBody.innerHTML = hasSabab ? entries.map(asbabEntryHtml).join('') : asbabEmptyHtml(checked);
       }
 
       // 2. Revelation Timing & Historical Period Card
@@ -6154,17 +6398,10 @@
         nuzulEraBadge.textContent = isMakki ? '🕋 العهد المكي الشريف' : '🕌 العهد المدني المبارك';
       }
       if (nuzulTimingDesc) {
-        if (isMakki) {
-          nuzulTimingDesc.innerHTML = `
-            نزلت سورة <b>${suraName}</b> في مكة المكرمة خلال العهد المكي الشريف قبل هجرة النبي ﷺ إلى المدينة المنورة، وترتيب نزولها الزمني في تاريخ الوحي هو السورة رقم <b>(${order})</b>.<br>
-            ✨ <b>خصائص التنزيل المكي:</b> تمتاز السور والآيات المكية بترسيخ أركان العقيدة والإيمان بالله واليوم الآخر، والدعوة إلى التوحيد، ومجادلة المشركين بالحجة البالغة، وضرب الأمثال، وقصص الأنبياء لتقوية عزائم المؤمنين.
-          `;
-        } else {
-          nuzulTimingDesc.innerHTML = `
-            نزلت سورة <b>${suraName}</b> بالمدينة المنورة بعد الهجرة النبوية الشريفة، وترتيب نزولها الزمني في تاريخ الوحي هو السورة رقم <b>(${order})</b>.<br>
-            ✨ <b>خصائص التنزيل المدني:</b> تمتاز السور والآيات المدنية بتشريع العبادات والمعاملات، وإرساء نظم المجتمع والأسرة، وأحكام الفرائض والحدود، والعهود والعلاقات، ومخاطبة أهل الكتاب، وترسيخ أركان الأمة الإسلامية.
-          `;
-        }
+        // only what data/quran_data.js actually holds: type, revelation order, verses
+        nuzulTimingDesc.innerHTML = `سورة <b>${suraName}</b>: ${isMakki ? 'مكية' : 'مدنية'}، ` +
+          `وهي السورة رقم <b>(${order})</b> في ترتيب النزول، وعدد آياتها <b>${totalVerses}</b>. ` +
+          `هذه بيانات السورة، وهي غير سبب النزول المذكور في كتب الأسباب.`;
       }
     }
 
@@ -6446,7 +6683,12 @@
       displayList.forEach((aya, idx) => {
         const [suraNum, ayaNum, pageNum, suraName, rawText, tafsirText] = aya;
         const suraInfo = (window.QURAN_DATA && window.QURAN_DATA.surahs && window.QURAN_DATA.surahs[suraNum - 1]) || {};
-        const hasAsbab = !!(window.ASBAB_DATA && window.ASBAB_DATA[`${suraNum}_${ayaNum}`]);
+        const asbabHere = (window.ASBAB_DATA && window.ASBAB_DATA.index && window.ASBAB_DATA.index[`${suraNum}_${ayaNum}`]) || null;
+        const hasAsbab = !!(asbabHere && asbabHere.length);
+        const asbabGrade = hasAsbab ? (window.ASBAB_DATA.entries[asbabHere[0]] || {}).g : '';
+        const asbabBadge = hasAsbab
+          ? `<span class="badge-asbab-available">📜 سبب النزول${asbabGrade && asbabGrade !== 'لم يُحكم عليه' ? ' — ' + asbabGrade : ''}</span>`
+          : '';
 
         // Highlight matched word in preview
         let highlighted = rawText;
@@ -6461,7 +6703,7 @@
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span class="badge-surah">سورة ${suraName} (آية ${ayaNum})</span>
                 <span class="badge-place">${suraInfo.type || 'مكية'} • ترتيب النزول: ${suraInfo.order || '-'}</span>
-                ${hasAsbab ? `<span class="badge-asbab-available">📜 سبب النزول متاح</span>` : ''}
+                ${asbabBadge}
               </div>
               <span class="badge-page">📄 صفحة ${pageNum}</span>
             </div>
