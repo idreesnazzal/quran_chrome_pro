@@ -1,5 +1,5 @@
 # أسباب النزول — specification of the shipped feature
-`tools/asbab/SPEC.md` · v4 · 2026-11-09
+`tools/asbab/SPEC.md` · v5 · 2026-11-09
 
 The feature is a data file plus the reader UI. There is no build step: `index.html`
 loads `data/asbab_data.js` lazily the first time a reader opens the sabab panel, and
@@ -64,15 +64,15 @@ window.ASBAB_DATA = {
 | step | file | guarantee |
 |---|---|---|
 | 1 | `download.py --check` | sha256 of every raw/aligned/curated file and of `data/asbab_data.js`; prints the dump URLs and hashes the data came from |
-| 2 | `align.py` | every entry is matched to a real ayah of `data/quran_data.js`; wrong-ayah entries are moved, spans collapsed into ranges, nothing deleted without a written reason in `aligned/align_report.json`; curated overrides live in `curation/align_fixes.json` and win |
-| 3 | `check.py` | the six rules below; must print `OK` |
+| 2 | `align.py` (+ `split_sections.py`) | every entry is matched to a real ayah of `data/quran_data.js`; wrong-ayah entries are moved, nothing deleted without a written reason in `aligned/align_report.json`; curated overrides live in `curation/align_fixes.json` and win; every block is **cut at its own «قوله تعالى: {…} {N}» headers**, so one section = one ayah = one range (see §6) |
+| 3 | `check.py` | the eight rules below; must print `OK` |
 | 4 | `merge.py` | writes `data/asbab_data.js` atomically (`tmp` + `os.replace`), bumps `sw.js`, splits the file if it ever passes 5 MB, and refuses a `checked_460` key that is not an ayah |
 | 5 | `ui_test.js` | headless Chromium: desktop 1280 + 375px, dark + light, 8 named ayahs, the search badge, zero console errors from this feature, no horizontal overflow, screenshots into `screens/` |
 
 Summaries live in `summaries/*.jsonl`, one JSON object per line:
 `{"k":"2:144","b":"460","s":"…","g":"صحيح","e":"…"}`.
 
-## 4. The six rules `check.py` enforces
+## 4. The eight rules `check.py` enforces
 
 1. **A real ayah key.** Every `k` must exist in `data/quran_data.js`; a range must sit
    inside its surah and contain the ayah the entry is on.
@@ -89,8 +89,33 @@ Summaries live in `summaries/*.jsonl`, one JSON object per line:
 6. **Grades are quoted, not invented.** A grade outside the four labels is refused; a
    grade other than `لم يُحكم عليه` is refused unless its evidence sentence appears
    word for word in the book text.
+7. **One stray ayah header at most** (added in v5). A card whose texts open with
+   «قوله تعالى: {…} {N}» for more than one ayah number *outside* its own range is a
+   fused block and is refused. This is the rule the 4:102 / 4:105 case broke.
+8. **One event, one card** (added in v5). Two cards that sit on the same ayah may not
+   share a run of eight consecutive words once Quranic wording and isnad words are
+   removed — that is the same story told twice.
 
-## 5. Adding a summary (the only routine task left)
+## 5. How a range is decided (v5)
+
+Only the section's **own** wording may produce a range:
+
+* `قَوْلُهُ تَعَالَى: {…} الآيات {٤١ - ٤٧}` — the book's own numbers;
+* `قَوْلُهُ تَعَالَى: {…} {١ - ٤}` — the numbers printed after the quote;
+* `… إِلَى قَوْلِهِ تَعَالَى: {…}` — the closing verse, matched word-for-word
+  against the mushaf and accepted only if three or more words match;
+* `نزلت كلها في قصة واحدة` and the same explicit wording.
+
+Refused on purpose: a range inherited from a block that carries several
+`قوله تعالى` sections, and `إلى آخر السورة` (it would hang one story on every
+remaining ayah of the surah). Both were the v4 fusing bug.
+
+Grouping: `merge.py` joins two books' entries when their spans overlap **and** they
+share eight consecutive words, or ≥12 shared five-word chains with a word overlap of
+0.10, or two names beside «بن/ابن» with overlap 0.07, or a row of
+`curation/groups.json` (pairs the automatic tests cannot see, each with its evidence).
+
+## 6. Adding a summary (the only routine task left)
 
 1. open the ayah in the app, or read `aligned/asbab_2919.json` / `asbab_460.json`;
 2. write the summary from the book text only;

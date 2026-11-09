@@ -32,6 +32,12 @@ const AYAHS = [
   { s: 2, a: 26, expect: 'summary' },
   { s: 24, a: 55, expect: 'summary' },
   { s: 59, a: 5, expect: 'summary' },
+  // v5: the fused blocks are cut at their own headers, so 4:103 and 2:116 no longer
+  // show a neighbour's story, while 4:105 keeps the طعمة story on its own span
+  { s: 4, a: 103, expect: 'empty' },
+  { s: 4, a: 105, expect: 'summary', range: '105–116' },
+  { s: 2, a: 116, expect: 'empty' },
+  { s: 39, a: 22, expect: 'summary' },
 ];
 
 // Errors that the untouched app already produced before this feature existed, and
@@ -107,7 +113,8 @@ const ok = (m) => console.log('  ✓ ' + m);
         } else {
           if (!info.summaries.length) fail(`${tag}: no summary rendered`);
           if (!info.grades.length) fail(`${tag}: no grade pill`);
-          if (ay.expect === 'range' && !info.ranges.some((r) => /11–24/.test(r))) fail(`${tag}: range note missing (${info.ranges})`);
+          const wantRange = ay.range ? new RegExp(ay.range) : (ay.expect === 'range' ? /11–24/ : null);
+          if (wantRange && !info.ranges.some((r) => wantRange.test(r))) fail(`${tag}: range note missing (${info.ranges})`);
           if (!info.textCount || !/النص من الكتب \(\d+\)/.test(info.toggle)) fail(`${tag}: book text toggle missing`);
           if (!info.books) fail(`${tag}: no source label`);
           if (info.summaries.length && info.summaries[0].split(/\s+/).length > 40) fail(`${tag}: summary over 40 words`);

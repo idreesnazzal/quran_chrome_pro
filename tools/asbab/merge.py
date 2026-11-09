@@ -68,16 +68,45 @@ def words(t):
     return {w for w in norm(t).split() if w not in STOP and len(w) > 2}
 
 
+def grams(t, n=5):
+    w = norm(t).split()
+    return {' '.join(w[i:i + n]) for i in range(max(0, len(w) - n + 1))}
+
+
+def names(t):
+    """Names the text puts next to «بن/ابن» — the people of the story."""
+    w = norm(t).split()
+    out = set()
+    for i, x in enumerate(w):
+        if x in ('بن', 'ابن') and 0 < i < len(w) - 1:
+            for cand in (w[i - 1], w[i + 1]):
+                if cand not in ('الله', 'قال', 'عن', 'عبد', 'ابو', 'ابي', 'رسول', 'نبي',
+                                'الحافظ', 'الامام', 'رجل', 'ابنه', 'اليهود', 'المشركين') and len(cand) > 2:
+                    out.add(cand)
+    return out
+
+
 def same_event(a, b):
     """Two books, one event: a long verbatim echo, or a heavy overlap of the
     content words (the modern book paraphrases the classical one)."""
     n = shared_run(a, b)
+    if n < 8 and (grams(a, 8) & grams(b, 8)):
+        n = 8
     if n >= 8:
         return n, 'echo'
     ta, tb = words(a), words(b)
     j = len(ta & tb) / max(1, len(ta | tb))
     if j >= 0.20:
         return int(j * 100), 'words'
+    # the modern book paraphrases the classical one, so the words differ; the people
+    # of the story do not — two shared names plus some shared wording is one event
+    # paraphrase of one narration: whole five-word chains repeat, the wording around
+    # them does not
+    if len(grams(a) & grams(b)) >= 12 and j >= 0.10:
+        return len(grams(a) & grams(b)), 'echo5'
+    shared = names(a) & names(b)
+    if len(shared) >= 2 and j >= 0.07:
+        return int(j * 100), 'names:' + ','.join(sorted(shared)[:3])
     return 0, ''
 
 
@@ -152,6 +181,23 @@ def main():
             entries.append(e)
             by_key['%s:%s' % (bid, key)] = e
 
+    # ---- one block, one card: the same passage reaches align through several of its
+    # ayat (a block quoting ٢٨٤-٢٨٦ becomes three keys with identical text), so the
+    # repeated copies collapse onto the first ayah of the span
+    seen_block, deduped = {}, []
+    for e in entries:
+        sig = (e['b'], tuple(e['t']))
+        if sig in seen_block:
+            host = seen_block[sig]
+            if e['suy']:
+                host['suy'].extend(e['suy'])
+            if e['r'] and not host['r']:
+                host['r'] = e['r']
+            continue
+        seen_block[sig] = e
+        deduped.append(e)
+    entries = deduped
+
     # ---- لباب النقول: every narration joins the entry whose words it echoes
     for n in suyuti:
         tgt = by_key.get(n['attach'])
@@ -159,20 +205,45 @@ def main():
             continue
         tgt['suy'].append(n)
 
-    # ---- group entries of the same ayah into one card when they tell one event
+    # ---- group entries of the same ayah into one card when they tell one event.
+    # A block's ayah now comes from its own header, but the two books can still hang the
+    # same event on neighbouring ayat (one quotes 5:83, the other 5:82), so the test is
+    # the overlap of the spans, not the equality of the keys.
+    def span(e):
+        if not e['r']:
+            return {e['key']}
+        sura = int(e['key'].split('_')[0])
+        return {'%d_%d' % (sura, i) for i in range(e['r'][0], e['r'][1] + 1)}
+
+    curated = load(os.path.join(CURATION, 'groups.json'), {'groups': []})['groups']
+
+    def forced(a, b):
+        for g in curated:
+            if {a['b'], b['b']} <= set(g['books']) and g['k'] in (a['key'], b['key']) \
+                    and (span(a) & span(b)):
+                return g['why']
+        return ''
+
     groups, groupings = [], []
     for bid in ('2919', '460'):
         for e in [x for x in entries if x['b'] == bid]:
             placed = False
             for grp in groups:
                 host = grp[0]
-                if host['key'] != e['key'] or host['b'] == e['b']:
+                if not (span(host) & span(e)):
                     continue
                 n, why = same_event(' '.join(host['t']), ' '.join(e['t']))
+                if host['b'] == e['b'] and n and why != 'echo':
+                    n, why = 0, ''       # one book's two sections: only a verbatim echo
+                cw = forced(host, e)
+                if cw:
+                    n, why = 100, 'curated: ' + cw
                 if n:
                     grp.append(e)
                     groupings.append({'ayah': e['key'], 'books': [host['b'], e['b']],
-                                      'run': n, 'why': why})
+                                      'run': n, 'why': why,
+                                      'keys': [host['key'], e['key']],
+                                      'ranges': [host['r'], e['r']]})
                     placed = True
                     break
             if not placed:
@@ -207,7 +278,14 @@ def main():
         summary = next((e['s'] for e in grp if e['s']), '')
         if not summary:
             summary = next((n.get('s', '') for n in host['suy']), '')
-        cards.append({'r': host['r'] or 0, 'sw': 1 if host['sw'] else 0, 'na': 1 if host['na'] else 0,
+        rngs = [e['r'] for e in grp if e['r']]
+        if rngs and all(x == rngs[0] for x in rngs):
+            card_range = rngs[0]
+        else:
+            lo = max(x[0] for x in rngs) if rngs else 0
+            hi = min(x[1] for x in rngs) if rngs else 0
+            card_range = [lo, hi] if lo and hi >= lo else None
+        cards.append({'r': card_range or 0, 'sw': 1 if host['sw'] else 0, 'na': 1 if host['na'] else 0,
                       'n': '', 's': summary, 'v': verdicts, 't': texts,
                       '_s': int(host['key'].split('_')[0]), '_a': int(host['key'].split('_')[1]),
                       '_k': host['key']})

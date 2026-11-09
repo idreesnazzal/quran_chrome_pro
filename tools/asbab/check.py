@@ -100,6 +100,57 @@ def entry_at(book, key):
     return None
 
 
+AR2ASCII = {ord(a): ord(b) for a, b in zip('٠١٢٣٤٥٦٧٨٩', '0123456789')}
+
+ISNAD_WORDS = set("""حدثنا أخبرنا أنبأنا ثنا نا قال قالت قالا عن بن ابن أبي أبو عبد الرحمن
+رسول الله صلى عليه وسلم رضي عنهما عنه عنها رواه أخرجه الحاكم البخاري مسلم الترمذي
+النسائي أبو داود ابن ماجه أحمد الطبراني البيهقي عبد الرزاق معمر الزهري سعيد جابر
+أنس عائشة ابن عباس عمر علي""".split())
+
+
+QU = None
+
+
+def lexicon_words():
+    """Every word of the mushaf — a shared Quranic phrase is not a shared story."""
+    global QU
+    if QU is None:
+        QU = set()
+        _data, ayah_txt, _verses = load_quran()
+        for t in ayah_txt.values():
+            QU |= set(norm(t).split())
+    return QU
+
+
+def story_words(text, qwords):
+    """The words of a narration that are neither Quran nor isnad."""
+    out = []
+    for w in norm(text).split():
+        if len(w) < 3 or w in ISNAD_WORDS or w in qwords:
+            continue
+        out.append(w)
+    return out
+
+
+def same_story(ca, cb, qwords=None, n=8):
+    if qwords is None:
+        qwords = set(lexicon_words())
+    best = 0
+    for ta in ca.get('t') or []:
+        for tb in cb.get('t') or []:
+            wa = story_words(' '.join(ta['t']), qwords)
+            wb = story_words(' '.join(tb['t']), qwords)
+            ga = {' '.join(wa[i:i + n]) for i in range(max(0, len(wa) - n + 1))}
+            gb = {' '.join(wb[i:i + n]) for i in range(max(0, len(wb) - n + 1))}
+            if ga & gb:
+                best = max(best, n)
+    return best
+
+
+# one spelling for the helper, whichever casing the caller uses
+same_STORY = same_story
+
+
 def lexicon(data):
     """Every word the app already carries: the ayat and their tafsir."""
     out = set()
@@ -280,6 +331,38 @@ def main(argv):
                     errors.append('%s: text from %r, which is not a full-text book' % (tag, t.get('b')))
                 if not t.get('t'):
                     errors.append('%s: an empty text block' % tag)
+        # (a) a card may carry at most one ayah header from outside its own span — two
+        # of them means a block of several sections is still fused into one card
+        for i, c in enumerate(cards):
+            tag = 'card %d (%s)' % (i, c.get('s', '')[:30])
+            rng = c.get('r') or None
+            outside = set()
+            for t in texts:
+                for part in t['t']:
+                    head = part[:160]
+                    if not re.search(r'قوله|قال\s+اللَّ?ه|قال\s+الله', head):
+                        continue
+                    for m in re.finditer(r'[\{\(﴿]([0-9٠-٩]{1,3})[\}\)﴾]', head):
+                        num = int(m.group(1).translate(AR2ASCII))
+                        if rng and not (rng[0] <= num <= rng[1]):
+                            outside.add(num)
+            if len(outside) > 1:
+                errors.append('%s: %d ayah headers from outside its range (%s)'
+                              % (tag, len(outside), ','.join(str(x) for x in sorted(outside))))
+
+        # (b) two cards on one ayah must not tell the same story
+        by_ayah = (payload.get('index') or {})
+        for key, ids in by_ayah.items():
+            if len(ids) < 2:
+                continue
+            for x in range(len(ids)):
+                for y in range(x + 1, len(ids)):
+                    a, b = cards[ids[x]], cards[ids[y]]
+                    run = same_story(a, b)
+                    if run:
+                        errors.append('index %s: cards %d and %d share %d words — one event, two cards'
+                                      % (key, ids[x], ids[y], run))
+
         for key, ids in (payload.get('index') or {}).items():
             if key not in ayah:
                 errors.append('index: %s is not a real ayah' % key)

@@ -271,15 +271,36 @@ def main():
             continue
         out[key] = {'parts': rec['parts'], 'range': rec.get('range'),
                     'surah_wide': False, 'not_a_sabab': False}
-    dec_path = os.path.join(CURATION, 'restore.json')
-    if os.path.exists(dec_path):
-        for d in json.load(open(dec_path, encoding='utf-8'))['decisions']:
-            if d['book'] == '2919' and d['action'] == 'range' and d['k'] in out:
-                first, last = d['range']
-                if first <= int(d['k'].split('_')[1]) <= last:
-                    out[d['k']]['range'] = [first, last]
-                    report['ranges'].append({'key': d['k'], 'range': [first, last],
-                                             'why': 'restored from the old build'})
+
+    # ---- every entry is cut at its own «قوله تعالى: {…} {N}» headers: one section,
+    # one ayah, one range (see split_sections.py). A range is never inherited from a
+    # block that carries several sections.
+    from split_sections import split_entry
+    last_ayah = {}
+    for k in ayah:
+        s0, a0 = (int(x) for x in k.split('_'))
+        last_ayah[s0] = max(last_ayah.get(s0, 0), a0)
+    report['splits'] = []
+    report['ranges'] = []
+    new_out = {}
+    for key in sorted(out, key=lambda k: (int(k.split('_')[0]), int(k.split('_')[1]))):
+        rec = out[key]
+        for tgt, piece in split_entry(key, rec, ayah, norm, last_ayah):
+            if tgt != key:
+                report['splits'].append({'from': key, 'to': tgt,
+                                         'why': 'the block carries a second «قوله تعالى» header'})
+            if tgt in new_out:                       # a restored entry already sits here
+                for p in piece['parts']:
+                    if p not in new_out[tgt]['parts']:
+                        new_out[tgt]['parts'].append(p)
+                if piece.get('range') and not new_out[tgt].get('range'):
+                    new_out[tgt]['range'] = piece['range']
+            else:
+                new_out[tgt] = piece
+    out = new_out
+    for key, rec in out.items():
+        if rec.get('range'):
+            report['ranges'].append({'key': key, 'range': rec['range']})
 
     for rec in out.values():
         rec.pop('_text', None)

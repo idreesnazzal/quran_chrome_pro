@@ -238,3 +238,26 @@ Shamela 0002247 (دار الكتب العلمية، بيروت)، sha256 `671274
 في ثماني كلمات متصلة أو أكثر، أو إذا بلغ تشابه كلمات المتن 20% فأكثر (المحرر يعيد
 صياغة الواحدي). النتيجة 24 دمجًا، و618 بطاقة على 658 آية، و218 بطاقة تحمل كتابين أو
 أكثر.
+
+## 10. v5 — the fused ranges are cut (2026-11-09)
+
+The v4 build took a span from any `قوله تعالى` block, so a block that carried two
+sections produced one card with two stories: 4:102–116 held the عسفان prayer story
+**and** the طعمة بن أبيرق story, 2:115–116 held two events, 39:17–18 held the {22}
+section as well.
+
+* `tools/asbab/split_sections.py` (new) cuts every الواحدي block at each
+  `قوله تعالى: {…} {N}` / `(١) - قوله تعالى` header, keeps each editor footnote
+  `(n) - …` with the section it belongs to, and derives each section's range from
+  **its own** header only. 10 blocks split, 437 الواحدي entries (was 432).
+* The v4 range restores were removed: a range never comes from the old build any more.
+  «إلى آخر السورة» is refused (it produced 16:4→128 and 3:121→154 style spans).
+* `merge.py` now groups entries whose **spans overlap** (the two books may hang the
+  same event on 5:82 and 5:83), joins same-book sections only on a verbatim echo,
+  collapses byte-identical repeated blocks, and reads `curation/groups.json` for the
+  pairs the tests cannot prove (111:1, 58:14, 74:1).
+* Two new `check.py` rules: ≤1 out-of-range ayah header per card, and no two cards on
+  one ayah sharing 8 consecutive non-Quran non-isnad words.
+* Result: 500 cards / 632 ayahs / 876 texts (was 618 / 658 / 887), 239 multi-book
+  cards, 29 cards with a span ≥3 ayahs, all read and kept (each rests on its own
+  section's printed span). 0 cards without a summary.
