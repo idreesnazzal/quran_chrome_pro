@@ -1,6 +1,4 @@
 /* Reading stats + khatma planner (theme tokens; one hue — the app's gold — for every magnitude) */
-.rs-pill { cursor: pointer; color: var(--text-main); }
-.rs-pill.rs-done { color: var(--ok-ink); border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.08); }
 
 .rs-modal { position: fixed; inset: 0; z-index: 2700; background: rgba(5, 8, 15, 0.6); display: flex; align-items: center; justify-content: center;
   padding: 16px; font-family: 'Cairo', system-ui, sans-serif; animation: rsFade 0.18s ease; }

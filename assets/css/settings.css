@@ -14,7 +14,8 @@ body.ui-fit .book-spread.double-page .mushaf-card { width: min(48%, 620px, calc(
   body.ui-fit .book-spread.double-page .mushaf-card { width: min(100%, calc((100vh - 112px - var(--dock-h, 0px)) * 700 / 1100)); }
 }
 body.ui-fit .book-spread.double-page { justify-content: center; }
-body.ui-no-hint #mushafHint { display: none !important; }
+body.ui-no-navtop #topControlsBar { display: none !important; }
+body:not(.ui-navbottom) #bottomControlsBar { display: none !important; }
 body.ui-no-floatnav .floating-nav-btn { display: none !important; }
 body.ui-no-karaoke #dockKaraokeRow { display: none !important; }
 body.ui-no-heard .dock-speech-row { display: none !important; }
@@ -38,6 +39,7 @@ body.ui-no-heard .dock-speech-row { display: none !important; }
 
 .st-sec { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
 .st-sec h3 { margin: 0 0 2px; font-size: 0.95rem; font-weight: 900; }
+.st-sub { margin: 4px 0 -4px; font-size: 0.74rem; font-weight: 800; color: var(--text-muted); }
 .st-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .st-row > span { display: flex; flex-direction: column; min-width: 0; }
 .st-row b { font-size: 0.86rem; font-weight: 700; }

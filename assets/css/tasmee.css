@@ -21,7 +21,7 @@ body.tsm-voice .tsm-w.tsm-uns, body.tsm-voice .tsm-w.tsm-fix { pointer-events: a
 @media (prefers-reduced-motion: reduce) { .tsm-w, .tsm-w.tsm-ok, .tsm-w.tsm-err { animation: none; transition: none; } }
 
 /* during the test: nothing on screen may give the covered words away */
-body.tsm-on #dockKaraokeRow, body.tsm-on #dockAyahPill, body.tsm-on #dockWordIndexBadge, body.tsm-on #mushafHint,
+body.tsm-on #dockKaraokeRow, body.tsm-on #dockAyahPill, body.tsm-on #dockWordIndexBadge,
 body.tsm-on .floating-mic-launcher { display: none !important; }
 /* the voice dock's «إيقاف التسميع» only stopped the mic and its panel hid the page: the mode's bar replaces it
    (a mic-permission alert still shows) */

@@ -666,7 +666,7 @@
   function ensureBar() {
     var bar = document.getElementById('tsmBar');
     if (bar) return bar;
-    var anchor = document.getElementById('readerStrip') || document.querySelector('.reader-controls-bar');
+    var anchor = document.getElementById('topControlsBar');
     if (!anchor) return null;
     bar = document.createElement('div');
     bar.id = 'tsmBar'; bar.className = 'tsm-bar'; bar.setAttribute('dir', 'rtl');

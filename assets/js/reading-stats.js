@@ -9,7 +9,7 @@
  *   { v, days: {"YYYY-MM-DD": {p: [pages], s: seconds}}, goal,
  *     khatma: {start, from, days, end, covered: [pages], log: {date: new pages}} | null,
  *     done: [{start, end, days}] }
- * Entry points: the pill in the reader strip (reader-plus.js) and ⚙️ الإعدادات.
+ * Entry point: ⚙️ الإعدادات ← «📊 إحصاءاتي وخطة الختمة».
  */
 (function () {
   'use strict';
@@ -105,7 +105,6 @@
     refresh();
   }
   function refresh() {
-    if (window.ReaderPlus && window.ReaderPlus.refresh) window.ReaderPlus.refresh();
     if (modal) render();
   }
 
@@ -153,14 +152,6 @@
     st.done.unshift({ start: k.start, end: Date.now(), days: diffDays(dk(new Date(k.start)), dk()) + 1, from: k.from });
     st.khatma = null; save(); refresh();
     open('done');
-  }
-
-  /* ------------------------------- pill -------------------------------- */
-  function pill() {
-    var s = streak(), gs = goalState();
-    var lead = s.cur ? '🔥 ' + (s.cur <= 2 ? s.cur + ' ' + (s.cur === 1 ? 'يوم' : 'يومان') : daysTxt(s.cur)) : '📊';
-    var tail = gs.target ? (gs.khatma ? 'الورد ' : 'اليوم ') + Math.min(gs.read, gs.target) + '/' + gs.target + (gs.done ? ' ✓' : '') : 'إحصاءاتي';
-    return '<button class="rp-pill rs-pill' + (gs.done ? ' rs-done' : '') + '" data-stats title="إحصاءات القراءة وخطة الختمة">' + lead + ' • ' + tail + '</button>';
   }
 
   /* ------------------------------- modal ------------------------------- */
@@ -353,7 +344,7 @@
   document.addEventListener('visibilitychange', function () { if (document.hidden && dirty) save(); });
   window.addEventListener('pagehide', function () { if (dirty) save(); });
   window.ReadingStats = {
-    open: function () { open(); }, close: close, pill: pill,
+    open: function () { open(); }, close: close,
     _state: function () { return st; }, _tick: tick, _plan: khatmaPlan, _goal: goalState, _streak: streak,
     _reload: function () { st = load(); refresh(); }
   };

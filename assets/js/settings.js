@@ -5,7 +5,8 @@
  * search match tags, the 🧠 ears button), so nothing gets out of sync.
  * New settings live in localStorage 'mushaf_ui' and act through body classes:
  *   fit       the whole page fits the window height (no scrolling inside a page)
- *   hint      the «انقر على أي آية…» tip
+ *   navTop    the one-line navigation bar above the mushaf (on by default)
+ *   navBottom the «السابقة | صفحة | التالية» bar under the mushaf (off by default)
  *   floatNav  the floating «السابقة / التالية» buttons
  *   autoTurn  recitation turns pages by itself (read by index.html)
  *   karaoke   the recite dock's word ribbon
@@ -14,7 +15,7 @@
 (function () {
   'use strict';
   var UI_KEY = 'mushaf_ui';
-  var DEF = { fit: false, hint: true, floatNav: true, autoTurn: true, karaoke: true, heard: true };
+  var DEF = { fit: false, navTop: true, navBottom: false, floatNav: true, autoTurn: true, karaoke: true, heard: true };
   var THEMES = [['dark', '🌙', 'ليلي'], ['light', '☀️', 'نهاري'], ['sepia', '📜', 'ورقي دافئ'], ['oled', '🖤', 'داكن OLED']];
 
   function g(name) { try { return (0, eval)(name); } catch (e) { return undefined; } }
@@ -30,7 +31,8 @@
   function applyUi() {
     var p = uiPrefs(), b = document.body; if (!b) return;
     b.classList.toggle('ui-fit', !!p.fit);
-    b.classList.toggle('ui-no-hint', !p.hint);
+    b.classList.toggle('ui-no-navtop', !p.navTop);
+    b.classList.toggle('ui-navbottom', !!p.navBottom);
     b.classList.toggle('ui-no-floatnav', !p.floatNav);
     b.classList.toggle('ui-no-karaoke', !p.karaoke);
     b.classList.toggle('ui-no-heard', !p.heard);
@@ -104,7 +106,9 @@
       '<section class="st-sec"><h3>📖 عرض المصحف</h3>' +
         '<div class="st-row"><span><b>عدد الصفحات</b></span>' + seg('view', [['single', '📄 صفحة واحدة'], ['double', '📖 صفحتان']], dbl ? 'double' : 'single') + '</div>' +
         '<div class="st-row"><span><b>حجم الصفحة</b><small>«على الشاشة» تُظهر الصفحة كاملة دون تمرير</small></span>' + seg('fit', [['0', '↔ ملء العرض'], ['1', '⤢ على الشاشة']], p.fit ? '1' : '0') + '</div>' +
-        sw('hint', 'تلميح «انقر على أي آية»', p.hint) +
+        '<div class="st-sub">التنقل بين الصفحات</div>' +
+        sw('navTop', 'شريط التنقل أعلى المصحف', p.navTop, 'الصفحة والسورة والآية والجزء والربع في سطر واحد') +
+        sw('navBottom', 'شريط التنقل أسفل المصحف', p.navBottom, '«السابقة | صفحة | التالية» و«بداية الصفحة» تحت المصحف') +
         sw('floatNav', 'أزرار التنقل العائمة', p.floatNav, '«السابقة / التالية» على جانبي الشاشة') +
       '</section>' +
 
@@ -220,7 +224,11 @@
         var k = cb.getAttribute('data-ui');
         if (k === 'eye') call('setEyeComfort', cb.checked);
         else if (k === 'player') call('setAudioPanel', cb.checked);
-        else setUi(k, cb.checked);
+        else {
+          setUi(k, cb.checked);
+          var q = uiPrefs();
+          if (!q.navTop && !q.navBottom && !q.floatNav) call('showToast', 'كل أزرار التنقل مخفية: قلّب الصفحات بالسهمين → ← في لوحة المفاتيح');
+        }
       };
     });
     var r = d.querySelector('[data-range=bright]');

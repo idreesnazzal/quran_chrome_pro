@@ -481,17 +481,18 @@
       transition: background-color 0.3s ease;
     }
 
+    /* one line: «السابقة | صفحة | التالية» then «سورة · آية · جزء · ربع» (the selects shrink first) */
     .reader-controls-bar {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 10px 18px;
+      padding: 6px 10px;
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
       box-shadow: var(--shadow-lg);
       width: 100%;
       max-width: 960px;
@@ -501,34 +502,49 @@
     .controls-nav-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-shrink: 0;
     }
 
     .controls-jump-group {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
+      gap: 6px;
+      flex: 0 1 auto;
+      min-width: 0;
     }
+    .controls-jump-group .select-dropdown { flex: 0 1 auto; min-width: 0; }
+    .controls-jump-group .ayah-input-box { flex-shrink: 0; }
+    /* every control of the bar one height: a slim line */
+    .reader-controls-bar .nav-btn, .reader-controls-bar .select-dropdown, .reader-controls-bar .page-input-box { height: 34px; box-sizing: border-box; }
+    .reader-controls-bar .nav-btn, .reader-controls-bar .select-dropdown { padding-block: 0; }
+    .reader-controls-bar .page-input-box { padding-block: 0; }
+    .reader-controls-bar .page-input-box input { padding: 0; height: 30px; line-height: 30px; }
 
-    @media (max-width: 680px) {
-      .reader-controls-bar {
-        justify-content: center;
-        gap: 10px;
-      }
-      .controls-nav-group,
-      .controls-jump-group {
-        width: 100%;
-        justify-content: center;
-      }
+    /* narrower than the line: the arrows lose their words, then the selects get a row of their own */
+    @media (max-width: 900px) {
+      .nav-btn .nav-word { display: none; }
+    }
+    @media (max-width: 720px) {
+      .reader-controls-bar { flex-wrap: wrap; }
+      .controls-nav-group, .controls-jump-group { width: 100%; justify-content: center; }
+      /* phones: «▶ | صفحة | آية | ◀» on the first row, the three selects share the second */
+      #topControlsBar { row-gap: 6px; }
+      #topControlsBar .controls-nav-group, #topControlsBar .controls-jump-group { display: contents; }
+      #prevPageBtn { order: 1; }
+      #topControlsBar .controls-nav-group > .page-input-box { order: 2; }
+      #topControlsBar .ayah-input-box { order: 3; }
+      #nextPageBtn { order: 4; }
+      #topControlsBar::after { content: ''; order: 5; flex-basis: 100%; height: 0; margin-block: -3px; }
+      #topControlsBar .select-dropdown { order: 6; flex: 1 1 0; max-width: none; min-width: 0; }
+      #surahSelect, #hizbSelect { flex-grow: 1.4 !important; }
     }
 
     .nav-btn {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       color: var(--text-main);
-      padding: 7px 14px;
+      padding: 6px 12px;
       border-radius: var(--radius-sm);
       cursor: pointer;
       font-weight: 700;
@@ -561,6 +577,7 @@
 
     .page-input-box input {
       width: 52px;
+      -moz-appearance: textfield;
       padding: 3px;
       background: transparent;
       border: none;
@@ -575,7 +592,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       color: var(--dropdown-color);
-      padding: 7px 12px;
+      padding: 6px 10px;
       border-radius: var(--radius-sm);
       outline: none;
       font-size: 0.88rem;
@@ -595,13 +612,15 @@
       border-color: var(--gold-primary);
     }
 
-    /* Bottom Controls Bar (Down below the Mushaf pages) */
+    /* Bottom Controls Bar (Down below the Mushaf pages): off until ⚙️ turns it on */
     .bottom-controls-bar {
-      margin-top: 24px;
+      margin-top: 18px;
       margin-bottom: 30px;
       justify-content: center;
-      gap: 16px;
+      gap: 12px;
     }
+    .ayah-input-box input { width: 44px; }
+    .page-input-box input::-webkit-inner-spin-button, .page-input-box input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
     .controls-bottom-actions {
       display: flex;
@@ -1898,61 +1917,6 @@
       background: var(--gold-bg);
     }
 
-    /* Active Highlight Info Pill */
-    .highlighted-pill {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      background: var(--gold-bg);
-      border: 1px solid var(--gold-primary);
-      color: var(--gold-ink);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.88rem;
-      font-weight: bold;
-      margin-bottom: 12px;
-      animation: fadeIn 0.3s ease;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-      direction: rtl;
-    }
-
-    .pill-dot {
-      font-size: 1.05rem;
-      line-height: 1;
-    }
-
-    .pill-title {
-      opacity: 0.85;
-      font-weight: 600;
-    }
-
-    .pill-text {
-      color: var(--text-main);
-      font-weight: 700;
-    }
-
-    .pill-clear-btn {
-      background: var(--gold-bg);
-      border: 1px solid var(--border-color);
-      color: var(--gold-ink);
-      font-size: 12px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      margin-right: 4px;
-      transition: all 0.2s ease;
-    }
-
-    .pill-clear-btn:hover {
-      background: var(--gold-primary);
-      color: var(--btn-gold-text);
-      border-color: var(--gold-primary);
-    }
-
     /* Mushaf Presentation & Book Spread */
     .mushaf-stage {
       display: flex;
@@ -2514,22 +2478,6 @@
     .toast-msg.show {
       transform: translateX(-50%) translateY(0);
       opacity: 1;
-    }
-
-    /* Hint above mushaf */
-    .mushaf-hint {
-      font-size: 0.84rem;
-      color: var(--gold-ink);
-      margin-bottom: 10px;
-      text-align: center;
-      background: var(--gold-bg);
-      border: 1px dashed var(--gold-primary);
-      padding: 6px 16px;
-      border-radius: 20px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .mushaf-card {
@@ -3215,13 +3163,17 @@
     html:has(.search-modal-backdrop.active, .tafsir-modal-backdrop.active, .al-backdrop, .st-backdrop, .rs-modal) { overflow: hidden; }
     .modal-results-list, .tafsir-modal, .al-modal, .rs-body, .st-drawer { overscroll-behavior: contain; }
 
-    /* phones under 380px: «السابقة | صفحة 50 من 604 | التالية» fits (it pushed the page to 343px at 320) */
-    @media (max-width: 380px) {
-      .controls-nav-group { gap: 5px; }
-      .nav-btn { padding: 6px 9px; font-size: 0.82rem; gap: 4px; }
+    /* small phones: the selects and the ayah box share one row down to 320px */
+    @media (max-width: 420px) {
+      .reader-controls-bar { padding: 6px 8px; gap: 4px; }
+      #topControlsBar { row-gap: 6px; }
+      .reader-controls-bar .nav-btn { padding-inline: 10px; }
+      .reader-controls-bar .page-input-box input { width: 40px; }
+      .controls-jump-group { gap: 4px; }
+      .select-dropdown { padding: 6px 6px; font-size: 0.8rem; }
       .page-input-box { padding: 3px 6px; gap: 3px; font-size: 0.8rem; }
-      .page-input-box > span:first-child { display: none; }
-      .page-input-box input { width: 42px; }
+      .ayah-input-box input { width: 36px; }
+      #pageTotalLabel { display: none; }   /* «صفحة 9 | آية 58» keeps the first row whole */
     }
   </style>
   <link rel="stylesheet" href="assets/css/ayah-lists.css">
@@ -3555,10 +3507,10 @@
       </div>
     </div>
 
-    <div class="reader-controls-bar">
+    <div class="reader-controls-bar" id="topControlsBar">
       <!-- Navigation Group: Previous, Page Number, Next -->
       <div class="controls-nav-group">
-        <button class="nav-btn" id="prevPageBtn" title="الصفحة السابقة">▶ السابقة</button>
+        <button class="nav-btn" id="prevPageBtn" title="الصفحة السابقة (ArrowRight)">▶ <span class="nav-word">السابقة</span></button>
 
         <div class="page-input-box">
           <span>صفحة</span>
@@ -3566,7 +3518,7 @@
           <span id="pageTotalLabel">من 604</span>
         </div>
 
-        <button class="nav-btn" id="nextPageBtn" title="الصفحة التالية">التالية ◀</button>
+        <button class="nav-btn" id="nextPageBtn" title="الصفحة التالية (ArrowLeft)"><span class="nav-word">التالية</span> ◀</button>
       </div>
 
       <!-- View Mode Group: Single vs Two-Page Spread (now in ⚙️ الإعدادات) -->
@@ -3581,29 +3533,25 @@
         </button>
       </div>
 
-      <!-- Quick Jump Group: Surah and Juz Dropdowns -->
+      <!-- Quick Jump Group: Surah + its ayah number, Juz (and the hizb select reader-plus.js adds) -->
       <div class="controls-jump-group">
-        <select id="surahSelect" class="select-dropdown">
+        <select id="surahSelect" class="select-dropdown" title="انتقل إلى سورة">
           <option value="">انتقل للسورة...</option>
         </select>
 
-        <select id="juzSelect" class="select-dropdown">
+        <label class="page-input-box ayah-input-box" title="اكتب رقم الآية من السورة المختارة ثم Enter">
+          <span>آية</span>
+          <input type="number" id="ayahNumberInput" min="1" max="286" value="1" inputmode="numeric">
+        </label>
+
+        <select id="juzSelect" class="select-dropdown" title="انتقل إلى جزء">
           <option value="">انتقل للجزء...</option>
         </select>
       </div>
     </div>
 
-    <!-- Active Highlight Pill -->
-    <div id="highlightedAyahBadge" class="highlighted-pill">
-      <span class="pill-dot">📍</span>
-      <span class="pill-title">الآية المظللة:</span>
-      <span id="highlightedAyahText" class="pill-text"></span>
-      <button class="pill-clear-btn" onclick="clearAyahHighlight()" title="إزالة التظليل">✕</button>
-    </div>
-
     <!-- Mushaf Page Presentation with Ayah Highlight Shadow -->
     <div class="mushaf-stage">
-      <div class="mushaf-hint" id="mushafHint">💡 انقر على أي آية في أي صفحة لعرض تفسيرها وتظليلها فوراً</div>
       <div class="book-spread single-page" id="bookSpreadContainer">
         <!-- Right Page (الصفحة اليمنى) - First in RTL order -->
         <div class="mushaf-card right-page" id="mushafCardRight" title="انقر على أي آية لعرض تفسيرها">
@@ -3635,7 +3583,7 @@
     <!-- Bottom Reader Controls Bar (أزرار التنقل والتحكم السفلية) -->
     <div class="reader-controls-bar bottom-controls-bar" id="bottomControlsBar">
       <div class="controls-nav-group">
-        <button class="nav-btn" id="prevPageBtnBottom" title="الصفحة السابقة (ArrowRight)">◀ السابقة</button>
+        <button class="nav-btn" id="prevPageBtnBottom" title="الصفحة السابقة (ArrowRight)">▶ <span class="nav-word">السابقة</span></button>
 
         <div class="page-input-box">
           <span>صفحة</span>
@@ -3643,7 +3591,7 @@
           <span id="pageTotalLabelBottom">من 604</span>
         </div>
 
-        <button class="nav-btn" id="nextPageBtnBottom" title="الصفحة التالية (ArrowLeft)">التالية ◀</button>
+        <button class="nav-btn" id="nextPageBtnBottom" title="الصفحة التالية (ArrowLeft)"><span class="nav-word">التالية</span> ◀</button>
       </div>
 
       <div class="controls-bottom-actions">
@@ -4086,14 +4034,13 @@
     const mushafImg = mushafImgRight;
     const ayahHighlightContainer = ayahHighlightContainerRight;
 
-    const highlightedAyahBadge = document.getElementById('highlightedAyahBadge');
-    const highlightedAyahText = document.getElementById('highlightedAyahText');
 
     const pageNumberInput = document.getElementById('pageNumberInput');
     const prevPageBtn = document.getElementById('prevPageBtn');
     const nextPageBtn = document.getElementById('nextPageBtn');
     const surahSelect = document.getElementById('surahSelect');
     const juzSelect = document.getElementById('juzSelect');
+    const ayahNumberInput = document.getElementById('ayahNumberInput');
     const toastMsg = document.getElementById('toastMsg');
 
     // Bottom Navigation & Floating Controls
@@ -4525,7 +4472,7 @@
         window.QURAN_DATA.surahs.forEach(s => {
           const opt = document.createElement('option');
           opt.value = s.page_start;
-          opt.textContent = `${s.s_id}. سورة ${s.name} (ص ${s.page_start})`;
+          opt.textContent = `${s.s_id}. ${s.name}`;
           surahSelect.appendChild(opt);
         });
       }
@@ -4535,7 +4482,7 @@
         window.QURAN_DATA.juz.forEach(j => {
           const opt = document.createElement('option');
           opt.value = j.page;
-          opt.textContent = `الجزء ${j.juz} (ص ${j.page})`;
+          opt.textContent = `الجزء ${j.juz}`;
           juzSelect.appendChild(opt);
         });
       }
@@ -4746,6 +4693,7 @@
         if (e.target.value) {
           clearAyahHighlight();
           goToPage(parseInt(e.target.value));
+          syncAyahBox();
         }
       });
 
@@ -4753,7 +4701,31 @@
         if (e.target.value) {
           clearAyahHighlight();
           goToPage(parseInt(e.target.value));
+          syncAyahBox();
         }
+      });
+
+      // the ayah box: a number of the surah in the surah select -> its page, highlighted
+      ayahNumberInput.addEventListener('change', () => {
+        const S = window.QURAN_DATA.surahs, s = surahSelect.selectedIndex, sur = S && S[s - 1];
+        let v = parseInt(ayahNumberInput.value);
+        ayahTyped = false;
+        const i = sur && !isNaN(v) ? ayaIndexMap.get(s + '_' + (v = Math.min(Math.max(v, 1), sur.verses))) : undefined;
+        if (i === undefined) { syncAyahBox(); return; }   // emptied: the number comes back, nothing moves
+        ayahNumberInput.value = v;   // 999 -> 286
+        goToPage(activeData[i][2]);
+        setTimeout(() => highlightSearchedAyah(s, v, sur.name), 60);
+      });
+      ayahNumberInput.addEventListener('input', () => { ayahTyped = true; });
+      ayahNumberInput.addEventListener('blur', () => { if (ayahTyped) { ayahTyped = false; syncAyahBox(); } });
+      // a number box is selected when tapped and after Enter: the next number replaces it (it was appended: 58 -> 5860)
+      [pageNumberInput, pageNumberInputBottom, ayahNumberInput].forEach(el => {
+        if (!el) return;
+        let fresh = false;
+        el.addEventListener('focus', () => { fresh = true; el.select(); });
+        el.addEventListener('input', () => { fresh = false; });
+        el.addEventListener('change', () => { fresh = true; setTimeout(() => { if (document.activeElement === el) el.select(); }, 0); });
+        el.addEventListener('mouseup', (e) => { if (fresh) { e.preventDefault(); el.select(); } fresh = false; });
       });
 
       // Click on Mushaf Page Images: detect clicked ayah and open Tafsir
@@ -5900,6 +5872,7 @@
         if (si < 0) for (let i = SS.length - 1; i >= 0; i--) if (SS[i].page_start <= currentPage) { si = i; break; }
         if (si >= 0) surahSelect.selectedIndex = si + 1;   // option values are page numbers: shared by several surahs
       }
+      syncAyahBox();
       {
         const atFirst = currentPage <= 1, atLast = (isDoublePageMode ? (currentLeftPage || currentRightPage) : currentPage) >= 604;
         ['prevPageBtn', 'prevPageBtnBottom', 'floatingPrevBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = atFirst; });
@@ -6348,17 +6321,44 @@
         targetContainer.appendChild(box);
       });
 
-      // Update Highlight Badge
       currentHighlightedAyah = { sura: suraNum, aya: ayaNum, suraName };
-      highlightedAyahText.textContent = `سورة ${suraName} (آية ${ayaNum}) - ص ${page}`;
-      highlightedAyahBadge.style.display = 'inline-flex';
+      syncAyahBox();
     }
 
     function clearAyahHighlight() {
       if (ayahHighlightContainerRight) ayahHighlightContainerRight.innerHTML = '';
       if (ayahHighlightContainerLeft) ayahHighlightContainerLeft.innerHTML = '';
-      if (highlightedAyahBadge) highlightedAyahBadge.style.display = 'none';
       currentHighlightedAyah = null;
+    }
+
+    // «سورة · آية» in the bar name one ayah: the highlighted one while it is on screen,
+    // else the first ayah of the selected surah on the open page(s)
+    let pageFirstRow = null, ayahTyped = false;   // ayahTyped: keys in the box not yet sent with Enter
+    function syncAyahBox() {
+      if (!ayahNumberInput || !activeData || !activeData.length || ayahTyped) return;
+      const S = window.QURAN_DATA.surahs || [];
+      const vis = isDoublePageMode ? [currentRightPage, currentLeftPage].filter(Boolean) : [currentPage];
+      let s = 0, a = 0;
+      const h = currentHighlightedAyah, hi = h ? ayaIndexMap.get(h.sura + '_' + h.aya) : undefined;
+      if (hi !== undefined && vis.indexOf(activeData[hi][2]) >= 0) {
+        s = h.sura; a = h.aya;
+        if (surahSelect.selectedIndex !== s) surahSelect.selectedIndex = s;
+      } else {
+        if (!pageFirstRow) {
+          pageFirstRow = [];
+          activeData.forEach((r, i) => { if (pageFirstRow[r[2]] === undefined) pageFirstRow[r[2]] = i; });
+        }
+        const want = surahSelect.selectedIndex;
+        let i = pageFirstRow[vis[0]], first = null;
+        for (; i !== undefined && i < activeData.length && vis.indexOf(activeData[i][2]) >= 0; i++) {
+          if (!first) first = activeData[i];
+          if (activeData[i][0] === want) { first = activeData[i]; break; }
+        }
+        if (!first) return;
+        s = first[0]; a = first[1];
+      }
+      if (ayahNumberInput.value !== String(a)) ayahNumberInput.value = a;   // an equal write would drop the selection
+      ayahNumberInput.max = (S[s - 1] && S[s - 1].verses) || 286;
     }
 
     // the query words appear consecutively, in order, as whole words; the last

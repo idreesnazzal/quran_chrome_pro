@@ -1,4 +1,4 @@
-/* Reader+: resume reading, deep links, hizb/rub' navigation, sajda marks,
+/* Reader+: resume reading, deep links, hizb/rub' navigation, the sajda badge,
  * lazy asbab al-nuzul, and the installable offline app (PWA).
  *
  * Hooks in index.html: goToPage() ends with ReaderPlus.onPage(); openAyahTafsir()
@@ -33,41 +33,6 @@
     setTimeout(function () { call('highlightSearchedAyah', s, a, surahName(s)); }, 60);
   }
 
-  /* ----------------------------- strip ------------------------------ */
-  function ensureStrip() {
-    var el = document.getElementById('readerStrip');
-    if (el) return el;
-    var bar = document.querySelector('.reader-controls-bar');
-    if (!bar || !bar.parentNode) return null;
-    el = document.createElement('div');
-    el.id = 'readerStrip'; el.className = 'rp-strip'; el.setAttribute('dir', 'rtl');
-    bar.parentNode.insertBefore(el, bar.nextSibling);
-    el.addEventListener('click', function (e) {
-      if (e.target.closest('[data-stats]')) { if (window.ReadingStats) window.ReadingStats.open(); return; }
-      var b = e.target.closest('[data-go]'); if (!b) return;
-      var v = b.getAttribute('data-go').split(':').map(Number);
-      highlight(v[0], v[1], v[2]);
-    });
-    return el;
-  }
-  function renderStrip() {
-    var el = ensureStrip(); if (!el) return;
-    var pages = visible(), Q = meta().quarters, chips = [];
-    var cur = quarterAt(pages[0] || 1);
-    if (window.ReadingStats) chips.push(window.ReadingStats.pill());   // streak + today's goal / wird
-    if (cur >= 0) chips.push('<span class="rp-pill rp-hizb" title="الحزب والربع الذي أنت فيه">۞ ' + quarterLabel(cur) + '</span>');
-    Q.forEach(function (q, i) {
-      if (pages.indexOf(q[2]) >= 0) chips.push('<button class="rp-pill rp-q" data-go="' + q[0] + ':' + q[1] + ':' + q[2] + '" title="بداية ' + quarterLabel(i) + ' — انقر للتظليل">' +
-        (i % 4 ? 'بداية الربع ' + QNAMES[i % 4] : 'بداية الحزب ' + (Math.floor(i / 4) + 1)) + ': ' + surahName(q[0]) + ' ' + q[1] + '</button>');
-    });
-    meta().sajdas.forEach(function (sj) {
-      if (pages.indexOf(sj[2]) >= 0) chips.push('<button class="rp-pill rp-sajda" data-go="' + sj[0] + ':' + sj[1] + ':' + sj[2] + '" title="آية سجدة تلاوة' +
-        (sj[3] === 'obligatory' ? ' (من العزائم عند بعض الفقهاء)' : '') + ' — انقر للتظليل">۩ سجدة: ' + surahName(sj[0]) + ' ' + sj[1] + '</button>');
-    });
-    el.innerHTML = chips.join('');
-    el.style.display = chips.length ? '' : 'none';
-  }
-
   /* --------------------------- hizb select --------------------------- */
   function ensureHizbSelect() {
     var sel = document.getElementById('hizbSelect');
@@ -78,7 +43,7 @@
     var html = '<option value="">انتقل للحزب...</option>';
     meta().quarters.forEach(function (q, i) {
       if (i % 4 === 0) html += (i ? '</optgroup>' : '') + '<optgroup label="الحزب ' + (i / 4 + 1) + '">';
-      html += '<option value="' + i + '">' + (i % 4 ? 'ربع ' + QNAMES[i % 4] : 'الحزب ' + (i / 4 + 1)) + ' — ' + surahName(q[0]) + ' ' + q[1] + ' (ص ' + q[2] + ')</option>';
+      html += '<option value="' + i + '">' + (i % 4 ? 'ربع ' + QNAMES[i % 4] : 'الحزب ' + (i / 4 + 1)) + ' — ' + surahName(q[0]) + ' ' + q[1] + '</option>';
     });
     sel.innerHTML = html + '</optgroup>';
     juz.parentNode.insertBefore(sel, juz.nextSibling);
@@ -91,7 +56,6 @@
 
   /* ------------------------------ hooks ------------------------------ */
   function onPage() {
-    renderStrip();
     var sel = ensureHizbSelect(), pages = visible();
     if (sel) { var k = quarterAt(pages[0] || 1); if (k >= 0 && sel.value !== String(k)) sel.value = String(k); }
     if (!ready) return;   // the start-up page 1 must not overwrite the saved place
@@ -198,6 +162,6 @@
     onPage: onPage, onAyah: onAyah, downloadAllPages: downloadAllPages, cachedPages: cachedPages,
     canInstall: function () { return !!deferredInstall; },
     install: function () { if (!deferredInstall) return Promise.resolve(false); var d = deferredInstall; deferredInstall = null; d.prompt(); return d.userChoice.then(function (c) { return c && c.outcome === 'accepted'; }); },
-    quarterAt: quarterAt, refresh: renderStrip
+    quarterAt: quarterAt
   };
 })();
