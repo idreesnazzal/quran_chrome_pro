@@ -1,60 +1,1265 @@
 {
-  "note": "ayahs of المحرر (book 460) actually read in the per-ayah embed view; the entry text is copied verbatim into raw/asbab-book-460.json; the last two have no entry in the book at all",
+  "note": "every المحرر (book 460) entry imported from the clean asbab-v2 payload; the verdict is re-derived from «النتيجة» only, and its first sentence is kept verbatim as evidence",
   "ayahs": [
     {
+      "k": "2:97",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:115",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "2:125",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:142",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:143",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
       "k": "2:144",
-      "seed": "٦",
-      "page": 224,
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:158",
+      "seed": null,
+      "page": null,
       "verdict": "صحيح"
     },
     {
       "k": "2:187",
-      "seed": "٨",
-      "page": 234,
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:189",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:195",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:196",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "2:197",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:198",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:199",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:219",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "2:220",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "2:222",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:223",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:228",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:229",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:231",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "2:232",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:238",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:256",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:267",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "2:272",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:284",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:285",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "2:286",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "3:12",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "3:13",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "3:77",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "3:86",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "3:113",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "3:122",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "3:128",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "3:161",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "3:165",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "3:169",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "3:172",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "3:174",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "3:186",
+      "seed": null,
+      "page": null,
       "verdict": "صحيح"
     },
     {
       "k": "3:188",
-      "seed": "٤١",
-      "page": 347,
+      "seed": null,
+      "page": null,
       "verdict": "صحيح"
+    },
+    {
+      "k": "3:195",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "3:199",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:3",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:6",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:11",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:12",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:19",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:24",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:32",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "4:33",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "4:43",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:51",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:52",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:59",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:65",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:77",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:83",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "4:88",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:94",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:95",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "4:97",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:102",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:105",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "4:127",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:128",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "4:176",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "5:6",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "5:33",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "5:39",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "5:41",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "5:78",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "5:83",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "5:87",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "5:89",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "5:90",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "5:91",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "5:93",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "5:101",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "5:106",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "6:33",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "6:51",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "6:52",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "6:53",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "6:54",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "6:118",
+      "seed": null,
+      "page": null,
+      "verdict": "حسن"
+    },
+    {
+      "k": "6:160",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "7:31",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "7:175",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "8:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "8:9",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "8:19",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "8:30",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "8:32",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "8:66",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "8:67",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "9:19",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "9:34",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "9:58",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "9:79",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "9:84",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "9:94",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "9:108",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "9:113",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "9:117",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "11:5",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "11:114",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "13:13",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "13:43",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "14:27",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "15:24",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "16:126",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "17:56",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "17:57",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "17:59",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "17:80",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "17:85",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "17:110",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "18:28",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "18:109",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "19:64",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "19:77",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "22:11",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "22:19",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "22:39",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "23:76",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "24:3",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "24:11",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "24:22",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "24:33",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "24:58",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "25:68",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "28:56",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "29:8",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "29:51",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "30:1",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "31:6",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "31:13",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "31:14",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "31:15",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "33:4",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "33:5",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "33:23",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "33:28",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "33:29",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "33:35",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
     },
     {
       "k": "33:37",
-      "seed": "١٤٢",
-      "page": 810,
+      "seed": null,
+      "page": null,
       "verdict": "صحيح"
     },
     {
-      "k": "36:1",
+      "k": "33:40",
       "seed": null,
       "page": null,
-      "verdict": "لا سبب نزول في هذا الكتاب"
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "33:50",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "33:51",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "33:53",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "33:69",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "36:12",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "38:1",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "39:53",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "39:67",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "41:22",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "42:23",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "43:57",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "44:10",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "46:10",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "48:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "48:18",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "48:24",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "49:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "49:2",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "49:4",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "49:6",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "49:9",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "49:11",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "49:17",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "54:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "54:48",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "56:39",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "56:75",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "57:16",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "57:27",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "57:28",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "57:29",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "58:1",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "58:8",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "58:13",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
+    },
+    {
+      "k": "58:14",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "59:5",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "59:9",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "60:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "60:8",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "60:10",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "60:11",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "61:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "61:14",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "62:11",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "63:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "64:14",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
     },
     {
       "k": "66:1",
-      "seed": "١٨٧",
-      "page": 1027,
+      "seed": null,
+      "page": null,
       "verdict": "صحيح"
     },
     {
-      "k": "74:15",
+      "k": "66:5",
       "seed": null,
       "page": null,
-      "verdict": "لا سبب نزول في هذا الكتاب"
+      "verdict": "صحيح"
+    },
+    {
+      "k": "72:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "74:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "75:16",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "79:42",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
     },
     {
       "k": "80:1",
-      "seed": "١٩٣",
-      "page": 1067,
-      "verdict": "ضعيف",
-      "evidence": "وبهذه الأقوال المتقدمة للمفسرين يتبين أن الحديث وإن كان ضعيفاً إلا أنهم مجموعون على ما دلّ عليه"
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "83:1",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "93:1",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "96:6",
+      "seed": null,
+      "page": null,
+      "verdict": "صحيح"
+    },
+    {
+      "k": "97:1",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
+    },
+    {
+      "k": "108:1",
+      "seed": null,
+      "page": null,
+      "verdict": "لم يُحكم عليه"
     },
     {
       "k": "111:1",
-      "seed": "١٩٩",
-      "page": 1101,
+      "seed": null,
+      "page": null,
       "verdict": "صحيح"
+    },
+    {
+      "k": "112:1",
+      "seed": null,
+      "page": null,
+      "verdict": "ضعيف"
     }
   ]
 }

@@ -150,7 +150,9 @@ def main():
             '2919': {'n': 'أسباب نزول القرآن', 'a': 'أبو الحسن علي بن أحمد الواحدي النيسابوري', 's': 'الواحدي', 'note': NOTE_2919},
             '460': {'n': 'المحرر في أسباب نزول القرآن من خلال الكتب التسعة', 'a': 'خالد بن سليمان المزيني', 's': 'المحرر', 'note': NOTE_460},
         },
-        'checked': {'2919': 1, '460': sorted(checked_460, key=lambda k: (int(k.split('_')[0]), int(k.split('_')[1])))},
+        # 1 means «the whole book was imported», so an ayah without an entry here has
+        # no sabab in that book — and the empty line may name it confidently.
+        'checked': {'2919': 1, '460': 1},
         'entries': entries,
         'index': index,
     }

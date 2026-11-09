@@ -182,8 +182,26 @@ now matched as whole words only.
 
 ## 7. Known limits
 
-* 51 of 427 entries have a written summary; the rest show the book text with an honest
-  line saying no summary has been written yet. Nothing invented fills the gap.
-* المحرر coverage is 7 entries (see §4).
+* All 630 entries carry a written summary; «الملخّص لم يُكتب بعد» is 0.
+* المحرر coverage: all 210 entries (see §8).
 * 9 alignment ambiguities and 10 entries without a printed verse are listed above and
   left as the book has them.
+
+## 8. المحرر import (v3, 210 entries)
+
+* Source order: `origin/asbab-v2` first (complete dump of المحرر, read-only: no branch
+  merge, no summary and no grade taken from it), quranpedia second (only the 7 ayahs
+  the public dump exposes, used earlier in v2). Every one of the 210 entries comes from
+  the v2 dump; quranpedia contributed no new entry.
+* `import460.py` splits each ayah's `content[]` into four verbatim blocks
+  (preamble / «سَبَبُ النُّزُولِ» / «دِرَاسَةُ السَّبَبِ» / «النتيجة») and re-derives the
+  grade **from the «النتيجة» sentence only**: {صحيح 106, حسن 1, ضعيف 36,
+  لم يُحكم عليه 67}. No «النتيجة» block → «لم يُحكم عليه»; negations («غير صحيح»،
+  «لا يصح») are matched before the positive words.
+* 80:1: the book says «وبهذه الأقوال المتقدمة للمفسرين يتبين أن الحديث وإن كان ضعيفاً
+  إلا أنهم مجموعون على ما دلّ عليه» — a statement about the hadith, not a verdict on
+  the sabab, so the entry stays «لم يُحكم عليه» and that sentence is kept verbatim as
+  the evidence. v2 had graded it «ضعيف» from the same words.
+* Merged per ayah: one ayah can carry entries from both books (598 ayahs, 630 entries).
+  `checked` is `{"2919":1,"460":1}` — both books fully imported, so the empty line may
+  name both.
