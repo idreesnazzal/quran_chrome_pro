@@ -3309,8 +3309,7 @@
       .header-actions .theme-btn-text,
       #audioToggleBtn span:not(:first-child),
       #voiceReciteToggleBtn span:nth-child(2),
-      #tasmeeBtn span:nth-child(2),
-      #pdfOpenBtn .btn-text { display: none; }
+      #tasmeeBtn span:nth-child(2) { display: none; }
       .header-actions > button, .header-actions > a, .theme-toggle-btn { padding: 7px 10px; }
     }
     /* small phones: every header button as its icon only (the 🧠 button made the row 350px wide at 320) */
@@ -3454,10 +3453,6 @@
         <span>🧠</span>
         <span>وضع التسميع</span>
       </button>
-
-      <a href="Quran_Complete_Mushaf_Searchable.pdf" target="_blank" class="btn btn-gold" id="pdfOpenBtn" title="فتح ملف الـ PDF كاملاً">
-        📥 <span class="btn-text">فتح ملف PDF</span>
-      </a>
     </div>
   </header>
 
@@ -4910,16 +4905,6 @@
       // Initialize Smart Voice Recitation (مصحف التسميع الصوتي والمتابعة بالمايكروفون)
       buildVoiceRecitationIndex();
       initVoiceRecitation();
-      // the PDF is not part of this folder: hide a button that would 404
-      (function () {
-        const pdf = document.getElementById('pdfOpenBtn');
-        if (!pdf) return;
-        if (location.protocol === 'file:') return; // can't probe file://, keep as is
-        fetch(pdf.getAttribute('href'), { method: 'HEAD' })
-          .then(r => { if (!r.ok) pdf.style.display = 'none'; })
-          .catch(() => { pdf.style.display = 'none'; });
-      })();
-
       // Load initial page
       goToPage(1);
     }
