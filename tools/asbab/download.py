@@ -30,6 +30,11 @@ MANIFEST = os.path.join(HERE, 'MANIFEST.sha256')
 
 FILES = [
     'tools/asbab/raw/asbab-book-2919.json',
+    'tools/asbab/raw/asbab-restored-2919.json',
+    'tools/asbab/raw/lubab-nuqul.shamela0002247.openiti.txt',
+    'tools/asbab/raw/asbab-suyuti.json',
+    'tools/asbab/curation/restore.json',
+    'tools/asbab/curation/references.json',
     'tools/asbab/raw/asbab-book-460.json',
     'tools/asbab/aligned/asbab_2919.json',
     'tools/asbab/aligned/asbab_460.json',
@@ -38,6 +43,12 @@ FILES = [
     'tools/asbab/curation/entries.json',
     'data/asbab_data.js',
 ]
+# لباب النقول — public domain (السيوطي ت 911هـ), OpenITI RELEASE, copy of Shamela 0002247
+# (دار الكتب العلمية، بيروت).  The file is served from GitHub, so this sandbox can
+# check its sha256 locally; the hash below is the copy that produced raw/asbab-suyuti.json.
+SUYUTI = ('https://github.com/OpenITI/RELEASE/blob/main/data/0911Suyuti/0911Suyuti.LubabNuqul/'
+          '0911Suyuti.LubabNuqul.Shamela0002247-ara1',
+          '671274dadb1d60fc9d7948d81c85418db6311624e9136eedb4c9cb07c27d90e6')
 DUMPS = {
     2919: ('https://quranpedia.net/dumps/asbab-book-2919.json.gz',
            '84e99922560bc1b39b3924730cfc10a9b2c100b34d5ac8b9732ec8920f20c327'),
@@ -84,6 +95,9 @@ def check():
     print('%d file(s) checked, %d differ' % (len(want), bad))
     for bid, (url, s) in DUMPS.items():
         print('  dump %d: %s (%s…)' % (bid, url, s[:12]))
+    print('  لباب النقول: %s (%s…)' % (SUYUTI[0], SUYUTI[1][:12]))
+    print('  الاستيعاب / الصحيح المسند: no public machine-readable edition was found; '
+          'no row of either book is shipped (see AUDIT.md §9)')
     return 1 if bad else 0
 
 

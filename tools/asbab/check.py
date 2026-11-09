@@ -233,14 +233,83 @@ def main(argv):
             if k.replace(':', '_') not in ayah:
                 errors.append('coverage: %s is not a real ayah' % k)
 
+    # 5. the built payload: cards, verdicts, references and groupings
+    data_path = os.path.join(ROOT, 'data', 'asbab_data.js')
+    if os.path.exists(data_path):
+        src = open(data_path, encoding='utf-8').read()
+        payload = json.loads(src[src.index('{'):src.rindex('}') + 1])
+        cards = payload.get('cards', [])
+        full_books = set(payload.get('books', {}))
+        ref_books = set(payload.get('refBooks') or {})            # verdicts only: no text at all
+        seen_ayah = set()
+        for i, c in enumerate(cards):
+            tag = 'card %d (%s)' % (i, c.get('s', '')[:30])
+            verdicts, texts = c.get('v') or [], c.get('t') or []
+            if not verdicts:
+                errors.append('%s: no verdict at all' % tag)
+            if not texts:
+                errors.append('%s: no book text (a card must rest on a full-text book)' % tag)
+            if not c.get('s'):
+                errors.append('%s: no summary' % tag)
+            elif len(c['s'].split()) > 40:
+                errors.append('%s: summary has %d words (max 40)' % (tag, len(c['s'].split())))
+            seen_b = [v.get('b') for v in verdicts]
+            if len(seen_b) != len(set(seen_b)):
+                errors.append('%s: the same book gives two verdicts on one card' % tag)
+            for v in verdicts:
+                b, g = str(v.get('b')), v.get('g')
+                if g not in GRADES:
+                    errors.append('%s: grade %r is not one of %s' % (tag, g, '/'.join(GRADES)))
+                    continue
+                if b in ref_books:                                 # الاستيعاب / الصحيح المسند
+                    if not v.get('ref'):
+                        errors.append('%s: %s verdict without its reference' % (tag, b))
+                    q = (v.get('q') or '').strip()
+                    if len(q.split()) > 15:
+                        errors.append('%s: %s quote is %d words (max 15, copyright)' % (tag, b, len(q.split())))
+                    if v.get('t'):
+                        errors.append('%s: %s carries text; reference books carry none' % (tag, b))
+                    continue
+                if b not in full_books:
+                    errors.append('%s: verdict from unknown book %r' % (tag, b))
+                    continue
+                if g != 'لم يُحكم عليه' and not (v.get('e') or '').strip():
+                    errors.append('%s: %s says %s with no quoted sentence' % (tag, b, g))
+            for t in texts:
+                if str(t.get('b')) not in full_books:
+                    errors.append('%s: text from %r, which is not a full-text book' % (tag, t.get('b')))
+                if not t.get('t'):
+                    errors.append('%s: an empty text block' % tag)
+        for key, ids in (payload.get('index') or {}).items():
+            if key not in ayah:
+                errors.append('index: %s is not a real ayah' % key)
+                continue
+            seen_ayah.add(key)
+            s0, a0 = (int(x) for x in key.split('_'))
+            for i in ids:
+                if not (0 <= i < len(cards)):
+                    errors.append('index: %s points at card %s, which does not exist' % (key, i))
+                    continue
+                c = cards[i]
+                rng = c.get('r') or None
+                sw = c.get('sw')
+                if rng and not (rng[0] <= a0 <= rng[1]):
+                    errors.append('index: %s points at a card for %s' % (key, rng))
+                if not rng and not sw and cards[i] and False:
+                    pass
+
     if errors:
         print('check: %d problem(s)' % len(errors))
         for e in errors:
             print('  ✗', e)
         return 1
-    print('OK — %d ayahs in الواحدي, %d in المحرر, %d summaries in %d file(s), 0 problems'
+    suy = 0
+    suy_path = os.path.join(HERE, 'raw', 'asbab-suyuti.json')
+    if os.path.exists(suy_path):
+        suy = len(json.load(open(suy_path, encoding='utf-8'))['narrations'])
+    print('OK — %d ayahs in الواحدي, %d in المحرر, %d narrations in السيوطي, %d summaries in %d file(s), 0 problems'
           % (len(books.get('2919', {}).get('ayat', {})), len(books.get('460', {}).get('ayat', {})),
-             total, len(files)))
+             suy, total, len(files)))
     return 0
 
 

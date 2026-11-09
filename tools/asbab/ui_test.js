@@ -27,7 +27,11 @@ const AYAHS = [
   { s: 80, a: 1, expect: 'summary' },
   { s: 111, a: 1, expect: 'summary' },
   { s: 74, a: 15, expect: 'range' },      // the sabab covers 74:11-24
-  { s: 36, a: 1, expect: 'empty' },       // no sabab in either book
+  { s: 36, a: 1, expect: 'empty' },       // no sabab in these books
+  // ayahs that gained لباب النقول (السيوطي) in this build
+  { s: 2, a: 26, expect: 'summary' },
+  { s: 24, a: 55, expect: 'summary' },
+  { s: 59, a: 5, expect: 'summary' },
 ];
 
 // Errors that the untouched app already produced before this feature existed, and
@@ -81,7 +85,7 @@ const ok = (m) => console.log('  ✓ ' + m);
             html: body.innerHTML.length,
             summaries: [...body.querySelectorAll('.asbab-summary')].map((e) => e.textContent.trim()),
             grades: [...body.querySelectorAll('.asbab-grade')].map((e) => e.textContent.trim()),
-            evidence: [...body.querySelectorAll('.asbab-evidence')].map((e) => e.textContent.trim()),
+            evidence: [...body.querySelectorAll('.asbab-evidence, .asbab-evidence-inline')].map((e) => e.textContent.trim()),
             ranges: [...body.querySelectorAll('.asbab-range-tag')].map((e) => e.textContent.trim()),
             empty: body.querySelector('.asbab-empty-title') ? body.querySelector('.asbab-empty-title').textContent.trim() : '',
             emptySub: body.querySelector('.asbab-empty-sub') ? body.querySelector('.asbab-empty-sub').textContent.trim() : '',
@@ -98,7 +102,7 @@ const ok = (m) => console.log('  ✓ ' + m);
 
         if (ay.expect === 'empty') {
           if (info.summaries.length) fail(`${tag}: expected no sabab, got a summary`);
-          else if (!/لم يرد في هذين الكتابين/.test(info.empty)) fail(`${tag}: empty line is “${info.empty}”`);
+          else if (!/لم يرد في هذه الكتب/.test(info.empty)) fail(`${tag}: empty line is “${info.empty}”`);
           else ok(`${tag}: «${info.empty}» / ${info.emptySub}`);
         } else {
           if (!info.summaries.length) fail(`${tag}: no summary rendered`);
@@ -107,7 +111,8 @@ const ok = (m) => console.log('  ✓ ' + m);
           if (!info.textCount || !/النص من الكتب \(\d+\)/.test(info.toggle)) fail(`${tag}: book text toggle missing`);
           if (!info.books) fail(`${tag}: no source label`);
           if (info.summaries.length && info.summaries[0].split(/\s+/).length > 40) fail(`${tag}: summary over 40 words`);
-          if (!info.evidence.length && info.grades[0] !== 'لم يُحكم عليه') fail(`${tag}: grade without the book's sentence`);
+          const graded = info.grades.filter((g) => g !== 'لم يُحكم عليه');
+          if (graded.length && !info.evidence.length) fail(`${tag}: grade without the book's sentence`);
           if (info.summaries.length) ok(`${tag}: [${info.grades.join('/')}] ${info.summaries[0].slice(0, 70)}… · ${info.toggle}`);
         }
 
@@ -122,7 +127,7 @@ const ok = (m) => console.log('  ✓ ' + m);
         if (ay.expect === 'empty') {
           if (!/لم يرد في/.test(copied)) fail(`${tag}: copy text lacks the honest line`);
         } else {
-          if (!/الحكم:/.test(copied)) fail(`${tag}: copy text lacks the grade`);
+          if (!/حكم الكتب:/.test(copied)) fail(`${tag}: copy text lacks the grade`);
           if (!/النص من/.test(copied)) fail(`${tag}: copy text lacks the book texts`);
           if (!info.summaries.length || copied.indexOf(info.summaries[0]) < 0) fail(`${tag}: copy text lacks the summary`);
         }

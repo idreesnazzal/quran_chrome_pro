@@ -3142,6 +3142,36 @@
       margin-bottom: 8px;
     }
 
+    .asbab-verdicts {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .asbab-verdict-line {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.88rem;
+      line-height: 1.85;
+      color: var(--text-main);
+    }
+
+    .asbab-ref {
+      font-size: 0.84rem;
+      color: var(--gold-ink);
+      font-weight: 600;
+    }
+
+    .asbab-evidence-inline {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.85;
+      overflow-wrap: anywhere;
+    }
+
     .asbab-note {
       font-size: 0.88rem;
       line-height: 1.9;
@@ -6195,45 +6225,71 @@
     function asbabEsc(s) {
       return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
-    function asbabEntries(sura, aya) {
+    function asbabCards(sura, aya) {
       const A = window.ASBAB_DATA;
       if (!A || !A.index) return null;                 // not loaded yet
-      return (A.index[`${sura}_${aya}`] || []).map((i) => A.entries[i]).filter(Boolean);
+      return (A.index[`${sura}_${aya}`] || []).map((i) => A.cards[i]).filter(Boolean);
     }
     function asbabChecked(sura, aya) {
       const A = window.ASBAB_DATA;
       if (!A || !A.checked) return [];
       const key = `${sura}_${aya}`;
-      return Object.keys(A.checked).filter((b) => A.checked[b] === 1 ||
+      return Object.keys(A.checked).filter((b) => A.checked[b] === '1' || A.checked[b] === 1 ||
         (Array.isArray(A.checked[b]) && A.checked[b].indexOf(key) >= 0));
     }
     function asbabBook(b) { const A = window.ASBAB_DATA; return (A && A.books && A.books[b]) || {}; }
     function asbabGradeClass(g) { return ({ 'صحيح': 'g-sahih', 'حسن': 'g-hasan', 'ضعيف': 'g-daif' })[g] || 'g-none'; }
-    function asbabWhere(e) {
-      if (e.sw) return 'السبب عام للسورة';
-      if (e.r) return `يخدم الآيات ${e.r[0]}–${e.r[1]}`;
+    const ASBAB_RANK = { 'صحيح': 0, 'حسن': 1, 'لم يُحكم عليه': 2, 'ضعيف': 3 };
+    function asbabBestGrade(card) {
+      const gs = (card.v || []).map((v) => v.g).sort((a, b) => (ASBAB_RANK[a] ?? 2) - (ASBAB_RANK[b] ?? 2));
+      return gs[0] || 'لم يُحكم عليه';
+    }
+    function asbabWhere(card) {
+      if (card.sw) return 'السبب عام للسورة';
+      if (card.r) return `يخدم الآيات ${card.r[0]}–${card.r[1]}`;
       return '';
     }
-    function asbabEntryHtml(e) {
-      const bk = asbabBook(e.b), where = asbabWhere(e), parts = e.t || [];
-      const texts = parts.map((p) => `<p class="asbab-text-part">${asbabEsc(p)}</p>`).join('');
+    function asbabCardBooks(card) {
+      const seen = [];
+      (card.t || []).forEach((x) => { if (seen.indexOf(x.b) < 0) seen.push(x.b); });
+      return seen;
+    }
+    // one card = one event: one summary, every book's verdict side by side, and the
+    // full texts of the books that print their narration (الواحدي / المحرر / السيوطي)
+    function asbabCardHtml(card) {
+      const books = asbabCardBooks(card), where = asbabWhere(card), texts = card.t || [];
+      const tags = books.map((b) => `<span class="asbab-book-tag">${asbabEsc(asbabBook(b).s || 'الكتاب')}</span>`).join('');
+      const verdicts = (card.v || []).map((v) => {
+        const bk = asbabBook(v.b);
+        const ev = v.e ? `<span class="asbab-evidence-inline">«${asbabEsc(v.e)}»</span>` : '';
+        return `<div class="asbab-verdict-line">
+            <span class="asbab-grade ${asbabGradeClass(v.g)}">${asbabEsc(v.g)}</span>
+            <b>${asbabEsc(bk.s || 'الكتاب')}</b>${v.ref ? `<span class="asbab-ref">${asbabEsc(v.ref)}</span>` : ''}${ev}
+          </div>`;
+      }).join('');
+      const blocks = texts.map((x) => {
+        const bk = asbabBook(x.b);
+        const page = x.page ? ` — ص ${x.page[1]}` : '';
+        return `<div class="asbab-text-block">
+            <div class="asbab-text-book">${asbabEsc(bk.n || '')}${bk.a ? ' — ' + asbabEsc(bk.a) : ''}${asbabEsc(page)}</div>
+            ${(x.t || []).map((p) => `<p class="asbab-text-part">${asbabEsc(p)}</p>`).join('')}
+          </div>`;
+      }).join('');
+      const best = asbabBestGrade(card);
       return `
         <div class="asbab-entry">
           <div class="asbab-top">
-            <span class="asbab-book-tag">${asbabEsc(bk.s || 'الكتاب')}</span>
+            ${tags}
             ${where ? `<span class="asbab-range-tag">${asbabEsc(where)}</span>` : ''}
-            <span class="asbab-grade ${asbabGradeClass(e.g)}">${asbabEsc(e.g)}</span>
+            <span class="asbab-grade ${asbabGradeClass(best)}">${asbabEsc(best)}</span>
           </div>
-          ${e.s ? `<p class="asbab-summary">${asbabEsc(e.s)}</p>`
-                : (e.na ? '' : `<p class="asbab-pending">لم يُكتب لهذا الأثر ملخّص سهل بعد؛ نص الكتاب كما هو أدناه.</p>`)}
-          ${e.e ? `<div class="asbab-evidence"><b>حكم الكتاب:</b> «${asbabEsc(e.e)}»</div>` : ''}
-          ${e.n ? `<div class="asbab-note">${asbabEsc(e.n)}</div>` : ''}
+          ${card.s ? `<p class="asbab-summary">${asbabEsc(card.s)}</p>`
+                   : (card.na ? '' : `<p class="asbab-pending">لم يُكتب لهذا الأثر ملخّص سهل بعد؛ نص الكتاب كما هو أدناه.</p>`)}
+          <div class="asbab-verdicts">${verdicts}</div>
+          ${card.n ? `<div class="asbab-note">${asbabEsc(card.n)}</div>` : ''}
           <details class="asbab-texts">
-            <summary>النص من الكتب (${parts.length}) ▾</summary>
-            <div class="asbab-text-block">
-              <div class="asbab-text-book">${asbabEsc(bk.n || '')}${bk.a ? ' — ' + asbabEsc(bk.a) : ''}</div>
-              ${texts}
-            </div>
+            <summary>النص من الكتب (${texts.length}) ▾</summary>
+            ${blocks}
           </details>
         </div>`;
     }
@@ -6241,33 +6297,33 @@
       const names = checked.map((b) => asbabBook(b).s).filter(Boolean);
       const full = checked.map((b) => { const k = asbabBook(b); return k.n ? `${k.n} — ${k.a || ''}`.replace(/ — $/, '') : ''; }).filter(Boolean);
       const line = names.length >= 2
-        ? 'لم يرد في هذين الكتابين سبب نزول خاص لهذه الآية.'
+        ? 'لم يرد في هذه الكتب سبب نزول خاص لهذه الآية.'
         : `لم يرد في ${names.length ? 'كتاب ' + names[0] : 'الكتب المُراجَعة'} سبب نزول خاص لهذه الآية.`;
       return `
         <div class="asbab-empty">
           <span style="font-size: 1.9rem;">📖</span>
           <p class="asbab-empty-title">${asbabEsc(line)}</p>
-          <p class="asbab-empty-sub">${asbabEsc('الكتابان المُراجَعان: ' + full.join(' · '))}</p>
+          <p class="asbab-empty-sub">${asbabEsc('الكتب المُراجَعة: ' + full.join(' · '))}</p>
         </div>`;
     }
     function asbabCopyText(sura, aya, suraName, page, ayahText) {
       const A = window.ASBAB_DATA || {};
-      const entries = (A.index && (A.index[`${sura}_${aya}`] || []).map((i) => A.entries[i]).filter(Boolean)) || [];
+      const cards = (A.index && (A.index[`${sura}_${aya}`] || []).map((i) => A.cards[i]).filter(Boolean)) || [];
       const suraInfo = (window.QURAN_DATA && window.QURAN_DATA.surahs && window.QURAN_DATA.surahs[sura - 1]) || {};
       const head = `سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${ayahText} ﴾\n\n` +
         `📍 مكان ونوع السورة: ${suraInfo.type || 'مكية'}\n⏳ ترتيب النزول في تاريخ الوحي: السورة رقم ${suraInfo.order || '-'}\n\n`;
-      if (!entries.length) {
+      if (!cards.length) {
         const names = asbabChecked(sura, aya).map((b) => asbabBook(b).s).filter(Boolean);
-        const line = names.length >= 2 ? 'لم يرد في هذين الكتابين سبب نزول خاص لهذه الآية.'
+        const line = names.length >= 2 ? 'لم يرد في هذه الكتب سبب نزول خاص لهذه الآية.'
           : `لم يرد في ${names.length ? 'كتاب ' + names[0] : 'الكتب المُراجَعة'} سبب نزول خاص لهذه الآية.`;
         return head + '📜 سبب النزول:\n' + line;
       }
-      const body = entries.map((e) => {
-        const bk = asbabBook(e.b), where = asbabWhere(e);
-        let s = `📜 [${bk.s || 'الكتاب'}]${where ? ' — ' + where : ''}\n`;
-        if (e.s) s += `${e.s}\n`;
-        s += `الحكم: ${e.g}${e.e ? `\nحكم الكتاب: «${e.e}»` : ''}\n`;
-        s += `النص من ${bk.n || 'الكتاب'}${bk.a ? ' لـ' + bk.a : ''}:\n` + (e.t || []).join('\n\n') + '\n';
+      const body = cards.map((card) => {
+        const where = asbabWhere(card);
+        let s = `📜 سبب النزول${where ? ' — ' + where : ''}\n`;
+        if (card.s) s += `${card.s}\n`;
+        s += 'حكم الكتب:\n' + (card.v || []).map((v) => `  • ${asbabBook(v.b).s || 'الكتاب'}: ${v.g}${v.e ? ` — «${v.e}»` : ''}`).join('\n') + '\n';
+        s += (card.t || []).map((x) => `النص من ${asbabBook(x.b).n || 'الكتاب'}${x.page ? ` (ص ${x.page[1]})` : ''}:\n` + (x.t || []).join('\n\n')).join('\n\n') + '\n';
         return s;
       }).join('\n');
       return head + body;
@@ -6292,11 +6348,11 @@
       }
 
       // 2. Asbab al-Nuzul: the summary, the book's own grade, and its text
-      const entries = asbabEntries(sura, aya);
+      const cards = asbabCards(sura, aya);
       const checked = asbabChecked(sura, aya);
       const sourceLabel = document.getElementById('nuzulSourceLabel');
 
-      if (entries === null) {          // data/asbab_data.js has not arrived yet
+      if (cards === null) {          // data/asbab_data.js has not arrived yet
         if (chipReasonVal) {
           chipReasonVal.textContent = 'جارٍ التحميل…';
           chipReasonVal.classList.remove('has-asbab');
@@ -6314,15 +6370,16 @@
         return;
       }
 
-      const hasSabab = entries.length > 0;
+      const hasSabab = cards.length > 0;
+      const gradeNow = hasSabab ? asbabBestGrade(cards[0]) : '';
       if (chipReasonVal) {
         chipReasonVal.textContent = hasSabab
-          ? (entries[0].g === 'لم يُحكم عليه' ? 'مذكور في الكتب' : entries[0].g)
+          ? (gradeNow === 'لم يُحكم عليه' ? 'مذكور في الكتب' : gradeNow)
           : 'لا سبب خاص';
         chipReasonVal.classList.toggle('has-asbab', hasSabab);
       }
       if (nuzulStatusBadge) {
-        nuzulStatusBadge.textContent = hasSabab ? (entries[0].g === 'لم يُحكم عليه' ? 'مذكور' : entries[0].g) : 'لا سبب خاص';
+        nuzulStatusBadge.textContent = hasSabab ? (gradeNow === 'لم يُحكم عليه' ? 'مذكور' : gradeNow) : 'لا سبب خاص';
         nuzulStatusBadge.className = 'tab-badge-pill ' + (hasSabab ? 'asbab-found' : 'asbab-general');
       }
       if (nuzulReasonStatus) {
@@ -6333,7 +6390,7 @@
         sourceLabel.textContent = names.length ? 'المُراجَع: ' + names.join(' · ') : 'من كتب أسباب النزول';
       }
       if (nuzulReasonBody) {
-        nuzulReasonBody.innerHTML = hasSabab ? entries.map(asbabEntryHtml).join('') : asbabEmptyHtml(checked);
+        nuzulReasonBody.innerHTML = hasSabab ? cards.map(asbabCardHtml).join('') : asbabEmptyHtml(checked);
       }
 
       // 2. Revelation Timing & Historical Period Card
@@ -6670,7 +6727,8 @@
         const suraInfo = (window.QURAN_DATA && window.QURAN_DATA.surahs && window.QURAN_DATA.surahs[suraNum - 1]) || {};
         const asbabHere = (window.ASBAB_DATA && window.ASBAB_DATA.index && window.ASBAB_DATA.index[`${suraNum}_${ayaNum}`]) || null;
         const hasAsbab = !!(asbabHere && asbabHere.length);
-        const asbabGrade = hasAsbab ? (window.ASBAB_DATA.entries[asbabHere[0]] || {}).g : '';
+        const asbabCard = hasAsbab ? (window.ASBAB_DATA.cards[asbabHere[0]] || {}) : {};
+        const asbabGrade = hasAsbab ? asbabBestGrade(asbabCard) : '';
         const asbabBadge = hasAsbab
           ? `<span class="badge-asbab-available">📜 سبب النزول${asbabGrade && asbabGrade !== 'لم يُحكم عليه' ? ' — ' + asbabGrade : ''}</span>`
           : '';

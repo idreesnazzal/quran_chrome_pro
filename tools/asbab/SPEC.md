@@ -1,5 +1,5 @@
 # أسباب النزول — specification of the shipped feature
-`tools/asbab/SPEC.md` · v3 · 2026-11-07
+`tools/asbab/SPEC.md` · v4 · 2026-11-09
 
 The feature is a data file plus the reader UI. There is no build step: `index.html`
 loads `data/asbab_data.js` lazily the first time a reader opens the sabab panel, and
@@ -36,15 +36,22 @@ The search list shows a `📜 سبب النزول` badge with the grade for any 
 
 ```js
 window.ASBAB_DATA = {
-  v: 3, gen: "2026-11-07",
-  books: { "2919": {n,a,s}, "460": {n,a,s} },          // full title, author, short name
-  checked: { "2919": 1,                              // 1 = the whole book was checked
-             "460": ["2_144", …] },                   // ayahs actually read in المحرر
-  entries: [ { b: 2919, r: [82,86] | 0, sw: 0|1, na: 0|1,
-               n: "…", s: "…", g: "صحيح", e: "…", t: ["…","…"] } ],
-  index: { "5_83": [12], "2_6": [3] }                 // ayah key -> entry indices
+  v: 4, gen: "2026-11-09",
+  books: { "2919": {n,a,s,note}, "460": {…}, "suyuti": {…} },   // full-text books
+  refBooks: [],                                     // verdict-only books (2 & 3), no text
+  checked: { "2919": 1, "460": 1, "suyuti": 1 },    // 1 = the whole book was imported
+  cards: [ { r: [82,86] | 0, sw: 0|1, na: 0|1, n: "", s: "ملخّص الحدث",
+             v: [ { b: "2919", g: "صحيح", e: "جملة الكتاب", ref: "…", q: "…" } ],
+             t: [ { b: "460", t: ["…"], page: [1,31] } ] } ],
+  index: { "5_83": [12], "2_6": [3] }               // ayah key -> card indices
 };
 ```
+
+* one **card = one event** on one ayah; the books that narrate it sit side by side
+  (`v` = their verdicts, `t` = their texts), so the reader reads the story once;
+* a card with a verdict but no text is a **reference-only** row (`refBooks`): its
+  `ref` is «رقم/صفحة + الطبعة» and any `q` quote is ≤ 15 words (copyright);
+* cards are ordered صحيح → حسن → ثم ما لم يُحكم عليه → ضعيف.
 
 * `r` = range `[first,last]` inside one surah, `0` when the entry is about one ayah.
 * `sw` = 1 when the book's words are about the whole surah.

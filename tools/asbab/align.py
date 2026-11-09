@@ -260,6 +260,27 @@ def main():
                 if f in fix:
                     out[tgt][f] = fix[f]
 
+    # ---- entries the old build had and the 501-key scrape lost, plus the spans the
+    # publisher repeated (curation/restore.json records every decision and its reason)
+    restored = json.load(open(os.path.join(RAW, 'asbab-restored-2919.json'), encoding='utf-8')) \
+        if os.path.exists(os.path.join(RAW, 'asbab-restored-2919.json')) else {'ayat': {}}
+    for key, rec in restored.get('ayat', {}).items():
+        if key not in ayah:
+            raise SystemExit('restore 2919: %s is not a real ayah' % key)
+        if key in out:
+            continue
+        out[key] = {'parts': rec['parts'], 'range': rec.get('range'),
+                    'surah_wide': False, 'not_a_sabab': False}
+    dec_path = os.path.join(CURATION, 'restore.json')
+    if os.path.exists(dec_path):
+        for d in json.load(open(dec_path, encoding='utf-8'))['decisions']:
+            if d['book'] == '2919' and d['action'] == 'range' and d['k'] in out:
+                first, last = d['range']
+                if first <= int(d['k'].split('_')[1]) <= last:
+                    out[d['k']]['range'] = [first, last]
+                    report['ranges'].append({'key': d['k'], 'range': [first, last],
+                                             'why': 'restored from the old build'})
+
     for rec in out.values():
         rec.pop('_text', None)
         rec.pop('_keys', None)
@@ -292,7 +313,9 @@ def align_460():
     raw = json.load(open(path, encoding='utf-8'))
     quran, ayah, order = load_quran()
     out = {}
-    for key, rec in raw['ayat'].items():
+    rest_path = os.path.join(RAW, 'asbab-restored-460.json')
+    restored = json.load(open(rest_path, encoding='utf-8'))['ayat'] if os.path.exists(rest_path) else {}
+    for key, rec in list(raw['ayat'].items()) + list(restored.items()):
         if key not in ayah:
             raise SystemExit('460: %s is not a real ayah' % key)
         out[key] = {'parts': rec['parts'], 'range': rec.get('range'),
