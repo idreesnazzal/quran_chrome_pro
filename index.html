@@ -3065,6 +3065,8 @@
     }
 
     /* سبب النزول: ملخّص سهل + حكم الكتاب + النص الأصلي */
+    .asbab-picker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .asbab-picker .tafsir-select { max-width: 100%; flex: 1 1 220px; }
     .asbab-entry {
       background: var(--bg-primary);
       border: 1px solid var(--border-color);
@@ -6293,6 +6295,29 @@
           </details>
         </div>`;
     }
+    // the reader picks a book, like the tafsir source picker: 'all' or a book id
+    let asbabPick = 'all';
+    try { asbabPick = localStorage.getItem('asbabBookPick') || 'all'; } catch (e) { /* private mode */ }
+    let asbabLast = null;   // [sura, aya, suraName] of the last render, to redraw on a pick
+    function asbabPickerHtml(cards) {
+      const A = window.ASBAB_DATA || {};
+      const ids = Object.keys(A.books || {});
+      const count = (b) => cards.filter((c) => asbabCardBooks(c).indexOf(b) >= 0 ||
+        (c.v || []).some((v) => v.b === b)).length;
+      const opts = [`<option value="all"${asbabPick === 'all' ? ' selected' : ''}>📚 كل الكتب (${cards.length})</option>`]
+        .concat(ids.map((b) => `<option value="${asbabEsc(b)}"${asbabPick === b ? ' selected' : ''}>📖 ${asbabEsc(asbabBook(b).s || b)}${asbabBook(b).n ? ' — ' + asbabEsc(asbabBook(b).n) : ''} (${count(b)})</option>`));
+      return `<div class="asbab-picker">
+          <span class="tafsir-select-label">الكتاب:</span>
+          <select id="asbabBookSelect" class="tafsir-select" title="اختر كتاب أسباب النزول">${opts.join('')}</select>
+        </div>`;
+    }
+    // one book's view of a card: that book's verdict and its own text, opened
+    function asbabCardForBook(card, b) {
+      return Object.assign({}, card, {
+        v: (card.v || []).filter((v) => v.b === b),
+        t: (card.t || []).filter((x) => x.b === b),
+      });
+    }
     function asbabEmptyHtml(checked) {
       const names = checked.map((b) => asbabBook(b).s).filter(Boolean);
       const full = checked.map((b) => { const k = asbabBook(b); return k.n ? `${k.n} — ${k.a || ''}`.replace(/ — $/, '') : ''; }).filter(Boolean);
@@ -6390,7 +6415,33 @@
         sourceLabel.textContent = names.length ? 'المُراجَع: ' + names.join(' · ') : 'من كتب أسباب النزول';
       }
       if (nuzulReasonBody) {
-        nuzulReasonBody.innerHTML = hasSabab ? cards.map(asbabCardHtml).join('') : asbabEmptyHtml(checked);
+        asbabLast = [sura, aya, suraName];
+        if (!hasSabab) {
+          nuzulReasonBody.innerHTML = asbabEmptyHtml(checked);
+        } else {
+          const A = window.ASBAB_DATA || {};
+          if (asbabPick !== 'all' && !(A.books || {})[asbabPick]) asbabPick = 'all';
+          let html;
+          if (asbabPick === 'all') {
+            html = cards.map(asbabCardHtml).join('');
+          } else {
+            const mine = cards.filter((c) => asbabCardBooks(c).indexOf(asbabPick) >= 0 ||
+              (c.v || []).some((v) => v.b === asbabPick));
+            const bk = asbabBook(asbabPick);
+            html = mine.length
+              ? mine.map((c) => asbabCardHtml(asbabCardForBook(c, asbabPick)).replace('<details class="asbab-texts">', '<details class="asbab-texts" open>')).join('')
+              : `<div class="asbab-empty"><span style="font-size: 1.6rem;">📖</span>
+                   <p class="asbab-empty-title">${asbabEsc(`لم يذكر كتاب ${bk.s || bk.n || ''} سببًا لنزول هذه الآية.`)}</p>
+                   <p class="asbab-empty-sub">اختر «كل الكتب» لرؤية ما في الكتب الأخرى (${cards.length}).</p></div>`;
+          }
+          nuzulReasonBody.innerHTML = asbabPickerHtml(cards) + html;
+          const sel = document.getElementById('asbabBookSelect');
+          if (sel) sel.addEventListener('change', () => {
+            asbabPick = sel.value;
+            try { localStorage.setItem('asbabBookPick', asbabPick); } catch (e) { /* ignore */ }
+            if (asbabLast) renderAyahRevelationContext(asbabLast[0], asbabLast[1], asbabLast[2]);
+          });
+        }
       }
 
       // 2. Revelation Timing & Historical Period Card
