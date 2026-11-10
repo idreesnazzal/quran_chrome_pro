@@ -17,6 +17,9 @@ python3 merge.py
 echo "== 3b editor: حكم المحقق from the الواحدي footnotes (curation/editor_grades.json)"
 python3 editor_grades.py
 
+echo "== 3c suyuti: the لباب النقول narrations placed by reading (curation/suyuti_extra.json)"
+python3 suyuti_extra.py
+
 echo "== 4/5 groups: one reviewed row for every multi-book card"
 python3 make_groups.py
 

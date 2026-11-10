@@ -374,6 +374,9 @@ def main(argv):
         # This is what keeps a grade from sitting beside another story's summary.
         groups_path = os.path.join(HERE, 'curation', 'groups.json')
         rows = json.load(open(groups_path, encoding='utf-8'))['groups'] if os.path.exists(groups_path) else []
+        extra_path = os.path.join(HERE, 'curation', 'suyuti_groups.json')     # suyuti_extra.py joins
+        if os.path.exists(extra_path):
+            rows = rows + json.load(open(extra_path, encoding='utf-8'))['groups']
         for i, c in enumerate(cards):
             card_books = sorted({str(t.get('b')) for t in (c.get('t') or [])})
             if len(card_books) < 2:

@@ -1,0 +1,2487 @@
+{
+"note": "written by suyuti_extra.py from curation/suyuti_join.json",
+"groups": [
+{
+"ayah": "2_62",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Salman asks about the monks' prayer and worship, verse",
+"source": "read"
+},
+{
+"ayah": "2_79",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: rabbis alter the Prophet's description in the Torah",
+"source": "read"
+},
+{
+"ayah": "2_80",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews' claim of short fire duration on the Prophet's arrival",
+"source": "read"
+},
+{
+"ayah": "2_97",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews call Gabriel enemy after being asked who brings revelation",
+"source": "read"
+},
+{
+"ayah": "2_98",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar and a Jew: Gabriel is enemy, verse on Umar's words",
+"source": "read"
+},
+{
+"ayah": "2_99",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Suriya's you bring nothing we know, answered by verse",
+"source": "read"
+},
+{
+"ayah": "2_104",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: raina as Jewish insult, Jews say it openly",
+"source": "read"
+},
+{
+"ayah": "2_104",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Muslims say raina and Jews say the same",
+"source": "read"
+},
+{
+"ayah": "2_113",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Najran Christians and Jewish rabbis dispute, mutual disbelief",
+"source": "read"
+},
+{
+"ayah": "2_144",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: qibla change from Bayt al-Maqdis",
+"source": "read"
+},
+{
+"ayah": "2_115",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: sariyya in fog, wrong qibla, verse",
+"source": "read"
+},
+{
+"ayah": "2_125",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar proposes maqam Ibrahim as musalla",
+"source": "read"
+},
+{
+"ayah": "2_125",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar proposes maqam Ibrahim as musalla (Jabir narration)",
+"source": "read"
+},
+{
+"ayah": "2_125",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar proposes maqam Ibrahim as musalla (Ibn Mardawayh narration)",
+"source": "read"
+},
+{
+"ayah": "2_154",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Badr martyrs, verse on those killed in Allah's way",
+"source": "read"
+},
+{
+"ayah": "2_164",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: one God verse, polytheists marvel and ask for a sign",
+"source": "read"
+},
+{
+"ayah": "2_174",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: generic: verse on Jews concealing scripture, same as card's concealment",
+"source": "read"
+},
+{
+"ayah": "2_178",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: two Arab tribes, free for slave, same verse",
+"source": "read"
+},
+{
+"ayah": "2_187",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: companions sleep before iftar, Qays ibn Sarma, verse",
+"source": "read"
+},
+{
+"ayah": "2_188",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Imru' al-Qays and Abdan dispute land, verse",
+"source": "read"
+},
+{
+"ayah": "2_189",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: question about the crescents",
+"source": "read"
+},
+{
+"ayah": "2_189",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: question about the crescents: why were they created",
+"source": "read"
+},
+{
+"ayah": "2_189",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Mu'adh and Tha'laba ask about the crescent's phases",
+"source": "read"
+},
+{
+"ayah": "2_195",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ansar drought, withhold charity, verse",
+"source": "read"
+},
+{
+"ayah": "2_196",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: lice on Ka'b at Hudaybiyya, verse on the ransom",
+"source": "read"
+},
+{
+"ayah": "2_197",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Yemenis travel without provisions, verse",
+"source": "read"
+},
+{
+"ayah": "2_199",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Arabs stand at Arafat, Quraysh at Muzdalifa",
+"source": "read"
+},
+{
+"ayah": "2_199",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Quraysh stand at Muzdalifa, others at Arafat",
+"source": "read"
+},
+{
+"ayah": "2_200",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jahiliyya boast of fathers at the season, verse",
+"source": "read"
+},
+{
+"ayah": "2_208",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abdullah ibn Salam and Jews, Saturday observance",
+"source": "read"
+},
+{
+"ayah": "2_214",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Day of Confederates hardship, verse",
+"source": "read"
+},
+{
+"ayah": "2_215",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: believers ask where to put wealth, same question as card",
+"source": "read"
+},
+{
+"ayah": "2_215",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Amr ibn al-Jamuh asks how and where to spend",
+"source": "read"
+},
+{
+"ayah": "2_220",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: orphans' wealth separated after verse, verse on orphans",
+"source": "read"
+},
+{
+"ayah": "2_222",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Thabit ibn al-Dahdah asks about menstruation",
+"source": "read"
+},
+{
+"ayah": "2_223",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews' claim about intercourse from behind and squint child",
+"source": "read"
+},
+{
+"ayah": "2_231",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Thabit ibn Yasar divorces and takes back to harm, verse",
+"source": "read"
+},
+{
+"ayah": "2_232",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ma'qil ibn Yasar and his sister, verse on not preventing remarriage",
+"source": "read"
+},
+{
+"ayah": "2_238",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: talking in prayer, verse on standing devoutly",
+"source": "read"
+},
+{
+"ayah": "2_267",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: giving the worst dates in charity, verse",
+"source": "read"
+},
+{
+"ayah": "2_272",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: disliked giving to polytheist relatives, verse",
+"source": "read"
+},
+{
+"ayah": "2_272",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: give only to Muslims, then to all, verse",
+"source": "read"
+},
+{
+"ayah": "2_278",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Thaqif riba dispute, same tribes",
+"source": "read"
+},
+{
+"ayah": "2_284",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: verse on accounting for the self burdens companions",
+"source": "read"
+},
+{
+"ayah": "3_12",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: hand review: the Jews of Medina after Badr, same occasion (8-word echo)",
+"source": "read"
+},
+{
+"ayah": "3_28",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: allies of Jews tempt Ansar, refused warning, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_31",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: people claiming to love God, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_59",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Najran delegation asks about Isa, verse 3:59",
+"source": "read"
+},
+{
+"ayah": "3_59",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Najran delegation question about Isa, same verse",
+"source": "read"
+},
+{
+"ayah": "3_59",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: same Najran visit (bishop and Aqib), verse on Isa, mubahala",
+"source": "read"
+},
+{
+"ayah": "3_77",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ash'ath land dispute with a Jew, oath case",
+"source": "read"
+},
+{
+"ayah": "3_79",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Rafi' asks worship of Prophet, Najran rabbis, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_101",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Aws and Khazraj grudge recalled in Jahiliyya, swords",
+"source": "read"
+},
+{
+"ayah": "3_100",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Aws and Khazraj recollection of Bu'ath instigated by Shas, verse 3:100",
+"source": "read"
+},
+{
+"ayah": "3_118",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Muslims associating with Jewish men, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_122",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jabir: verse revealed on Banu Salima and Banu Haritha",
+"source": "read"
+},
+{
+"ayah": "3_144",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Uhud rumour of Muhammad's death, Umar's account, nazil 3:144",
+"source": "read"
+},
+{
+"ayah": "3_144",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Uhud rumour, two groups speak, same as card",
+"source": "read"
+},
+{
+"ayah": "3_144",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Uhud rumour, Muhajir and Ansari, if he was killed fight on",
+"source": "read"
+},
+{
+"ayah": "3_144",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Uhud rumour of death, Ka'b recognises Prophet, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_169",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: martyrs of Uhud given green birds, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_172",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: polytheists leave Uhud, Hamra al-Asad, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_173",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: pursuit of Abu Sufyan after Uhud, Khuza'i warning, same nazil 3:173",
+"source": "read"
+},
+{
+"ayah": "3_181",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Bakr and Finhas dispute, same as card",
+"source": "read"
+},
+{
+"ayah": "3_195",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umm Salama, women in hijra, same nazil",
+"source": "read"
+},
+{
+"ayah": "3_199",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Najashi's death, nazil 3:199",
+"source": "read"
+},
+{
+"ayah": "4_7",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Aws b. Thabit inheritance taken by cousins, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_19",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: custom of wali inheriting wife, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_19",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Zuhri: Ansar custom of wali and wife, same practice",
+"source": "read"
+},
+{
+"ayah": "4_24",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Awtas captives with husbands, same nazil 4:24",
+"source": "read"
+},
+{
+"ayah": "4_24",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Hunayn captive women with husbands, same nazil 4:24",
+"source": "read"
+},
+{
+"ayah": "4_32",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umm Salama wish about men fighting, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_34",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: woman complains of slap, qisas, same nazil as Sa'd b. Rabi' case",
+"source": "read"
+},
+{
+"ayah": "4_34",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ansari slaps wife, qisas, same case",
+"source": "read"
+},
+{
+"ayah": "4_43",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Awf's food party, drink, prayer, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_51",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Quraysh and Ka'b b. Ashraf in Mecca, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_58",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ka'ba key returned to Uthman, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_59",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abdullah b. Hudhafa expedition, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_60",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Barza/Burda kahin judges among Jews, same story",
+"source": "read"
+},
+{
+"ayah": "4_69",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man says he misses seeing Prophet, same reaction and nazil as Thawban",
+"source": "read"
+},
+{
+"ayah": "4_77",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Awf and companions in Mecca, same nazil",
+"source": "read"
+},
+{
+"ayah": "4_88",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Zayd b. Thabit: split at return from Uhud, same",
+"source": "read"
+},
+{
+"ayah": "4_92",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ayyash kills Harith unaware of his Islam, same",
+"source": "read"
+},
+{
+"ayah": "4_93",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Miqyas's brother killed by Ansari, revenge, same case",
+"source": "read"
+},
+{
+"ayah": "4_94",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Mirdas said la ilaha illa Allah, Usama killed, same",
+"source": "read"
+},
+{
+"ayah": "4_94",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: nazil about Mirdas, same story",
+"source": "read"
+},
+{
+"ayah": "4_97",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Muslims with polytheists killed by arrows, same as card",
+"source": "read"
+},
+{
+"ayah": "4_97",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Muslims with polytheists at Badr killed, same incident",
+"source": "read"
+},
+{
+"ayah": "4_97",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Mecca converts forced to Badr, killed, same incident",
+"source": "read"
+},
+{
+"ayah": "4_100",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Dhamra dies on migration, same as Habib b. Dhamra card",
+"source": "read"
+},
+{
+"ayah": "4_100",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: variant names of the same migrant who died",
+"source": "read"
+},
+{
+"ayah": "4_100",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jundu' b. Dhamra dies on migration, same story",
+"source": "read"
+},
+{
+"ayah": "4_128",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Sawda gives her day to avert divorce; wife concession",
+"source": "read"
+},
+{
+"ayah": "4_128",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: wife content with neglect to keep marriage",
+"source": "read"
+},
+{
+"ayah": "4_135",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: rich and poor dispute, Prophet leans to poor (Suddi)",
+"source": "read"
+},
+{
+"ayah": "4_148",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: guest of bad host, permitted to speak of it",
+"source": "read"
+},
+{
+"ayah": "4_153",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews ask for scripture from heaven like Moses",
+"source": "read"
+},
+{
+"ayah": "5_4",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: order to kill dogs, people ask what is lawful",
+"source": "read"
+},
+{
+"ayah": "5_6",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Aisha necklace lost at al-Bayda, tayammum",
+"source": "read"
+},
+{
+"ayah": "5_33",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Uraynah apostates kill shepherd, take camels",
+"source": "read"
+},
+{
+"ayah": "5_41",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jewish adulterer stoned, Bara narration",
+"source": "read"
+},
+{
+"ayah": "5_49",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ka'b, Ibn Suriya, Shas test the Prophet",
+"source": "read"
+},
+{
+"ayah": "5_51",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ubada disavows Qaynuqa alliance, Ibn Ubayy",
+"source": "read"
+},
+{
+"ayah": "5_67",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet distressed at delivering the message",
+"source": "read"
+},
+{
+"ayah": "5_67",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet worried he is alone; same distress",
+"source": "read"
+},
+{
+"ayah": "5_82",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Najashi's men weep at Yasin",
+"source": "read"
+},
+{
+"ayah": "5_87",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: companions forbid themselves meat and women",
+"source": "read"
+},
+{
+"ayah": "5_87",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: other narrations of same companions vow",
+"source": "read"
+},
+{
+"ayah": "5_87",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: companions vow abstinence, sackcloth, travel",
+"source": "read"
+},
+{
+"ayah": "5_101",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: mocking question who is my father",
+"source": "read"
+},
+{
+"ayah": "5_101",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: mocking questions about father and lost camel",
+"source": "read"
+},
+{
+"ayah": "5_106",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Tamim and Adi, silver cup, oath",
+"source": "read"
+},
+{
+"ayah": "6_52",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: six companions, Ibn Mas'ud, expel them",
+"source": "read"
+},
+{
+"ayah": "6_52",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Aqra and Uyayna ask to expel poor believers",
+"source": "read"
+},
+{
+"ayah": "6_91",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews say God sent no book",
+"source": "read"
+},
+{
+"ayah": "6_108",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: idol insults answered by insults to God",
+"source": "read"
+},
+{
+"ayah": "6_121",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: carrion vs slaughter dispute, Persia to Quraysh",
+"source": "read"
+},
+{
+"ayah": "7_204",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: raising voices in prayer behind Prophet",
+"source": "read"
+},
+{
+"ayah": "7_204",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: youth reciting along with Prophet in prayer",
+"source": "read"
+},
+{
+"ayah": "8_9",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Badr supplication facing qibla",
+"source": "read"
+},
+{
+"ayah": "8_19",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Jahl istiftah, verse 8:19",
+"source": "read"
+},
+{
+"ayah": "8_27",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Lubaba gestures to throat to Qurayza",
+"source": "read"
+},
+{
+"ayah": "8_30",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Dar al-Nadwa plot, Gabriel informs",
+"source": "read"
+},
+{
+"ayah": "8_32",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Nadr ibn al-Harith stones wish",
+"source": "read"
+},
+{
+"ayah": "8_33",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Quraysh stone wish, then ghufranaka",
+"source": "read"
+},
+{
+"ayah": "8_35",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Quraysh whistle and clap at tawaf",
+"source": "read"
+},
+{
+"ayah": "8_64",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar conversion completes forty",
+"source": "read"
+},
+{
+"ayah": "8_64",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: 39 men and woman plus Umar",
+"source": "read"
+},
+{
+"ayah": "8_64",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: 33 men 6 women plus Umar",
+"source": "read"
+},
+{
+"ayah": "8_64",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar conversion, verse 8:64",
+"source": "read"
+},
+{
+"ayah": "8_68",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Badr captives consultation, Umar and Abu Bakr",
+"source": "read"
+},
+{
+"ayah": "8_67",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Badr captives consultation, Ibn Mas'ud",
+"source": "read"
+},
+{
+"ayah": "8_70",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abbas 20 uqiya ransom",
+"source": "read"
+},
+{
+"ayah": "9_19",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: pulpit boast, pilgrims water, mosque, jihad",
+"source": "read"
+},
+{
+"ayah": "9_49",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jadd b. Qays asks to be excused from Banu Asfar war",
+"source": "read"
+},
+{
+"ayah": "9_49",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: other narration of the Banu Asfar women remark, same verse 9:49",
+"source": "read"
+},
+{
+"ayah": "9_65",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: mocking remark at Tabuk, apology we were only playing",
+"source": "read"
+},
+{
+"ayah": "9_74",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jallas remark at Tabuk, reported, oath denial, verse 9:74",
+"source": "read"
+},
+{
+"ayah": "9_74",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: reviling then oath before the Prophet, same verse 9:74",
+"source": "read"
+},
+{
+"ayah": "9_84",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar objects to praying over Ibn Ubayy, verse 9:84",
+"source": "read"
+},
+{
+"ayah": "9_92",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: the weepers asking the Prophet for mounts, same group",
+"source": "read"
+},
+{
+"ayah": "9_102",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: the tied-to-pillars group at Tabuk, same story, 9:102",
+"source": "read"
+},
+{
+"ayah": "9_102",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: release of Abu Lubaba at dawn, same story",
+"source": "read"
+},
+{
+"ayah": "9_108",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: people of Quba cleaning with water, verse 9:108",
+"source": "read"
+},
+{
+"ayah": "9_108",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: people of Quba using water, same Quba sabab",
+"source": "read"
+},
+{
+"ayah": "9_111",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Rawaha at Aqaba, same stipulation, verse 9:111",
+"source": "read"
+},
+{
+"ayah": "9_117",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ka'b b. Malik tawba, same incident",
+"source": "read"
+},
+{
+"ayah": "9_122",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: believers went out with sariyyas leaving the Prophet alone",
+"source": "read"
+},
+{
+"ayah": "10_2",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Arabs deny a human messenger, same, verse 10:2",
+"source": "read"
+},
+{
+"ayah": "11_114",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man kissed a woman, same question, verse 11:114",
+"source": "read"
+},
+{
+"ayah": "13_13",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet sends man to a tyrant who refuses, thunderbolt, verse 13:13",
+"source": "read"
+},
+{
+"ayah": "13_31",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: people demand a sign, same demand, verse 13:31",
+"source": "read"
+},
+{
+"ayah": "13_31",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: same sign demand, different wording",
+"source": "read"
+},
+{
+"ayah": "15_24",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Sahl b. Hunayf: verse about prayer rows, same sabab",
+"source": "read"
+},
+{
+"ayah": "15_49",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet finds companions laughing, same, verse 15:49",
+"source": "read"
+},
+{
+"ayah": "16_106",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ammar's compelled words under torture, same incident",
+"source": "read"
+},
+{
+"ayah": "16_126",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Hamza mutilated, Prophet vow, verse of patience, same",
+"source": "read"
+},
+{
+"ayah": "17_56",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Mas'ud: jinn converted, humans kept worship, same",
+"source": "read"
+},
+{
+"ayah": "17_73",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Sha'b asks a year for the idols, same Thaqif request",
+"source": "read"
+},
+{
+"ayah": "17_90",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: sign demand on the Ka'ba roof, Abdullah b. Abi Umayya among them",
+"source": "read"
+},
+{
+"ayah": "17_110",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Abbas: loud Quran, mushriks curse it, same, verse 17:110",
+"source": "read"
+},
+{
+"ayah": "18_109",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews claim great knowledge of the Torah, same, verse 18:109",
+"source": "read"
+},
+{
+"ayah": "18_110",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man wants to be seen while acting, same as Jundub",
+"source": "read"
+},
+{
+"ayah": "19_77",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Khabbab and al-As b. Wa'il debt, same",
+"source": "read"
+},
+{
+"ayah": "20_2",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: people say he is wretched, same claim as card",
+"source": "read"
+},
+{
+"ayah": "21_101",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn al-Zib'ara remark on angels and idols, same",
+"source": "read"
+},
+{
+"ayah": "22_19",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ali on the Badr duel, same, verse 22:19",
+"source": "read"
+},
+{
+"ayah": "22_39",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Bakr remark on Prophet exit, same, verse 22:39",
+"source": "read"
+},
+{
+"ayah": "23_14",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umar agreed with his Lord in four, same",
+"source": "read"
+},
+{
+"ayah": "23_76",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Sufyan plea during famine, same",
+"source": "read"
+},
+{
+"ayah": "24_6",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: li'an sabab, Uwaymir and wife, verse 24:6",
+"source": "read"
+},
+{
+"ayah": "24_11",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: ifk verse for Aisha, same ifk incident, 24:11",
+"source": "read"
+},
+{
+"ayah": "24_11",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Aisha refuses to apologise until revelation, same ifk",
+"source": "read"
+},
+{
+"ayah": "24_33",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Ubayy tells his slave girl to go fetch something (Jabir)",
+"source": "read"
+},
+{
+"ayah": "24_33",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: slave girl Musaika complains of forced prostitution",
+"source": "read"
+},
+{
+"ayah": "24_33",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Ubayy forcing his two slave girls into zina",
+"source": "read"
+},
+{
+"ayah": "24_48",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man refuses Prophet's judgment and says go to someone else (unnamed, same behaviour)",
+"source": "read"
+},
+{
+"ayah": "25_68",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: polytheists who killed and fornicated ask about expiation",
+"source": "read"
+},
+{
+"ayah": "25_70",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Meccans confess killing and fornication; same story (Ibn Abbas)",
+"source": "read"
+},
+{
+"ayah": "28_56",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet asks uncle to say la ilaha illa Allah at deathbed",
+"source": "read"
+},
+{
+"ayah": "28_56",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Umar confirms verse about Abu Jahl and Abu Talib",
+"source": "read"
+},
+{
+"ayah": "29_8",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umm Sa'd vows not to eat or drink; verse 29:8",
+"source": "read"
+},
+{
+"ayah": "29_51",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: books and shoulder-bone saying kafa bi-qawm dalala; same verse",
+"source": "read"
+},
+{
+"ayah": "31_27",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: People of the Book ask about spirit; follow-up knowledge verse",
+"source": "read"
+},
+{
+"ayah": "31_34",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Bedouin asks about birth, rain, death; verse on knowledge of the Hour",
+"source": "read"
+},
+{
+"ayah": "32_16",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: companions pray between maghrib and isha; verse 32:16",
+"source": "read"
+},
+{
+"ayah": "32_16",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Anas: verse about waiting for isha; same occasion",
+"source": "read"
+},
+{
+"ayah": "33_4",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man called dhu al-qalbayn; two-hearts man",
+"source": "read"
+},
+{
+"ayah": "33_4",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man says two hearts smarter than Muhammad",
+"source": "read"
+},
+{
+"ayah": "33_4",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jamil ibn Ma'mar as the two-hearts man (unnamed on card)",
+"source": "read"
+},
+{
+"ayah": "33_23",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Anas ibn al-Nadr at Uhud",
+"source": "read"
+},
+{
+"ayah": "33_28",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Bakr and Umar ask entry, wives asking nafaqa (Jabir)",
+"source": "read"
+},
+{
+"ayah": "33_35",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: women complain they are not mentioned; verse 33:35",
+"source": "read"
+},
+{
+"ayah": "33_37",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: verse tukhfi about Zayd and Zaynab (Anas)",
+"source": "read"
+},
+{
+"ayah": "33_37",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Zayd complains of Zaynab; Prophet says keep your wife",
+"source": "read"
+},
+{
+"ayah": "33_53",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Zaynab wedding, lingering guests, hijab verse (Anas)",
+"source": "read"
+},
+{
+"ayah": "33_50",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Umm Hani: Prophet wanted her, forbidden for not migrating",
+"source": "read"
+},
+{
+"ayah": "33_53",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Anas: entering wedding house with guests, curtain, hijab verse",
+"source": "read"
+},
+{
+"ayah": "33_59",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: wives go out at night, hypocrites harass; verse 33:59",
+"source": "read"
+},
+{
+"ayah": "36_12",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Banu Salima move near mosque; verse 36:12",
+"source": "read"
+},
+{
+"ayah": "39_17",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: three men in Jahiliyya saying la ilaha illa Allah",
+"source": "read"
+},
+{
+"ayah": "39_67",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jew asks how Prophet says Allah holds heavens on a finger",
+"source": "read"
+},
+{
+"ayah": "48_18",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: pledge under the tree (Ridwan)",
+"source": "read"
+},
+{
+"ayah": "48_24",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: eighty armed men from Tan'im at Hudaybiyya, released",
+"source": "read"
+},
+{
+"ayah": "49_2",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: raised voices before Prophet; verse 49:2",
+"source": "read"
+},
+{
+"ayah": "49_4",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man calls ya Muhammad; praise-is-adornment text (same man)",
+"source": "read"
+},
+{
+"ayah": "49_6",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Walid ibn Uqba false report, Harith ibn Dirar; verse 49:6",
+"source": "read"
+},
+{
+"ayah": "49_11",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: nicknames, Banu Salama; la tanabazu bil-alqab",
+"source": "read"
+},
+{
+"ayah": "49_17",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Asad delegation says they became Muslims unsent for",
+"source": "read"
+},
+{
+"ayah": "49_17",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Asad people say came without fighting; yamunnuna",
+"source": "read"
+},
+{
+"ayah": "54_1",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ibn Mas'ud: moon split before the mission",
+"source": "read"
+},
+{
+"ayah": "58_8",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews whispering near believers, causing grief",
+"source": "read"
+},
+{
+"ayah": "58_11",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: refusing to make room in the gathering",
+"source": "read"
+},
+{
+"ayah": "58_18",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: man with devil's eye, oath of not cursing",
+"source": "read"
+},
+{
+"ayah": "59_5",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: cutting Banu Nadir palms; sin question",
+"source": "read"
+},
+{
+"ayah": "60_1",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Ali, Zubayr, Miqdad seize Hatib's letter at Khakh",
+"source": "read"
+},
+{
+"ayah": "60_8",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Asma's mother visits, asks to keep ties",
+"source": "read"
+},
+{
+"ayah": "60_8",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: same visit of Qutayla with gifts",
+"source": "read"
+},
+{
+"ayah": "60_10",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: women arriving during Hudaybiyya covenant, verse on women",
+"source": "read"
+},
+{
+"ayah": "65_1",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet divorces Hafsa, told to take her back",
+"source": "read"
+},
+{
+"ayah": "65_4",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: iddah categories question, verse of those past menses",
+"source": "read"
+},
+{
+"ayah": "66_1",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Maria in Hafsa's house, forbidding her",
+"source": "read"
+},
+{
+"ayah": "66_1",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: honey and maghafir oath; house named Sawda",
+"source": "read"
+},
+{
+"ayah": "66_1",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: honey, 'arfat remark, forbidding; same honey event",
+"source": "read"
+},
+{
+"ayah": "69_12",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet to Ali: draw near, understand",
+"source": "read"
+},
+{
+"ayah": "74_1",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Hira return, daththiruni",
+"source": "read"
+},
+{
+"ayah": "75_16",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: moving tongue to memorize revelation",
+"source": "read"
+},
+{
+"ayah": "81_29",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Abu Jahl: that is up to us",
+"source": "read"
+},
+{
+"ayah": "93_1",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet sick, woman says devil left him",
+"source": "read"
+},
+{
+"ayah": "93_4",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: vision of umma's conquests, rejoicing",
+"source": "read"
+},
+{
+"ayah": "93_5",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: same vision, town by town",
+"source": "read"
+},
+{
+"ayah": "97_1",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Prophet saw Umayyads on minbar",
+"source": "read"
+},
+{
+"ayah": "97_1",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Israelite man, thousand months in arms",
+"source": "read"
+},
+{
+"ayah": "97_3",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: same Israelite man, thousand months",
+"source": "read"
+},
+{
+"ayah": "108_3",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Quraysh tell Ka'b the Prophet claims superiority",
+"source": "read"
+},
+{
+"ayah": "109_1",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Quraysh deal offer, qul ya ayyuha alkafirun",
+"source": "read"
+},
+{
+"ayah": "109_1",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: year-for-year worship proposal",
+"source": "read"
+},
+{
+"ayah": "109_1",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Walid and others propose joint worship",
+"source": "read"
+},
+{
+"ayah": "111_1",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Safa call, Abu Lahab tabban",
+"source": "read"
+},
+{
+"ayah": "112_1",
+"books": [
+"2919",
+"460",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: Jews ask for description of the Lord",
+"source": "read"
+},
+{
+"ayah": "113_1",
+"books": [
+"2919",
+"suyuti"
+],
+"same_event": true,
+"reason": "لباب النقول: sorcery of Prophet, mu'awwidhatayn",
+"source": "read"
+},
+{
+"ayah": "33_53",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": false,
+"reason": "hand review: Aisha eating with the Prophet (Umar's finger) vs the Zaynab wedding guests — two hijab occasions"
+}
+]
+}

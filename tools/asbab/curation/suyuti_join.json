@@ -1,0 +1,2113 @@
+{
+"note": "same-incident decisions for suyuti_extra.json, by reading",
+"join": {
+"n0002": {
+"join": null,
+"why": "verify rejected: A: Ibn Abbas says Jews of Madina; B: Abu Jahl and family, Jews only as a qila alternative",
+"was": "c6029faf7b4"
+},
+"n0003": {
+"join": null,
+"why": "battle of the Confederates, different occasion"
+},
+"n0004": {
+"join": null,
+"why": "mushrikun say what parable; card has munafiqun mocking fly and spider"
+},
+"n0005": {
+"join": "c48a546ee6f",
+"why": "Salman asks about the monks' prayer and worship, verse"
+},
+"n0006": {
+"join": null,
+"why": "Prophet speaks at Qurayza forts, Jews' reaction"
+},
+"n0007": {
+"join": null,
+"why": "Jews' double talk with believers; first of its group"
+},
+"n0008": {
+"join": "n0007",
+"why": "same Jews telling believers their talk, same verse"
+},
+"n0009": {
+"join": "c8783b9b34a",
+"why": "rabbis alter the Prophet's description in the Torah"
+},
+"n0010": {
+"join": "c592a0c5204",
+"why": "Jews' claim of short fire duration on the Prophet's arrival"
+},
+"n0011": {
+"join": null,
+"why": "40 nights of calf worship; contradicts the 7 days / 7000 years claim"
+},
+"n0013": {
+"join": "cd01baf3c30",
+"why": "Jews call Gabriel enemy after being asked who brings revelation"
+},
+"n0014": {
+"join": "c0a6e33965d",
+"why": "Umar and a Jew: Gabriel is enemy, verse on Umar's words"
+},
+"n0015": {
+"join": "c4491a4c4fc",
+"why": "Ibn Suriya's you bring nothing we know, answered by verse"
+},
+"n0016": {
+"join": null,
+"why": "Jews mock Prophet for Solomon as sorcerer; card is the buried books"
+},
+"n0017": {
+"join": "n0016",
+"why": "Jews dispute with Prophet about sorcery, same verse"
+},
+"n0018": {
+"join": null,
+"why": "verify rejected: A: two Jews start saying ra'ina to Prophet; B: Arabs start it and Jews take it up; origin conflicts",
+"was": "cbeb23cec40"
+},
+"n0019": {
+"join": "cbeb23cec40",
+"why": "raina as Jewish insult, Jews say it openly"
+},
+"n0020": {
+"join": null,
+"why": "verify rejected: A: some Jews start 'arina sam'ak' and Muslims copy; B: Arabs start and Jews take it up; origin conflicts",
+"was": "cbeb23cec40"
+},
+"n0021": {
+"join": "cbeb23cec40",
+"why": "Muslims say raina and Jews say the same"
+},
+"n0022": {
+"join": null,
+"why": "Arabs' own use of raina, no Jews; different occasion"
+},
+"n0024": {
+"join": null,
+"why": "Rafi' and Wahb ask for a book; card is Abdullah ibn Abi Umayya's Safa demand"
+},
+"n0027": {
+"join": null,
+"why": "man asks about expiations; different occasion"
+},
+"n0028": {
+"join": "cfff0d635b2",
+"why": "Najran Christians and Jewish rabbis dispute, mutual disbelief"
+},
+"n0029": {
+"join": null,
+"why": "verify rejected: A: Quraysh barred Prophet from praying at Kaaba; B: Titus and Christians primarily, Meccans only as alternative",
+"was": "cfa7c29b3fb"
+},
+"n0031": {
+"join": null,
+"why": "voluntary prayer on the mount during travel; different occasion"
+},
+"n0032": {
+"join": "c5deb24e755",
+"why": "qibla change from Bayt al-Maqdis"
+},
+"n0033": {
+"join": "c84304aebbb",
+"why": "sariyya in fog, wrong qibla, verse"
+},
+"n0034": {
+"join": null,
+"why": "Najashi funeral prayer; different occasion"
+},
+"n0035": {
+"join": null,
+"why": "ud'uni verse, where to question; different occasion"
+},
+"n0037": {
+"join": "cf1ee295b61",
+"why": "Umar proposes maqam Ibrahim as musalla"
+},
+"n0038": {
+"join": "cf1ee295b61",
+"why": "Umar proposes maqam Ibrahim as musalla (Jabir narration)"
+},
+"n0039": {
+"join": "cf1ee295b61",
+"why": "Umar proposes maqam Ibrahim as musalla (Ibn Mardawayh narration)"
+},
+"n0041": {
+"join": "c155f318272",
+"why": "Badr martyrs, verse on those killed in Allah's way"
+},
+"n0043": {
+"join": "c7c7e6f9703",
+"why": "one God verse, polytheists marvel and ask for a sign"
+},
+"n0044": {
+"join": null,
+"why": "Quraysh's Safa-gold request; different occasion"
+},
+"n0046": {
+"join": "c85d2c9bc3e",
+"why": "generic: verse on Jews concealing scripture, same as card's concealment"
+},
+"n0047": {
+"join": null,
+"why": "Jews and Christians prayer direction; card states no cause"
+},
+"n0048": {
+"join": null,
+"why": "man asks about birr; different occasion"
+},
+"n0049": {
+"join": "c6844677522",
+"why": "two Arab tribes, free for slave, same verse"
+},
+"n0051": {
+"join": null,
+"why": "Bedouin asks whether the Lord is near"
+},
+"n0052": {
+"join": null,
+"why": "verify rejected: A: Companions ask 'where is our Lord'; B: a single Bedouin asks near or far; different askers",
+"was": "n0051"
+},
+"n0053": {
+"join": null,
+"why": "man asks whether the Lord hears du'a; different question"
+},
+"n0054": {
+"join": null,
+"why": "which hour to pray; different question"
+},
+"n0055": {
+"join": "c26824ad343",
+"why": "companions sleep before iftar, Qays ibn Sarma, verse"
+},
+"n0056": {
+"join": null,
+"why": "white and black thread story; different occasion"
+},
+"n0057": {
+"join": null,
+"why": "i'tikaf intercourse; different occasion"
+},
+"n0058": {
+"join": "cb4e5322892",
+"why": "Imru' al-Qays and Abdan dispute land, verse"
+},
+"n0059": {
+"join": "c9d9b9fac0f",
+"why": "question about the crescents"
+},
+"n0060": {
+"join": "c9d9b9fac0f",
+"why": "question about the crescents: why were they created"
+},
+"n0061": {
+"join": "c9d9b9fac0f",
+"why": "Mu'adh and Tha'laba ask about the crescent's phases"
+},
+"n0063": {
+"join": null,
+"why": "Prophet enters by a wall and leaves by door; different people and occasion"
+},
+"n0064": {
+"join": "c974ebe74de",
+"why": "Ansar drought, withhold charity, verse"
+},
+"n0065": {
+"join": null,
+"why": "saffron-perfumed man asks about umrah; different occasion"
+},
+"n0066": {
+"join": "c6b53c187de",
+"why": "lice on Ka'b at Hudaybiyya, verse on the ransom"
+},
+"n0067": {
+"join": "c26995e0cd4",
+"why": "Yemenis travel without provisions, verse"
+},
+"n0068": {
+"join": "caab1d068ee",
+"why": "Arabs stand at Arafat, Quraysh at Muzdalifa"
+},
+"n0069": {
+"join": "caab1d068ee",
+"why": "Quraysh stand at Muzdalifa, others at Arafat"
+},
+"n0070": {
+"join": "cdee1ee81f8",
+"why": "Jahiliyya boast of fathers at the season, verse"
+},
+"n0072": {
+"join": null,
+"why": "Bedouins ask for rain at the standing place; different act"
+},
+"n0073": {
+"join": null,
+"why": "two hypocrites on the killed party; different occasion"
+},
+"n0075": {
+"join": null,
+"why": "verse attributed to Suhayb, Abu Dhar, Jundub; no event"
+},
+"n0076": {
+"join": "cdf01203cee",
+"why": "Abdullah ibn Salam and Jews, Saturday observance"
+},
+"n0077": {
+"join": "c53ac6b43a9",
+"why": "Day of Confederates hardship, verse"
+},
+"n0078": {
+"join": "ca96497c43a",
+"why": "believers ask where to put wealth, same question as card"
+},
+"n0079": {
+"join": "ca96497c43a",
+"why": "Amr ibn al-Jamuh asks how and where to spend"
+},
+"n0080": {
+"join": null,
+"why": "companions ask about spending on 2:219; card is wine and gambling"
+},
+"n0081": {
+"join": null,
+"why": "Mu'adh and Tha'laba ask about spending; card is wine and gambling"
+},
+"n0082": {
+"join": "ce75377d3fb",
+"why": "orphans' wealth separated after verse, verse on orphans"
+},
+"n0083": {
+"join": "c8f79d2406c",
+"why": "Thabit ibn al-Dahdah asks about menstruation"
+},
+"n0084": {
+"join": "cd80fb3dc65",
+"why": "Jews' claim about intercourse from behind and squint child"
+},
+"n0085": {
+"join": null,
+"why": "Jabir: verse as license for behind intercourse; not the Jews' claim"
+},
+"n0086": {
+"join": "n0085",
+"why": "man has intercourse from behind, verse as license, same event"
+},
+"n0087": {
+"join": null,
+"why": "Abu Bakr and Mistah; different persons"
+},
+"n0088": {
+"join": null,
+"why": "general custom of taking back gifts; different occasion"
+},
+"n0089": {
+"join": null,
+"why": "Thabit ibn Qays' wife and garden; different occasion"
+},
+"n0090": {
+"join": "c7682744c0a",
+"why": "Thabit ibn Yasar divorces and takes back to harm, verse"
+},
+"n0091": {
+"join": null,
+"why": "jesting with divorce and emancipation; different act"
+},
+"n0092": {
+"join": "cbdb8a0afb9",
+"why": "Ma'qil ibn Yasar and his sister, verse on not preventing remarriage"
+},
+"n0093": {
+"join": null,
+"why": "Dhuhr at midday prayed at hajir; card is talking in prayer"
+},
+"n0094": {
+"join": "n0093",
+"why": "Dhuhr at hajir, few behind, same narration as n0093"
+},
+"n0095": {
+"join": "c9dd44b7f9c",
+"why": "talking in prayer, verse on standing devoutly"
+},
+"n0098": {
+"join": null,
+"why": "people who believed in Jesus then Muhammad; contrary group"
+},
+"n0099": {
+"join": null,
+"why": "those who disbelieved in Jesus then believed; contrary group"
+},
+"n0100": {
+"join": "c41a945ad06",
+"why": "giving the worst dates in charity, verse"
+},
+"n0101": {
+"join": null,
+"why": "buying cheap food for charity; different act"
+},
+"n0102": {
+"join": "c0a13b9618d",
+"why": "disliked giving to polytheist relatives, verse"
+},
+"n0103": {
+"join": "c8e64a73a63",
+"why": "give only to Muslims, then to all, verse"
+},
+"n0104": {
+"join": null,
+"why": "Abd al-Rahman and Uthman at Jaysh al-Usra; card is generic cavalry"
+},
+"n0105": {
+"join": "ce324d920c9",
+"why": "Thaqif riba dispute, same tribes"
+},
+"n0106": {
+"join": "c68d2d8bae6",
+"why": "verse on accounting for the self burdens companions"
+},
+"n0108": {
+"join": "c55865c10b4",
+"why": "hand review: the Jews of Medina after Badr, same occasion (8-word echo)"
+},
+"n0109": {
+"join": null,
+"why": "verify rejected: A: Phinhas the Jew remark on Badr; B: Prophet gathers Jews at Qaynuqa market after Badr; different occasion",
+"was": "n0108"
+},
+"n0110": {
+"join": "cab057ec453",
+"why": "allies of Jews tempt Ansar, refused warning, same nazil"
+},
+"n0111": {
+"join": "cfe64eb920b",
+"why": "people claiming to love God, same nazil"
+},
+"n0113": {
+"join": "c41e93adefa",
+"why": "Najran delegation asks about Isa, verse 3:59"
+},
+"n0114": {
+"join": "c41e93adefa",
+"why": "Najran delegation question about Isa, same verse"
+},
+"n0115": {
+"join": "c41e93adefa",
+"why": "same Najran visit (bishop and Aqib), verse on Isa, mubahala"
+},
+"n0118": {
+"join": "c0de0c2c8d7",
+"why": "Ash'ath land dispute with a Jew, oath case"
+},
+"n0119": {
+"join": null,
+"why": "Ikrima: Huyayy and Ka'b concealing Torah, a different story"
+},
+"n0120": {
+"join": "c38fc9fcee8",
+"why": "Abu Rafi' asks worship of Prophet, Najran rabbis, same nazil"
+},
+"n0122": {
+"join": "c9ae08d5429",
+"why": "Aws and Khazraj grudge recalled in Jahiliyya, swords"
+},
+"n0123": {
+"join": "c6cb56b23d9",
+"why": "Aws and Khazraj recollection of Bu'ath instigated by Shas, verse 3:100"
+},
+"n0124": {
+"join": "c8fb88c0c80",
+"why": "Muslims associating with Jewish men, same nazil"
+},
+"n0125": {
+"join": null,
+"why": "Ibn Awf's exegesis of Uhud verses, not Jabir's occasion"
+},
+"n0126": {
+"join": "c404fe26ac4",
+"why": "Jabir: verse revealed on Banu Salima and Banu Haritha"
+},
+"n0127": {
+"join": null,
+"why": "Kurz b. Jabir supplying polytheists at Badr, different story"
+},
+"n0128": {
+"join": null,
+"why": "Quraysh man insults Prophet, different story"
+},
+"n0129": {
+"join": null,
+"why": "Thaqif riba with Banu Nadir, different story"
+},
+"n0130": {
+"join": null,
+"why": "women at Uhud, woman's remark, different from card woman"
+},
+"n0131": {
+"join": null,
+"why": "companions wishing to die like Badr, different story"
+},
+"n0132": {
+"join": "cced6c1f049",
+"why": "Uhud rumour of Muhammad's death, Umar's account, nazil 3:144"
+},
+"n0133": {
+"join": "cced6c1f049",
+"why": "Uhud rumour, two groups speak, same as card"
+},
+"n0134": {
+"join": "cced6c1f049",
+"why": "Uhud rumour, Muhajir and Ansari, if he was killed fight on"
+},
+"n0135": {
+"join": "cced6c1f049",
+"why": "Uhud rumour of death, Ka'b recognises Prophet, same nazil"
+},
+"n0136": {
+"join": null,
+"why": "Mu'tib b. Qushayr at Uhud sleep, different story"
+},
+"n0137": {
+"join": null,
+"why": "gold gazelle head ghulul expedition, different from Badr cloak"
+},
+"n0139": {
+"join": "cdb0dba57ac",
+"why": "martyrs of Uhud given green birds, same nazil"
+},
+"n0140": {
+"join": "c1530e8a5cc",
+"why": "polytheists leave Uhud, Hamra al-Asad, same nazil"
+},
+"n0141": {
+"join": "cb5ef197aab",
+"why": "pursuit of Abu Sufyan after Uhud, Khuza'i warning, same nazil 3:173"
+},
+"n0142": {
+"join": null,
+"why": "Jews tell Prophet God is poor, different occasion from the Abu Bakr case"
+},
+"n0143": {
+"join": "cbbcbaed281",
+"why": "Abu Bakr and Finhas dispute, same as card"
+},
+"n0144": {
+"join": null,
+"why": "hypocrites staying behind from raids, Jews card differs"
+},
+"n0145": {
+"join": null,
+"why": "verify rejected: A is a meta note with no occasion of its own; cannot tie it to the hypocrites story",
+"was": "n0144"
+},
+"n0146": {
+"join": "c205d0ae854",
+"why": "Umm Salama, women in hijra, same nazil"
+},
+"n0147": {
+"join": "c5e832f6f2c",
+"why": "Najashi's death, nazil 3:199"
+},
+"n0149": {
+"join": "c11df6b3bf4",
+"why": "Aws b. Thabit inheritance taken by cousins, same nazil"
+},
+"n0150": {
+"join": "c50b43938be",
+"why": "custom of wali inheriting wife, same nazil"
+},
+"n0151": {
+"join": null,
+"why": "Abu Qays b. Aslat's widow, different from card 4:22"
+},
+"n0152": {
+"join": null,
+"why": "verify rejected: same Abu Qays case and Prophet's reply, but A names the son Mihsan and B names him Qays",
+"was": "n0151"
+},
+"n0153": {
+"join": "c50b43938be",
+"why": "Zuhri: Ansar custom of wali and wife, same practice"
+},
+"n0155": {
+"join": "cdda8c66608",
+"why": "Awtas captives with husbands, same nazil 4:24"
+},
+"n0156": {
+"join": "cdda8c66608",
+"why": "Hunayn captive women with husbands, same nazil 4:24"
+},
+"n0157": {
+"join": null,
+"why": "mahr hardship, different story"
+},
+"n0158": {
+"join": "cc308e97674",
+"why": "Umm Salama wish about men fighting, same nazil"
+},
+"n0160": {
+"join": "c4ac8b98e8e",
+"why": "woman complains of slap, qisas, same nazil as Sa'd b. Rabi' case"
+},
+"n0161": {
+"join": "c4ac8b98e8e",
+"why": "Ansari slaps wife, qisas, same case"
+},
+"n0162": {
+"join": null,
+"why": "Bani Isra'il scholars stingy with knowledge, different from concealment card"
+},
+"n0163": {
+"join": "cac4609736c",
+"why": "Ibn Awf's food party, drink, prayer, same nazil"
+},
+"n0164": {
+"join": null,
+"why": "Ali: traveller in janaba tayammum, different"
+},
+"n0165": {
+"join": null,
+"why": "Aslam b. Sharik janaba on cold night, different from wine party"
+},
+"n0166": {
+"join": "n0165",
+"why": "Aslam's janaba and tayammum, same person and occasion"
+},
+"n0167": {
+"join": null,
+"why": "Ansar doors in mosque, janaba without water, different"
+},
+"n0168": {
+"join": null,
+"why": "sick Ansari unable to do wudu, different"
+},
+"n0169": {
+"join": null,
+"why": "wounded companions with janaba, different"
+},
+"n0173": {
+"join": null,
+"why": "Jews' general custom of children sinless; not the visit of the card"
+},
+"n0174": {
+"join": "c181997d7d7",
+"why": "Quraysh and Ka'b b. Ashraf in Mecca, same nazil"
+},
+"n0176": {
+"join": "c021cfb17bf",
+"why": "Ka'ba key returned to Uthman, same nazil"
+},
+"n0177": {
+"join": "c458aaa7bce",
+"why": "Abdullah b. Hudhafa expedition, same nazil"
+},
+"n0179": {
+"join": null,
+"why": "Ammar and Khalid b. Walid dispute, different"
+},
+"n0180": {
+"join": "c0bd9d8d21d",
+"why": "Abu Barza/Burda kahin judges among Jews, same story"
+},
+"n0181": {
+"join": null,
+"why": "Jalas, Mu'tib, Rafi', Bishr called to kahins, different"
+},
+"n0182": {
+"join": null,
+"why": "Zubayr vs Ansari water case; card names Hatib, different named persons"
+},
+"n0183": {
+"join": "n0182",
+"why": "Umm Salama: Zubayr vs man, same water dispute"
+},
+"n0186": {
+"join": null,
+"why": "Umar kills a man, different story"
+},
+"n0188": {
+"join": "c8f347e21c0",
+"why": "man says he misses seeing Prophet, same reaction and nazil as Thawban"
+},
+"n0189": {
+"join": "c24715acb6f",
+"why": "Ibn Awf and companions in Mecca, same nazil"
+},
+"n0190": {
+"join": "cd46e439517",
+"why": "Zayd b. Thabit: split at return from Uhud, same"
+},
+"n0191": {
+"join": null,
+"why": "Prophet's sermon and Sa'd b. Mu'adh, different occasion"
+},
+"n0192": {
+"join": null,
+"why": "Suraqa's truce with Mudlij via Khalid"
+},
+"n0193": {
+"join": null,
+"why": "attribution of 4:90 to Hilal and Suraqa"
+},
+"n0194": {
+"join": null,
+"why": "verify rejected: A is Hilal ibn Uwaymir's case only; B lists Suraqa and Banu Judhayma too and gives no occasion, so not clearly the same incident",
+"was": "n0193"
+},
+"n0195": {
+"join": "c0184d5e76a",
+"why": "Ayyash kills Harith unaware of his Islam, same"
+},
+"n0197": {
+"join": "c8d9affc988",
+"why": "Miqyas's brother killed by Ansari, revenge, same case"
+},
+"n0198": {
+"join": "c7aadad7005",
+"why": "Mirdas said la ilaha illa Allah, Usama killed, same"
+},
+"n0199": {
+"join": "c7aadad7005",
+"why": "nazil about Mirdas, same story"
+},
+"n0200": {
+"join": null,
+"why": "Miqdad's brother from Yemen killed by sariya, different victim"
+},
+"n0201": {
+"join": "cc4f39ef8e4",
+"why": "Muslims with polytheists killed by arrows, same as card"
+},
+"n0202": {
+"join": "cc4f39ef8e4",
+"why": "Muslims with polytheists at Badr killed, same incident"
+},
+"n0203": {
+"join": null,
+"why": "Mecca converts reluctant to migrate, different"
+},
+"n0204": {
+"join": "cc4f39ef8e4",
+"why": "Mecca converts forced to Badr, killed, same incident"
+},
+"n0205": {
+"join": "c631a2b8eb0",
+"why": "Abu Dhamra dies on migration, same as Habib b. Dhamra card"
+},
+"n0206": {
+"join": "c631a2b8eb0",
+"why": "variant names of the same migrant who died"
+},
+"n0207": {
+"join": "c631a2b8eb0",
+"why": "Jundu' b. Dhamra dies on migration, same story"
+},
+"n0208": {
+"join": null,
+"why": "Khalid b. Haram bitten by snake in Abyssinia, different"
+},
+"n0209": {
+"join": null,
+"why": "Aktham b. Sayfi dies on way to Prophet, different story from card"
+},
+"n0210": {
+"join": "n0209",
+"why": "Ibn Abbas on Aktham, same as n0209"
+},
+"n0212": {
+"join": null,
+"why": "Ibn Awf wounded, nazil on rain or sickness, different"
+},
+"n0213": {
+"join": null,
+"why": "Bishr b. Harith theft and apostasy, different from satire card"
+},
+"n0214": {
+"join": null,
+"why": "boast about paradise and resurrection; card names no parties, content differs"
+},
+"n0216": {
+"join": null,
+"why": "verify rejected: A: guardian blocks the orphan from marrying others to keep her wealth; B: guardian wants to marry her cheaply. Different story on 4:127",
+"was": "cc9ea5a7419"
+},
+"n0217": {
+"join": null,
+"why": "Jabir and cousin, asked Prophet; different story"
+},
+"n0218": {
+"join": "c93a2c48ad0",
+"why": "Sawda gives her day to avert divorce; wife concession"
+},
+"n0219": {
+"join": "c929603ff57",
+"why": "wife content with neglect to keep marriage"
+},
+"n0220": {
+"join": "c4585db9811",
+"why": "rich and poor dispute, Prophet leans to poor (Suddi)"
+},
+"n0221": {
+"join": "c2e6fa2da99",
+"why": "guest of bad host, permitted to speak of it"
+},
+"n0222": {
+"join": "ceb7a82007a",
+"why": "Jews ask for scripture from heaven like Moses"
+},
+"n0224": {
+"join": null,
+"why": "Jews deny knowing him; card is Quraysh witness demand, other occasion"
+},
+"n0225": {
+"join": null,
+"why": "Umar asks about kalala; card is Jabir question"
+},
+"n0226": {
+"join": null,
+"why": "verify rejected: A: Hutam ibn Hind al-Bakri after apostasy, caravan to Mecca; B: Hutam Shurayh ibn Dubay'a al-Kindi, different tribe and father, different occasion",
+"was": "ca050bfa2ad"
+},
+"n0227": {
+"join": null,
+"why": "carrion pot story, not 5:3 occasion"
+},
+"n0228": {
+"join": "cb3ef73e0bc",
+"why": "order to kill dogs, people ask what is lawful"
+},
+"n0231": {
+"join": "c86b137efe1",
+"why": "Aisha necklace lost at al-Bayda, tayammum"
+},
+"n0235": {
+"join": "c30edbc890b",
+"why": "Uraynah apostates kill shepherd, take camels"
+},
+"n0236": {
+"join": "c30ae068d06",
+"why": "Jewish adulterer stoned, Bara narration"
+},
+"n0237": {
+"join": null,
+"why": "Fadak adulterer and letter to Medina; other occasion"
+},
+"n0238": {
+"join": "c69f38a97dd",
+"why": "Ka'b, Ibn Suriya, Shas test the Prophet"
+},
+"n0239": {
+"join": "c5b3e58801d",
+"why": "Ubada disavows Qaynuqa alliance, Ibn Ubayy"
+},
+"n0240": {
+"join": null,
+"why": "Ali gives ring to beggar in prayer; card is Ibn Salam"
+},
+"n0242": {
+"join": null,
+"why": "hand review: a different incident from the card it was put into",
+"was": "cab9695e71a"
+},
+"n0243": {
+"join": null,
+"why": "Nabbash says God is stingy; no card"
+},
+"n0244": {
+"join": null,
+"why": "verse about Finhas, named differently from n0243"
+},
+"n0245": {
+"join": "c9ef1bec60e",
+"why": "Prophet distressed at delivering the message"
+},
+"n0246": {
+"join": "c9ef1bec60e",
+"why": "Prophet worried he is alone; same distress"
+},
+"n0247": {
+"join": null,
+"why": "guards stopped after verse of protection (Aisha)"
+},
+"n0248": {
+"join": "n0247",
+"why": "Abbas among guards, guards stopped"
+},
+"n0249": {
+"join": "n0247",
+"why": "companions guarding, guards stopped"
+},
+"n0250": {
+"join": null,
+"why": "man takes Prophet sword under tree (Abu Hurayra)"
+},
+"n0251": {
+"join": "n0250",
+"why": "Dhat al-Riqa sword attempt, same as tree story"
+},
+"n0254": {
+"join": "c1b16684a7e",
+"why": "Najashi's men weep at Yasin"
+},
+"n0255": {
+"join": "cdbc5efa98d",
+"why": "companions forbid themselves meat and women"
+},
+"n0256": {
+"join": "cdbc5efa98d",
+"why": "other narrations of same companions vow"
+},
+"n0257": {
+"join": "cdbc5efa98d",
+"why": "companions vow abstinence, sackcloth, travel"
+},
+"n0258": {
+"join": null,
+"why": "Ibn Rawaha forbids food to guest and wife"
+},
+"n0259": {
+"join": null,
+"why": "Medina drinkers, steps of prohibition, Abu Hurayra"
+},
+"n0260": {
+"join": null,
+"why": "two Ansar tribes drink and quarrel"
+},
+"n0261": {
+"join": "c3a5808d344",
+"why": "mocking question who is my father"
+},
+"n0262": {
+"join": "c3a5808d344",
+"why": "mocking questions about father and lost camel"
+},
+"n0263": {
+"join": null,
+"why": "every year Hajj question, other occasion"
+},
+"n0264": {
+"join": "c7e59183d97",
+"why": "Tamim and Adi, silver cup, oath"
+},
+"n0266": {
+"join": null,
+"why": "Abu Talib forbids harming Prophet; named, different content"
+},
+"n0267": {
+"join": null,
+"why": "ten uncles, openly and secretly"
+},
+"n0268": {
+"join": "cfecc5dae0f",
+"why": "six companions, Ibn Mas'ud, expel them"
+},
+"n0269": {
+"join": "cfecc5dae0f",
+"why": "Aqra and Uyayna ask to expel poor believers"
+},
+"n0272": {
+"join": "c7663997417",
+"why": "Jews say God sent no book"
+},
+"n0273": {
+"join": null,
+"why": "Ibn Abi Sarh scribe apostasy"
+},
+"n0274": {
+"join": "n0273",
+"why": "Ibn Abi Sarh claim of revelation, dictation"
+},
+"n0276": {
+"join": "c636f9c51b6",
+"why": "idol insults answered by insults to God"
+},
+"n0277": {
+"join": "c5c10f4e92f",
+"why": "carrion vs slaughter dispute, Persia to Quraysh"
+},
+"n0278": {
+"join": null,
+"why": "Umar and Abu Jahl, not Hamza"
+},
+"n0279": {
+"join": null,
+"why": "excess in giving beyond zakat, generic"
+},
+"n0280": {
+"join": null,
+"why": "Thabit ibn Qays feeds guests, no fruit"
+},
+"n0282": {
+"join": "ce285f7fa75",
+"why": "raising voices in prayer behind Prophet"
+},
+"n0283": {
+"join": "ce285f7fa75",
+"why": "youth reciting along with Prophet in prayer"
+},
+"n0284": {
+"join": null,
+"why": "question on khums after four fifths"
+},
+"n0286": {
+"join": "c11994afd29",
+"why": "Badr supplication facing qibla"
+},
+"n0287": {
+"join": "cdd1a4b334f",
+"why": "Abu Jahl istiftah, verse 8:19"
+},
+"n0289": {
+"join": "c5986cc14df",
+"why": "Abu Lubaba gestures to throat to Qurayza"
+},
+"n0290": {
+"join": null,
+"why": "letter to Abu Sufyan, other occasion"
+},
+"n0291": {
+"join": null,
+"why": "hypocrites leak hadith generically"
+},
+"n0292": {
+"join": "c7d6ae6b118",
+"why": "Dar al-Nadwa plot, Gabriel informs"
+},
+"n0293": {
+"join": null,
+"why": "Abu Talib asks Prophet about plot"
+},
+"n0295": {
+"join": "ce8db964415",
+"why": "Nadr ibn al-Harith stones wish"
+},
+"n0296": {
+"join": null,
+"why": "tawaf ghufranaka, other occasion"
+},
+"n0297": {
+"join": "ca77f87543d",
+"why": "Quraysh stone wish, then ghufranaka"
+},
+"n0298": {
+"join": null,
+"why": "Muslims left in Mecca, Fath"
+},
+"n0299": {
+"join": "c81000b614f",
+"why": "Quraysh whistle and clap at tawaf"
+},
+"n0300": {
+"join": null,
+"why": "Abu Sufyan 40 uqiya, no occasion"
+},
+"n0301": {
+"join": null,
+"why": "Abu Sufyan hires Ahabish at Uhud"
+},
+"n0306": {
+"join": "cc36782cae2",
+"why": "Umar conversion completes forty"
+},
+"n0307": {
+"join": "cc36782cae2",
+"why": "39 men and woman plus Umar"
+},
+"n0308": {
+"join": "cc36782cae2",
+"why": "33 men 6 women plus Umar"
+},
+"n0309": {
+"join": "cc36782cae2",
+"why": "Umar conversion, verse 8:64"
+},
+"n0311": {
+"join": "cd6f7834739",
+"why": "Badr captives consultation, Umar and Abu Bakr"
+},
+"n0312": {
+"join": "cd6f7834739",
+"why": "Badr captives consultation, Ibn Mas'ud"
+},
+"n0313": {
+"join": null,
+"why": "Badr spoils taken before lawful"
+},
+"n0314": {
+"join": "ceead1c6305",
+"why": "Abbas 20 uqiya ransom"
+},
+"n0317": {
+"join": null,
+"why": "Khuza'a kill Banu Bakr in Mecca"
+},
+"n0318": {
+"join": "n0317",
+"why": "Khuza'a allies of Prophet, same people"
+},
+"n0319": {
+"join": "c2fbf329b8b",
+"why": "pulpit boast, pilgrims water, mosque, jihad"
+},
+"n0320": {
+"join": null,
+"why": "Ali asks Abbas to migrate, other occasion"
+},
+"n0321": {
+"join": null,
+"why": "verify rejected: A: Talha, Abbas and Ali boast named; B: anonymous men at pulpit with Umar; different occasion",
+"was": "c2fbf329b8b"
+},
+"n0322": {
+"join": null,
+"why": "food after ban on polytheists"
+},
+"n0323": {
+"join": "n0322",
+"why": "food worry after ban on polytheists"
+},
+"n0326": {
+"join": null,
+"why": "verify rejected: A: the Tabuk summer call to fight; B: Abu Talha recites it and goes to Sham; different occasion",
+"was": "cd73861f0fd"
+},
+"n0328": {
+"join": null,
+"why": "excuse of the sick and old, different story"
+},
+"n0330": {
+"join": "c6ba55fd04c",
+"why": "Jadd b. Qays asks to be excused from Banu Asfar war"
+},
+"n0331": {
+"join": "c6ba55fd04c",
+"why": "other narration of the Banu Asfar women remark, same verse 9:49"
+},
+"n0334": {
+"join": "cb0d949cd90",
+"why": "mocking remark at Tabuk, apology we were only playing"
+},
+"n0335": {
+"join": "cc133990946",
+"why": "Jallas remark at Tabuk, reported, oath denial, verse 9:74"
+},
+"n0336": {
+"join": null,
+"why": "verify rejected: A: remark during khutba heard by Zayd; B: Tabuk cursing reported by Huthayfa; occasion unclear",
+"was": "cc133990946"
+},
+"n0337": {
+"join": "cc133990946",
+"why": "reviling then oath before the Prophet, same verse 9:74"
+},
+"n0338": {
+"join": null,
+"why": "plot of al-Aswad to kill the Prophet, different story"
+},
+"n0339": {
+"join": null,
+"why": "blood-money case of a mawla, different story"
+},
+"n0340": {
+"join": null,
+"why": "first narration of the heat remark on 9:81"
+},
+"n0341": {
+"join": "n0340",
+"why": "same Banu Salama heat remark at Tabuk"
+},
+"n0342": {
+"join": "n0340",
+"why": "same heat remark, hypocrite speaker"
+},
+"n0343": {
+"join": "c7cd86bfc8d",
+"why": "Umar objects to praying over Ibn Ubayy, verse 9:84"
+},
+"n0345": {
+"join": "c51fb5beb78",
+"why": "the weepers asking the Prophet for mounts, same group"
+},
+"n0346": {
+"join": null,
+"why": "Banu Muqarrin named, a different group from the weepers"
+},
+"n0347": {
+"join": null,
+"why": "verify rejected: A: Abu Lubaba brings money after release; B: tying to pillars and release on return; different event",
+"was": "cd65ab35aeb"
+},
+"n0349": {
+"join": "cd65ab35aeb",
+"why": "the tied-to-pillars group at Tabuk, same story, 9:102"
+},
+"n0350": {
+"join": "cd65ab35aeb",
+"why": "release of Abu Lubaba at dawn, same story"
+},
+"n0351": {
+"join": null,
+"why": "masjid al-dirar, first on 9:107"
+},
+"n0352": {
+"join": null,
+"why": "verify rejected: A: Dirar mosque built after Quba, Prophet's rebuke; B: request to pray there while preparing Tabuk; different occasion",
+"was": "n0351"
+},
+"n0354": {
+"join": null,
+"why": "masjid al-dirar on 9:108, no card for it"
+},
+"n0355": {
+"join": "cdb69b8f170",
+"why": "people of Quba cleaning with water, verse 9:108"
+},
+"n0356": {
+"join": "cdb69b8f170",
+"why": "people of Quba using water, same Quba sabab"
+},
+"n0357": {
+"join": "ccf2bc2788a",
+"why": "Ibn Rawaha at Aqaba, same stipulation, verse 9:111"
+},
+"n0358": {
+"join": null,
+"why": "Ali hears a man pray for polytheist parents, different"
+},
+"n0360": {
+"join": "cddf0df6af9",
+"why": "Ka'b b. Malik tawba, same incident"
+},
+"n0361": {
+"join": null,
+"why": "desert folk remark of hypocrites, different sabab"
+},
+"n0362": {
+"join": "c0b9b63fbe7",
+"why": "believers went out with sariyyas leaving the Prophet alone"
+},
+"n0363": {
+"join": "c0748c95dac",
+"why": "Arabs deny a human messenger, same, verse 10:2"
+},
+"n0365": {
+"join": "ceb1241c41e",
+"why": "man kissed a woman, same question, verse 11:114"
+},
+"n0367": {
+"join": null,
+"why": "people ask to be told stories; card is Sa'd remark on topic, no incident"
+},
+"n0368": {
+"join": "cad1fadc8b8",
+"why": "Prophet sends man to a tyrant who refuses, thunderbolt, verse 13:13"
+},
+"n0369": {
+"join": "c0a42bdc97a",
+"why": "people demand a sign, same demand, verse 13:31"
+},
+"n0370": {
+"join": "c0a42bdc97a",
+"why": "same sign demand, different wording"
+},
+"n0373": {
+"join": "c965ef5ac81",
+"why": "Sahl b. Hunayf: verse about prayer rows, same sabab"
+},
+"n0374": {
+"join": "cccc29d0b2f",
+"why": "Prophet finds companions laughing, same, verse 15:49"
+},
+"n0376": {
+"join": null,
+"why": "companions reaction to the verse of the Command, different from card"
+},
+"n0377": {
+"join": "n0376",
+"why": "same companions reaction to the verse of the Command"
+},
+"n0378": {
+"join": null,
+"why": "Abu Jandal sabab, different from card"
+},
+"n0379": {
+"join": null,
+"why": "verify rejected: A adds Uthman for a second verse; B gives only Hisham and his mawla; not clearly the same",
+"was": "c6017746de1"
+},
+"n0382": {
+"join": null,
+"why": "smith Bal'am named, card names Yasar and Jabr"
+},
+"n0384": {
+"join": "c3162242df5",
+"why": "Ammar's compelled words under torture, same incident"
+},
+"n0385": {
+"join": null,
+"why": "Mecca converts caught on the way to migration, different"
+},
+"n0386": {
+"join": null,
+"why": "torture of Ammar and others; card is the returned migrants"
+},
+"n0387": {
+"join": "cf971419e6a",
+"why": "Hamza mutilated, Prophet vow, verse of patience, same"
+},
+"n0391": {
+"join": null,
+"why": "Prophet gives away charity, different story"
+},
+"n0392": {
+"join": null,
+"why": "Prophet asks Aisha to spend, different story"
+},
+"n0395": {
+"join": "c0bfe5e0d98",
+"why": "Ibn Mas'ud: jinn converted, humans kept worship, same"
+},
+"n0396": {
+"join": null,
+"why": "Isra, Walid says magician, verse 17:60, different from card"
+},
+"n0397": {
+"join": null,
+"why": "verify rejected: A: Prophet's private sadness, told the vision is a trial; B: Quraysh mock after Isra, Walid says sorcerer",
+"was": "n0396"
+},
+"n0399": {
+"join": null,
+"why": "Umayya and Abu Jahl ask Prophet to touch their gods, different from Thaqif"
+},
+"n0400": {
+"join": "n0399",
+"why": "same request to touch the gods, Ibn Jubayr narration"
+},
+"n0403": {
+"join": "cd2e69ccc2a",
+"why": "Sha'b asks a year for the idols, same Thaqif request"
+},
+"n0404": {
+"join": null,
+"why": "verify rejected: A: Quraysh men ask about the soul; B: Jews ask about the soul; different people",
+"was": "c4f634c00ad"
+},
+"n0405": {
+"join": null,
+"why": "Quraysh asked on Jews advice, distinct from card"
+},
+"n0407": {
+"join": "ce88e5b7503",
+"why": "sign demand on the Ka'ba roof, Abdullah b. Abi Umayya among them"
+},
+"n0408": {
+"join": null,
+"why": "ya Allah ya Rahman remark in Mecca, different occasion"
+},
+"n0409": {
+"join": "cf40c861e31",
+"why": "Ibn Abbas: loud Quran, mushriks curse it, same, verse 17:110"
+},
+"n0410": {
+"join": null,
+"why": "Prophet loud du'a near the Ka'ba, different from card"
+},
+"n0411": {
+"join": null,
+"why": "people loud du'a in prayer, different actors"
+},
+"n0419": {
+"join": "c1b5c5252f7",
+"why": "Jews claim great knowledge of the Torah, same, verse 18:109"
+},
+"n0420": {
+"join": "cad607543f4",
+"why": "man wants to be seen while acting, same as Jundub"
+},
+"n0421": {
+"join": null,
+"why": "fighter who loves to be seen, different deed, unnamed"
+},
+"n0422": {
+"join": null,
+"why": "verify rejected: A: Prophet asks Gabriel about best places, Gabriel delays; B: Prophet asks why Gabriel visits less; different question",
+"was": "cdbe2b3588b"
+},
+"n0423": {
+"join": null,
+"why": "15-night delay after cave question, different"
+},
+"n0424": {
+"join": "caad109ccd5",
+"why": "Khabbab and al-As b. Wa'il debt, same"
+},
+"n0426": {
+"join": null,
+"why": "verify rejected: A: Prophet's standing posture in prayer, no reproach; B: Abu Jahl and Nadr reproach his worship; different story",
+"was": "c21fad91b63"
+},
+"n0427": {
+"join": null,
+"why": "verify rejected: A: Prophet alternates feet in standing; B: Abu Jahl and Nadr reproach; different story",
+"was": "c21fad91b63"
+},
+"n0428": {
+"join": "c21fad91b63",
+"why": "people say he is wretched, same claim as card"
+},
+"n0436": {
+"join": "cfcb14ecb79",
+"why": "Ibn al-Zib'ara remark on angels and idols, same"
+},
+"n0438": {
+"join": "c05430d4045",
+"why": "Ali on the Badr duel, same, verse 22:19"
+},
+"n0443": {
+"join": "ccab86cac56",
+"why": "Abu Bakr remark on Prophet exit, same, verse 22:39"
+},
+"n0444": {
+"join": null,
+"why": "Najm and gharaniq; card only has the Prophet wish"
+},
+"n0449": {
+"join": "c66f0abfd42",
+"why": "Umar agreed with his Lord in four, same"
+},
+"n0450": {
+"join": "ca081a84339",
+"why": "Abu Sufyan plea during famine, same"
+},
+"n0452": {
+"join": null,
+"why": "people propose marriage to prostitutes, different from card"
+},
+"n0453": {
+"join": "cfa4ccba704",
+"why": "li'an sabab, Uwaymir and wife, verse 24:6"
+},
+"n0454": {
+"join": null,
+"why": "hypothetical with Abu Bakr and Umar, different named persons"
+},
+"n0455": {
+"join": null,
+"why": "Sa'id b. Jubayr on qadhf and Aisha, first on 24:23"
+},
+"n0457": {
+"join": null,
+"why": "verify rejected: A: Prophet brings glad tidings to Aisha; B: Ibn Jubayr's Q&A on which is worse; different occasion",
+"was": "n0455"
+},
+"n0456": {
+"join": "c3c45ff6eb2",
+"why": "ifk verse for Aisha, same ifk incident, 24:11"
+},
+"n0459": {
+"join": "c3c45ff6eb2",
+"why": "Aisha refuses to apologise until revelation, same ifk"
+},
+"n0460": {
+"join": null,
+"why": "Abu Bakr asks about merchants' empty houses; different question"
+},
+"n0463": {
+"join": null,
+"why": "slave asks master for mukatiba; different story"
+},
+"n0464": {
+"join": "ce109ae4a4e",
+"why": "Ibn Ubayy tells his slave girl to go fetch something (Jabir)"
+},
+"n0465": {
+"join": "c4457b49636",
+"why": "slave girl Musaika complains of forced prostitution"
+},
+"n0466": {
+"join": null,
+"why": "girl's later vow not to fornicate; different incident"
+},
+"n0467": {
+"join": "c4457b49636",
+"why": "Ibn Ubayy forcing his two slave girls into zina"
+},
+"n0468": {
+"join": "cd09643b764",
+"why": "man refuses Prophet's judgment and says go to someone else (unnamed, same behaviour)"
+},
+"n0469": {
+"join": null,
+"why": "verify rejected: A: disabled feel awkward when taken to relatives' homes; B: Muslims refrain from eating with them; different trigger and actors",
+"was": "c6f1832f01d"
+},
+"n0470": {
+"join": null,
+"why": "verify rejected: A: pre-mission Medinans shunned disabled at meals; B: Muslims after 2:188; different time",
+"was": "c6f1832f01d"
+},
+"n0471": {
+"join": null,
+"why": "named Harith and Khalid ibn Zayd, one-off story"
+},
+"n0472": {
+"join": null,
+"why": "campaign-departure keys left to disabled, distinct occasion"
+},
+"n0473": {
+"join": "n0472",
+"why": "Zuhri, same campaign keys story"
+},
+"n0474": {
+"join": null,
+"why": "Arab tribe custom of not eating alone; different"
+},
+"n0475": {
+"join": null,
+"why": "Ansar guest custom; different"
+},
+"n0478": {
+"join": null,
+"why": "offer of treasures of earth; different from poverty taunt"
+},
+"n0480": {
+"join": "c77bb4302cb",
+"why": "polytheists who killed and fornicated ask about expiation"
+},
+"n0481": {
+"join": "c77bb4302cb",
+"why": "Meccans confess killing and fornication; same story (Ibn Abbas)"
+},
+"n0485": {
+"join": null,
+"why": "Ibn Rawaha says God knows I am among them; first version"
+},
+"n0486": {
+"join": "n0485",
+"why": "poets (Ibn Rawaha, Ka'b, Hassan) come; verse illa alladhina amanu"
+},
+"n0490": {
+"join": "c115c652a52",
+"why": "Prophet asks uncle to say la ilaha illa Allah at deathbed"
+},
+"n0491": {
+"join": "c115c652a52",
+"why": "Ibn Umar confirms verse about Abu Jahl and Abu Talib"
+},
+"n0496": {
+"join": "c4b6fa7c264",
+"why": "Umm Sa'd vows not to eat or drink; verse 29:8"
+},
+"n0497": {
+"join": "ce89b105950",
+"why": "books and shoulder-bone saying kafa bi-qawm dalala; same verse"
+},
+"n0499": {
+"join": null,
+"why": "mushrikun argue Majus beat Rum; not the Muslims' grief story"
+},
+"n0504": {
+"join": "cbd1324fe69",
+"why": "People of the Book ask about spirit; follow-up knowledge verse"
+},
+"n0506": {
+"join": "c6451404724",
+"why": "Bedouin asks about birth, rain, death; verse on knowledge of the Hour"
+},
+"n0507": {
+"join": "cffcf057b04",
+"why": "companions pray between maghrib and isha; verse 32:16"
+},
+"n0508": {
+"join": "cffcf057b04",
+"why": "Anas: verse about waiting for isha; same occasion"
+},
+"n0511": {
+"join": null,
+"why": "verify rejected: A: Quraysh offer for half their wealth, Medina hypocrites/Jews threat; B: Meccan Quraysh ask to drop the idols, Umar wants to kill them; different story",
+"was": "c145757c184"
+},
+"n0512": {
+"join": "c0b0f9d5fdf",
+"why": "man called dhu al-qalbayn; two-hearts man"
+},
+"n0514": {
+"join": "c0b0f9d5fdf",
+"why": "man says two hearts smarter than Muhammad"
+},
+"n0515": {
+"join": "c0b0f9d5fdf",
+"why": "Jamil ibn Ma'mar as the two-hearts man (unnamed on card)"
+},
+"n0516": {
+"join": null,
+"why": "verify rejected: A: Ibn Umar on Zayd ibn Haritha being called Zayd ibn Muhammad; B: Abu Hudhayfa adopting Salim; different adoption story",
+"was": "cbee6320b00"
+},
+"n0517": {
+"join": null,
+"why": "night of Confederates, hypocrites ask leave; first version"
+},
+"n0518": {
+"join": "n0517",
+"why": "same night, hypocrites say homes exposed (Muta'ib, Aws)"
+},
+"n0519": {
+"join": "cbf2dc6a772",
+"why": "Anas ibn al-Nadr at Uhud"
+},
+"n0520": {
+"join": "cecafc7dfea",
+"why": "Abu Bakr and Umar ask entry, wives asking nafaqa (Jabir)"
+},
+"n0521": {
+"join": "ce1da684164",
+"why": "women complain they are not mentioned; verse 33:35"
+},
+"n0522": {
+"join": null,
+"why": "verify rejected: A: women react to the mention of the Prophet's wives; B: Asma bint Umays returning from Abyssinia; different trigger",
+"was": "ce1da684164"
+},
+"n0523": {
+"join": null,
+"why": "Prophet proposes Zaynab to Zayd, she refuses; first version"
+},
+"n0524": {
+"join": "n0523",
+"why": "Zaynab refuses Zayd proposal; same story (Ibn Abbas)"
+},
+"n0525": {
+"join": null,
+"why": "Umm Kulthum bint Uqba; different woman"
+},
+"n0526": {
+"join": "c96b73ba2d2",
+"why": "verse tukhfi about Zayd and Zaynab (Anas)"
+},
+"n0527": {
+"join": "c96b73ba2d2",
+"why": "Zayd complains of Zaynab; Prophet says keep your wife"
+},
+"n0528": {
+"join": "c365abd23f5",
+"why": "Zaynab wedding, lingering guests, hijab verse (Anas)"
+},
+"n0529": {
+"join": null,
+"why": "hand review: a different incident from the card it was put into",
+"was": "cf45a87a859"
+},
+"n0530": {
+"join": null,
+"why": "believers ask their own reward after li-yaghfira; first version"
+},
+"n0531": {
+"join": "n0530",
+"why": "believers ask what happens to us; verse 33:47"
+},
+"n0532": {
+"join": "c350a5d4193",
+"why": "Umm Hani: Prophet wanted her, forbidden for not migrating"
+},
+"n0533": {
+"join": null,
+"why": "Umm Sharik offers herself; different woman"
+},
+"n0534": {
+"join": null,
+"why": "wives give Prophet freedom to choose; different story"
+},
+"n0536": {
+"join": "c365abd23f5",
+"why": "Anas: entering wedding house with guests, curtain, hijab verse"
+},
+"n0537": {
+"join": null,
+"why": "Umar's finger touches Aisha's; different incident"
+},
+"n0538": {
+"join": null,
+"why": "general crowding of Prophet's house; no wedding; different"
+},
+"n0539": {
+"join": null,
+"why": "man says he will marry a wife after Prophet's death; first version"
+},
+"n0540": {
+"join": "n0539",
+"why": "Talha, same statement about marrying wives after death"
+},
+"n0541": {
+"join": "n0539",
+"why": "Talha says he'll marry Aisha after death; same statement"
+},
+"n0542": {
+"join": "n0539",
+"why": "cousin of a wife says he'd marry her after him; same statement"
+},
+"n0544": {
+"join": "cfe776ab769",
+"why": "wives go out at night, hypocrites harass; verse 33:59"
+},
+"n0552": {
+"join": "c6e2b1498e9",
+"why": "Banu Salima move near mosque; verse 36:12"
+},
+"n0556": {
+"join": null,
+"why": "three Quraysh tribes claim kinship with jinn; first version"
+},
+"n0557": {
+"join": null,
+"why": "Quraysh elders say angels are daughters of Allah; dialogue with Abu Bakr"
+},
+"n0561": {
+"join": null,
+"why": "Ansari with seven slaves freed per door; different"
+},
+"n0562": {
+"join": "c7c220062b4",
+"why": "three men in Jahiliyya saying la ilaha illa Allah"
+},
+"n0565": {
+"join": null,
+"why": "Ibn Umar on no repentance for tempted apostates; different"
+},
+"n0567": {
+"join": "c5a8931c571",
+"why": "Jew asks how Prophet says Allah holds heavens on a finger"
+},
+"n0568": {
+"join": null,
+"why": "Jews contemplate creation and estimate God; no Prophet dialogue"
+},
+"n0570": {
+"join": null,
+"why": "Kursi and Throne question; different"
+},
+"n0572": {
+"join": null,
+"why": "Jews mention Dajjal; first version"
+},
+"n0573": {
+"join": "n0572",
+"why": "Ka'b: those who dispute are Jews, about Dajjal"
+},
+"n0585": {
+"join": null,
+"why": "verify rejected: A: verse 'witness from the Children of Israel' about Abdullah ibn Salam; B: Prophet visits Jewish synagogue and asks twelve men to testify; different story",
+"was": "c2454268367"
+},
+"n0586": {
+"join": null,
+"why": "Quraysh say if it were good we'd not be preceded; first"
+},
+"n0587": {
+"join": "n0586",
+"why": "Zinnin, Umar's slave, Quraysh say the same"
+},
+"n0598": {
+"join": "c14ab86bd8d",
+"why": "pledge under the tree (Ridwan)"
+},
+"n0599": {
+"join": "c90403dc52a",
+"why": "eighty armed men from Tan'im at Hudaybiyya, released"
+},
+"n0603": {
+"join": null,
+"why": "sacrificing before Prophet on Eid; different act"
+},
+"n0604": {
+"join": null,
+"why": "fasting before Prophet; different act"
+},
+"n0605": {
+"join": null,
+"why": "general wish for revelation; different"
+},
+"n0606": {
+"join": "c3c80f09928",
+"why": "raised voices before Prophet; verse 49:2"
+},
+"n0607": {
+"join": "c2e57f94106",
+"why": "man calls ya Muhammad; praise-is-adornment text (same man)"
+},
+"n0609": {
+"join": null,
+"why": "verify rejected: A: Aqra ibn Habis asks the Prophet to come out; B: a man's praise/blame remark; different speaker and words",
+"was": "c2e57f94106"
+},
+"n0610": {
+"join": "cba6843269a",
+"why": "Walid ibn Uqba false report, Harith ibn Dirar; verse 49:6"
+},
+"n0613": {
+"join": null,
+"why": "verify rejected: A: fight between Imran's people and his wife's relatives with sandals; B: Prophet visits Ibn Ubayy on a donkey; different occasion",
+"was": "c2b082a61a4"
+},
+"n0614": {
+"join": null,
+"why": "general refusal to arbitrate; different act"
+},
+"n0616": {
+"join": "c74d6dc4ff7",
+"why": "nicknames, Banu Salama; la tanabazu bil-alqab"
+},
+"n0618": {
+"join": null,
+"why": "Banu Bayada marriage refusal; different"
+},
+"n0619": {
+"join": "c6979782c7c",
+"why": "Asad delegation says they became Muslims unsent for"
+},
+"n0620": {
+"join": "c6979782c7c",
+"why": "Asad people say came without fighting; yamunnuna"
+},
+"n0625": {
+"join": null,
+"why": "camel lent on condition of taking sins; different from Uthman charity"
+},
+"n0626": {
+"join": "n0625",
+"why": "camel lent for raid; same story (Darraj)"
+},
+"n0628": {
+"join": "c64715be981",
+"why": "Ibn Mas'ud: moon split before the mission"
+},
+"n0632": {
+"join": null,
+"why": "Ta'if asks protection of Wadi Mu'jib; first version"
+},
+"n0633": {
+"join": null,
+"why": "verify rejected: A: admiration of Wajj and its trees (Mujahid); B: Ta'if asks to protect the Ma'jab valley; different valley and story",
+"was": "n0632"
+},
+"n0635": {
+"join": null,
+"why": "humor and laughter among companions; first version"
+},
+"n0636": {
+"join": "n0635",
+"why": "companions joking; same story"
+},
+"n0637": {
+"join": null,
+"why": "companions bored, ask for stories; different"
+},
+"n0638": {
+"join": null,
+"why": "hearts soften after migration; different"
+},
+"n0639": {
+"join": null,
+"why": "Najashi companions offer wealth at Uhud; not the kings story"
+},
+"n0640": {
+"join": null,
+"why": "believers of People of the Book boast over Companions; different occasion"
+},
+"n0641": {
+"join": null,
+"why": "envy of Muslims over double reward; not the kings story"
+},
+"n0642": {
+"join": null,
+"why": "Jews' claim of a prophet from them; different story"
+},
+"n0643": {
+"join": "c3838433a8e",
+"why": "Jews whispering near believers, causing grief"
+},
+"n0645": {
+"join": "c009a9c21ec",
+"why": "refusing to make room in the gathering"
+},
+"n0647": {
+"join": "c871d8264ec",
+"why": "man with devil's eye, oath of not cursing"
+},
+"n0648": {
+"join": null,
+"why": "Abdullah ibn Nabtal verse; different person"
+},
+"n0649": {
+"join": null,
+"why": "Abu Ubayda vs Abu Quhafa; different persons"
+},
+"n0653": {
+"join": "ca3447982aa",
+"why": "cutting Banu Nadir palms; sin question"
+},
+"n0656": {
+"join": "cd2f6e72acf",
+"why": "Ali, Zubayr, Miqdad seize Hatib's letter at Khakh"
+},
+"n0657": {
+"join": "c796aef2832",
+"why": "Asma's mother visits, asks to keep ties"
+},
+"n0658": {
+"join": "c796aef2832",
+"why": "same visit of Qutayla with gifts"
+},
+"n0659": {
+"join": "c90bd4433f0",
+"why": "women arriving during Hudaybiyya covenant, verse on women"
+},
+"n0663": {
+"join": null,
+"why": "Umar's wife remaining pagan; different story"
+},
+"n0665": {
+"join": null,
+"why": "verify rejected: A: Ibn Umar and Zayd ibn Harith befriend Jews; B: poor Muslims inform Jews for their fruit; different people and motive",
+"was": "c56d3a177a7"
+},
+"n0667": {
+"join": null,
+"why": "man boasting in battle; different occasion"
+},
+"n0674": {
+"join": null,
+"why": "Awf ibn Malik, family stops raid; card is hijra"
+},
+"n0676": {
+"join": null,
+"why": "Abu Rukana divorce; different persons"
+},
+"n0677": {
+"join": "cba73f01a34",
+"why": "Prophet divorces Hafsa, told to take her back"
+},
+"n0678": {
+"join": null,
+"why": "Abdullah ibn Amr, Tufayl, Amr named; different"
+},
+"n0679": {
+"join": "c185fc4dc32",
+"why": "iddah categories question, verse of those past menses"
+},
+"n0681": {
+"join": null,
+"why": "Maria oath; the card is on 66:1, cross-ayah"
+},
+"n0685": {
+"join": null,
+"why": "Abu Bakr oath about Mistah; different"
+},
+"n0682": {
+"join": "cdb8cdfa0d5",
+"why": "Maria in Hafsa's house, forbidding her"
+},
+"n0683": {
+"join": "cf426a22bdf",
+"why": "honey and maghafir oath; house named Sawda"
+},
+"n0684": {
+"join": "cf426a22bdf",
+"why": "honey, 'arfat remark, forbidding; same honey event"
+},
+"n0686": {
+"join": null,
+"why": "woman who gave herself; different story"
+},
+"n0688": {
+"join": null,
+"why": "Akhnas ibn Shariq; first of pair"
+},
+"n0689": {
+"join": null,
+"why": "verify rejected: A: Ibn Abbas on the descriptors and the later 'zanim' identification, no name; B: verse about al-Akhnas ibn Shariq; not sure it is the same story",
+"was": "n0688"
+},
+"n0691": {
+"join": "cc41efdcbb3",
+"why": "Prophet to Ali: draw near, understand"
+},
+"n0694": {
+"join": null,
+"why": "who the punishment falls on; Nadr prayer differs"
+},
+"n0695": {
+"join": null,
+"why": "jinn elder in Ad; different story"
+},
+"n0696": {
+"join": null,
+"why": "shepherd and wolf; different"
+},
+"n0697": {
+"join": null,
+"why": "Rafi ibn Umayr dream; different"
+},
+"n0699": {
+"join": null,
+"why": "jinn ask to attend mosque prayers"
+},
+"n0700": {
+"join": "n0699",
+"why": "jinn ask to attend mosque"
+},
+"n0702": {
+"join": null,
+"why": "Quraysh naming Prophet, muzzammil"
+},
+"n0703": {
+"join": "n0702",
+"why": "muzzammil revealed while wrapped in cloak"
+},
+"n0705": {
+"join": "c225a543c40",
+"why": "Hira return, daththiruni"
+},
+"n0706": {
+"join": null,
+"why": "Walid banquet; different from Hira"
+},
+"n0708": {
+"join": null,
+"why": "Abu Jahl challenge on 19 guardians; first of pair"
+},
+"n0709": {
+"join": null,
+"why": "Abu al-Ashad boast; different speaker"
+},
+"n0711": {
+"join": "c7a5d4b1af7",
+"why": "moving tongue to memorize revelation"
+},
+"n0712": {
+"join": null,
+"why": "Abu Jahl 10-men challenge; cross-ayah with 74:31"
+},
+"n0713": {
+"join": null,
+"why": "origin of Prophet's saying; different occasion"
+},
+"n0720": {
+"join": null,
+"why": "mocking question when is the Hour; card is Prophet's mention"
+},
+"n0723": {
+"join": "c9966ce76ef",
+"why": "Abu Jahl: that is up to us"
+},
+"n0733": {
+"join": "c0e3906b345",
+"why": "Prophet sick, woman says devil left him"
+},
+"n0736": {
+"join": "ce98844ba77",
+"why": "vision of umma's conquests, rejoicing"
+},
+"n0737": {
+"join": "ce98844ba77",
+"why": "same vision, town by town"
+},
+"n0740": {
+"join": "c6ea413c4da",
+"why": "Prophet saw Umayyads on minbar"
+},
+"n0741": {
+"join": "c83db70a81d",
+"why": "Israelite man, thousand months in arms"
+},
+"n0742": {
+"join": "c83db70a81d",
+"why": "same Israelite man, thousand months"
+},
+"n0744": {
+"join": null,
+"why": "Ansar tribes boast at graves; card is Quraysh clans"
+},
+"n0745": {
+"join": null,
+"why": "Ali on doubt of grave torment"
+},
+"n0746": {
+"join": null,
+"why": "Ubayy ibn Khalaf named; first of pair"
+},
+"n0747": {
+"join": null,
+"why": "Umayya ibn Khalaf mocking; named differently from n0746"
+},
+"n0749": {
+"join": "c88319b20e8",
+"why": "Quraysh tell Ka'b the Prophet claims superiority"
+},
+"n0750": {
+"join": null,
+"why": "Quraysh abtar taunt after revelation; different occasion"
+},
+"n0754": {
+"join": null,
+"why": "Uqba ibn Abi Muayt abtar; different person"
+},
+"n0752": {
+"join": null,
+"why": "Ibrahim's death taunt; first of pair"
+},
+"n0755": {
+"join": "n0752",
+"why": "Ibrahim's death, Quraysh taunt"
+},
+"n0753": {
+"join": null,
+"why": "Hudaybiyya sacrifice; different"
+},
+"n0756": {
+"join": "ceea0ade21a",
+"why": "Quraysh deal offer, qul ya ayyuha alkafirun"
+},
+"n0757": {
+"join": "ceea0ade21a",
+"why": "year-for-year worship proposal"
+},
+"n0758": {
+"join": "ceea0ade21a",
+"why": "Walid and others propose joint worship"
+},
+"n0759": {
+"join": null,
+"why": "conquest of Mecca, not Hunayn"
+},
+"n0760": {
+"join": "c84a8780e52",
+"why": "Safa call, Abu Lahab tabban"
+},
+"n0761": {
+"join": null,
+"why": "Abu Lahab's wife thorns; different story"
+},
+"n0763": {
+"join": "ca2275609cf",
+"why": "Jews ask for description of the Lord"
+},
+"n0766": {
+"join": "cb2b8e26d87",
+"why": "sorcery of Prophet, mu'awwidhatayn"
+}
+},
+"rejected": [
+{
+"ayah": "33_53",
+"books": [
+"460",
+"suyuti"
+],
+"same_event": false,
+"reason": "hand review: Aisha eating with the Prophet (Umar's finger) vs the Zaynab wedding guests — two hijab occasions",
+"id": "n0537"
+}
+]
+}
