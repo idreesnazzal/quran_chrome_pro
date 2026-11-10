@@ -59,6 +59,11 @@ def load(path, default=None):
     return json.load(open(path, encoding='utf-8'))
 
 
+ISNAD = set("""حدثنا أخبرنا أنبأنا ثنا نا قال قالت قالا عن بن ابن أبي أبو عبد الرحمن
+رسول الله صلى عليه وسلم رضي عنهما عنه عنها رواه أخرجه الحاكم البخاري مسلم الترمذي
+النسائي أبو داود ابن ماجه أحمد الطبراني البيهقي عبد الرزاق معمر الزهري سعيد جابر
+أنس عائشة ابن عباس عمر علي""".split())
+
 STOP = set("""عن بن ابن قال قالا قالت أن ان إن حدثنا أخبرنا ثنا نا أبو ابي أبي عبد الرحمن
 رسول الله صلى عليه وسلم وهو في من على إلى الذي الذين ما لا و يا كل هذا هذه ذلك ثم قد كان
 يكون هو هي وقد كما بين يديه بينهم نبي""".split())
@@ -86,44 +91,33 @@ def names(t):
     return out
 
 
+QURAN_WORDS = set()
+
+
+def story_words(t):
+    """Words of a narration that are neither Quranic nor isnad — the story itself."""
+    return [w for w in norm(t).split()
+            if len(w) > 2 and w not in ISNAD and w not in QURAN_WORDS]
+
+
 def same_event(a, b):
-    """Two books, one event: a long verbatim echo, or a heavy overlap of the
-    content words (the modern book paraphrases the classical one)."""
-    n = shared_run(a, b)
-    if n < 8 and (grams(a, 8) & grams(b, 8)):
-        n = 8
-    if n >= 8:
+    """One event only on a long verbatim echo: eight consecutive story words.
+
+    A shared ayah is not a shared event. The two books often hang unrelated
+    reports on one ayah (59:9: the guest story in المحرر, the land story in
+    الواحدي), and the percentage overlap test used in v5 grouped them because
+    both are «أنصار» stories — which put one book's grade on another book's
+    story. Nothing but a verbatim run is accepted automatically now.
+    """
+    wa, wb = story_words(a), story_words(b)
+    n = 8
+    if len(wa) < n or len(wb) < n:
+        return 0, ''
+    ga = {' '.join(wa[i:i + n]) for i in range(len(wa) - n + 1)}
+    gb = {' '.join(wb[i:i + n]) for i in range(len(wb) - n + 1)}
+    if ga & gb:
         return n, 'echo'
-    ta, tb = words(a), words(b)
-    j = len(ta & tb) / max(1, len(ta | tb))
-    if j >= 0.20:
-        return int(j * 100), 'words'
-    # the modern book paraphrases the classical one, so the words differ; the people
-    # of the story do not — two shared names plus some shared wording is one event
-    # paraphrase of one narration: whole five-word chains repeat, the wording around
-    # them does not
-    if len(grams(a) & grams(b)) >= 12 and j >= 0.10:
-        return len(grams(a) & grams(b)), 'echo5'
-    shared = names(a) & names(b)
-    if len(shared) >= 2 and j >= 0.07:
-        return int(j * 100), 'names:' + ','.join(sorted(shared)[:3])
     return 0, ''
-
-
-def shared_run(a, b):
-    """Longest run of words a and b have in common — the test for «same event»."""
-    wa, wb = norm(a), norm(b)
-    best = 0
-    for n in (18, 14, 12, 10, 9, 8, 7, 6):
-        if best:
-            break
-        n = min(n, len(wa.split()))
-        if n < 6:
-            continue
-        first = ' '.join(wa.split()[:n])
-        if first and first in wb:
-            best = n
-    return best
 
 
 def main():
@@ -131,6 +125,13 @@ def main():
     verses = {}
     for m in re.finditer(r'"s_id":\s*(\d+),\s*"name":\s*"[^"]*",\s*"verses":\s*(\d+)', quran):
         verses[int(m.group(1))] = int(m.group(2))
+    global QURAN_WORDS
+    try:
+        qdata = json.loads(quran[quran.index('=') + 1:].strip().rstrip(';'))
+        for a0 in qdata['ayahs']:
+            QURAN_WORDS |= set(norm(a0[4]).split())
+    except Exception:                                  # noqa: BLE001 — optional guard
+        QURAN_WORDS = set()
 
     book_data = {}
     for bid, fname in (('2919', 'asbab_2919.json'), ('460', 'asbab_460.json')):
@@ -198,12 +199,66 @@ def main():
         deduped.append(e)
     entries = deduped
 
-    # ---- لباب النقول: every narration joins the entry whose words it echoes
+    # ---- لباب النقول: every narration joins the entry whose words it echoes.
+    # The book files some narrations under the whole surah or a neighbouring ayah
+    # (five narrations on 2:231, 3:174, 28:57, 31:6 and 95:5 sat on 33:4), so the
+    # filing is a hint: a narration goes to the entry it actually echoes, and one
+    # that echoes nothing is left out rather than shown on a story it does not tell.
+    def gather(parts):
+        out = []
+        for p in parts:
+            if isinstance(p, list):
+                out.extend(gather(p))
+            elif isinstance(p, str):
+                out.append(p)
+        return ' '.join(out)
+
+    def tokens(parts):
+        return norm(gather(parts)).split()
+
+    def grams(toks):
+        """Qualifying eight-word runs: not an isnad line, not a Quran quotation."""
+        out = set()
+        for i in range(len(toks) - 7):
+            g = toks[i:i + 8]
+            if sum(1 for w in g if w not in ISNAD) < 4:
+                continue
+            if sum(1 for w in g if w not in QURAN_WORDS) < 3:
+                continue
+            out.add(tuple(g))
+        return out
+
+    full = lambda e: '%s:%s' % (e['b'], e['key'])
+    gram_hits = {}
+    for e in entries:
+        for g in grams(tokens(e['t'])):
+            gram_hits.setdefault(g, set()).add(full(e))
+
+    for i, n in enumerate(suyuti):
+        n['sid'] = i
+    moved = orphan = 0
     for n in suyuti:
-        tgt = by_key.get(n['attach'])
-        if tgt is None:
+        score = {}
+        for g in grams(tokens(n['parts'])):
+            for key in gram_hits.get(g, ()):
+                score[key] = score.get(key, 0) + 1
+        ranked = sorted(score.items(), key=lambda kv: -kv[1])
+        best_key = n['attach']
+        if ranked and ranked[0][1] >= 2:
+            cand, hits = ranked[0]
+            second = ranked[1][1] if len(ranked) > 1 else 0
+            # a move only on a clear win; a tie keeps the filing the book gave it
+            if cand != n['attach'] and hits >= 2 * max(second, 1):
+                best_key = cand
+                moved += 1
+        if best_key not in by_key:
+            orphan += 1
             continue
-        tgt['suy'].append(n)
+        n['attach'] = best_key
+        by_key[best_key]['suy'].append(n)
+    if orphan or moved:
+        print('suyuti: %d narration(s) moved to the entry they echo, %d left out'
+              % (moved, orphan))
 
     # ---- group entries of the same ayah into one card when they tell one event.
     # A block's ayah now comes from its own header, but the two books can still hang the
@@ -217,12 +272,14 @@ def main():
 
     curated = load(os.path.join(CURATION, 'groups.json'), {'groups': []})['groups']
 
-    def forced(a, b):
+    def reviewed(a, b):
+        """The recorded verdict for this pair of books on this ayah, if any."""
         for g in curated:
-            if {a['b'], b['b']} <= set(g['books']) and g['k'] in (a['key'], b['key']) \
+            ayah = g.get('ayah') or g.get('k')
+            if {a['b'], b['b']} == (set(g['books']) - {'suyuti'}) and ayah in (a['key'], b['key']) \
                     and (span(a) & span(b)):
-                return g['why']
-        return ''
+                return g
+        return None
 
     groups, groupings = [], []
     for bid in ('2919', '460'):
@@ -233,11 +290,20 @@ def main():
                 if not (span(host) & span(e)):
                     continue
                 n, why = same_event(' '.join(host['t']), ' '.join(e['t']))
+                if not n and host['b'] == e['b']:
+                    # a long passage card may already hold this very narration: the echo
+                    # is against the group's whole text, not only its first entry
+                    for other in grp[1:]:
+                        n, why = same_event(' '.join(other['t']), ' '.join(e['t']))
+                        if n:
+                            break
                 if host['b'] == e['b'] and n and why != 'echo':
                     n, why = 0, ''       # one book's two sections: only a verbatim echo
-                cw = forced(host, e)
-                if cw:
-                    n, why = 100, 'curated: ' + cw
+                row = reviewed(host, e)
+                if row is not None and not row.get('same_event', True):
+                    n, why = 0, ''            # read and rejected: two different stories
+                elif row is not None:
+                    n, why = 100, 'curated: ' + (row.get('reason') or '')
                 if n:
                     grp.append(e)
                     groupings.append({'ayah': e['key'], 'books': [host['b'], e['b']],
@@ -248,6 +314,13 @@ def main():
                     break
             if not placed:
                 groups.append([e])
+    json.dump([{'ayah': (g[0]['key'] if len(g) == 1 else min((x['key'] for x in g),
+                                                              key=lambda k: (int(k.split('_')[0]), int(k.split('_')[1])))),
+                'books': sorted({x['b'] for x in g}),
+                'keys': [x['key'] for x in g],
+                'why': next((gp['why'] for gp in groupings if gp['keys'][0] == g[0]['key']), 'single book')}
+               for g in groups], open(os.path.join(HERE, 'aligned', 'groups_seen.json'), 'w', encoding='utf-8'),
+              ensure_ascii=False, indent=1)
 
     # ---- cards
     cards = []
@@ -259,12 +332,12 @@ def main():
             texts.append({'b': e['b'], 't': e['t']})
             verdicts.append({'b': e['b'], 'g': e['g'], 'e': e['ev']})
         for n in host['suy']:
-            texts.append({'b': 'suyuti', 't': n['parts'], 'page': n.get('page')})
-            verdicts.append({'b': 'suyuti', 'g': n['g'], 'e': n['e']})
+            texts.append({'b': 'suyuti', 't': n['parts'], 'page': n.get('page'), 'sid': n['sid']})
+            verdicts.append({'b': 'suyuti', 'g': n['g'], 'e': n['e'], 'sid': n['sid']})
         for e in grp[1:]:
             for n in e['suy']:
-                texts.append({'b': 'suyuti', 't': n['parts'], 'page': n.get('page')})
-                verdicts.append({'b': 'suyuti', 'g': n['g'], 'e': n['e']})
+                texts.append({'b': 'suyuti', 't': n['parts'], 'page': n.get('page'), 'sid': n['sid']})
+                verdicts.append({'b': 'suyuti', 'g': n['g'], 'e': n['e'], 'sid': n['sid']})
         # one row per book: a book with several narrations on the card is shown by its
         # strongest verdict, with that verdict's own sentence
         best_by_book = {}
@@ -275,7 +348,10 @@ def main():
             else:
                 cur['n'] = cur.get('n', 1) + 1
         verdicts = sorted(best_by_book.values(), key=lambda v: RANK.get(v['g'], 2))
-        summary = next((e['s'] for e in grp if e['s']), '')
+        # the summary must belong to the story whose grade the reader sees first:
+        # with several books on one card the best-graded book speaks first
+        by_rank = sorted(grp, key=lambda e: RANK.get(e['g'], 2))
+        summary = next((e['s'] for e in by_rank if e['s']), '')
         if not summary:
             summary = next((n.get('s', '') for n in host['suy']), '')
         rngs = [e['r'] for e in grp if e['r']]
@@ -289,6 +365,164 @@ def main():
                       'n': '', 's': summary, 'v': verdicts, 't': texts,
                       '_s': int(host['key'].split('_')[0]), '_a': int(host['key'].split('_')[1]),
                       '_k': host['key']})
+
+    # ---- last guard: two cards that landed on the same ayah and still share a verbatim
+    # run of eight story words are one event told twice — join them, so the reader never
+    # sees one book's grade beside another book's summary
+    def span_keys(c):
+        if c['sw']:
+            return {'%d_%d' % (c['_s'], i) for i in range(1, verses.get(c['_s'], c['_a']) + 1)}
+        if c['r']:
+            return {'%d_%d' % (c['_s'], i) for i in range(c['r'][0], c['r'][1] + 1)}
+        return {'%d_%d' % (c['_s'], c['_a'])}
+
+    rejected = set()
+    try:
+        for r in json.load(open(os.path.join('curation', 'groups.json'), encoding='utf-8'))['groups']:
+            if not r['same_event']:
+                rejected.add((r['ayah'], frozenset(set(r['books']) - {'suyuti'})))
+    except FileNotFoundError:
+        pass
+
+    changed = True
+    while changed:
+        changed = False
+        for i in range(len(cards)):
+            if i >= len(cards):
+                break
+            for j in range(i + 1, len(cards)):
+                if j >= len(cards):
+                    break
+                if cards[i]['_s'] != cards[j]['_s'] or not (span_keys(cards[i]) & span_keys(cards[j])):
+                    continue
+                shared = span_keys(cards[i]) & span_keys(cards[j])
+                bset = frozenset({t['b'] for t in cards[i]['t'] + cards[j]['t']} - {'suyuti'})
+                if any((k, bset) in rejected for k in shared):
+                    continue
+                a_txt = ' '.join(p for t in cards[i]['t'] for p in t['t'])
+                b_txt = ' '.join(p for t in cards[j]['t'] for p in t['t'])
+                if not same_event(a_txt, b_txt)[0]:
+                    continue
+                A, B = cards[i], cards[j]
+                for t in B['t']:
+                    if t not in A['t']:
+                        A['t'].append(t)
+                best = {}
+                for v in A['v'] + B['v']:
+                    cur = best.get(v['b'])
+                    if cur is None or RANK.get(v['g'], 2) < RANK.get(cur['g'], 2):
+                        best[v['b']] = dict(v)
+                    cur = best[v['b']]
+                    cur['n'] = cur.get('n', 0) + 1
+                A['v'] = sorted(best.values(), key=lambda v: RANK.get(v['g'], 2))
+                if not A['s']:
+                    A['s'] = B['s']
+                if B['r'] and not A['r']:
+                    A['r'] = B['r']
+                if B['sw']:
+                    A['sw'], A['r'] = 1, 0
+                cards.pop(j)
+                changed = True
+                break
+            if changed:
+                break
+
+    # ---- a narration filed by echo alone can land on the wrong ayah. One that shares
+    # nothing with its own card moves to the card it does echo, or is left out; the
+    # narrations listed in curation/suyuti_fix.json are settled by hand instead.
+    def card_text(c):
+        return norm(' '.join(p for t in c['t'] if t['b'] != 'suyuti' for p in t['t']))
+
+    def eight(words):
+        return {tuple(words[i:i + 8]) for i in range(len(words) - 7)}
+
+    card_grams = [eight(card_text(c).split()) for c in cards]
+    gram_cards = {}
+    for ci, gs in enumerate(card_grams):
+        for g in gs:
+            gram_cards.setdefault(g, set()).add(ci)
+
+    def nar_grams(parts):
+        out = []
+        for p in parts:
+            out.extend(p if isinstance(p, list) else [p])
+        return eight(norm(' '.join(out)).split())
+
+    payload_index = {}
+    for ci, c in enumerate(cards):
+        if c['sw']:
+            ks = {'%d_%d' % (c['_s'], i) for i in range(1, verses.get(c['_s'], c['_a']) + 1)}
+        elif c['r']:
+            ks = {'%d_%d' % (c['_s'], i) for i in range(c['r'][0], c['r'][1] + 1)}
+        else:
+            ks = {'%d_%d' % (c['_s'], c['_a'])}
+        for k in ks:
+            payload_index.setdefault(k, []).append(ci)
+
+    fixes = []
+    fixfile = os.path.join('curation', 'suyuti_fix.json')
+    if os.path.exists(fixfile):
+        fixes = json.load(open(fixfile, encoding='utf-8'))['fixes']
+    fix_sids = {f['sid'] for f in fixes}
+    page_of = {n['sid']: tuple(n.get('page') or []) for n in suyuti}
+
+    moves, drops = [], []
+    for ci, c in enumerate(cards):
+        for t in [t for t in c['t'] if t['b'] == 'suyuti']:
+            if t['sid'] in fix_sids:
+                continue
+            score = {}
+            for g in nar_grams(t['t']):
+                for cj in gram_cards.get(g, ()):
+                    score[cj] = score.get(cj, 0) + 1
+            here = score.get(ci, 0)
+            if here >= 2:
+                continue                                # it echoes the card it sits on
+            ranked = sorted(((cj, n) for cj, n in score.items() if cj != ci), key=lambda kv: -kv[1])
+            if ranked and ranked[0][1] >= 2:
+                moves.append((ci, ranked[0][0], t['sid']))
+            else:
+                drops.append((ci, t['sid']))
+
+    def take(cards, ci, sid):
+        """Remove the narration's text and verdict from card ci, return them."""
+        got = []
+        for lst in (cards[ci]['t'], cards[ci]['v']):
+            for item in list(lst):
+                if item.get('sid') == sid:
+                    lst.remove(item)
+                    got.append(item)
+        return got
+
+    for ci, cj, sid in moves:
+        for item in take(cards, ci, sid):
+            (cards[cj]['t'] if 't' in item else cards[cj]['v']).append(item)
+        print('suyuti: page %s moved %s → %s' % (page_of.get(sid), [k for k, v in payload_index.items() if ci in v][:1],
+                                                 [k for k, v in payload_index.items() if cj in v][:1]))
+    for ci, sid in drops:
+        take(cards, ci, sid)
+        print('suyuti: page %s left out of %s — it echoes nothing there'
+              % (page_of.get(sid), [k for k, v in payload_index.items() if ci in v][:1]))
+
+    for f in fixes:
+        sid = f['sid']
+        if sid is None:
+            print('fix: no narration with sid %s' % (f['sid'],))
+            continue
+        src = next((ci for ci, c in enumerate(cards) if any(t.get('sid') == sid for t in c['t'])), None)
+        if src is None:
+            continue
+        if f.get('to') and f['to'] in payload_index:
+            picks = payload_index[f['to']]
+            dst = picks[min(f.get('to_index', 0), len(picks) - 1)]
+            for item in take(cards, src, sid):
+                (cards[dst]['t'] if 't' in item else cards[dst]['v']).append(item)
+            print('fix: sid %s → %s' % (f['sid'], f['to']))
+        else:
+            take(cards, src, sid)
+            print('fix: sid %s left out — %s' % (f['sid'], f.get('reason', '')[:50]))
+
+    cards = [c for c in cards if c['t']]
 
     cards.sort(key=lambda c: (c['_s'], c['_a'], RANK.get(c['v'][0]['g'], 2)))
     index = {}

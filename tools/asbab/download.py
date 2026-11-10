@@ -40,6 +40,9 @@ FILES = [
     'tools/asbab/aligned/asbab_460.json',
     'tools/asbab/aligned/align_report.json',
     'tools/asbab/curation/checked_460.json',
+    'tools/asbab/curation/groups.json',
+    'tools/asbab/curation/rejected.json',
+    'tools/asbab/curation/suyuti_fix.json',
     'tools/asbab/curation/entries.json',
     'data/asbab_data.js',
 ]

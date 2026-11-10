@@ -261,3 +261,44 @@ section as well.
 * Result: 500 cards / 632 ayahs / 876 texts (was 618 / 658 / 887), 239 multi-book
   cards, 29 cards with a span ≥3 ayahs, all read and kept (each rests on its own
   section's printed span). 0 cards without a summary.
+
+## 11. v6 — reading every pair, and refusing the pairs that only share an ayah
+
+v5 grouped by percentage overlap and shared word chains. The brief for v6 was the
+opposite test: two entries are one card only if a reader would say it is the same
+incident — the same people doing the same thing — and the only automatic join left is
+a verbatim run of eight story words (Quranic wording and isnad lines removed).
+
+* `/tmp` script over `data/asbab_data.js` printed **every** cross-book pair that sits on
+  a shared ayah: 127 pair instances, 66 distinct pairs. Each pair's two summaries and
+  both texts were read. Result, written into `curation/groups.json`: **46 join** rows
+  (`same_event: true`, reason, `source: "read"`) and **36 refusal** rows
+  (`same_event: false`, the two stories named, `source: "read-rejected"`) — the
+  refusals live in `curation/rejected.json` and survive a rebuild. 4:102 عسفان,
+  4:105 طعمة, 60:10 الحديبية, 3:199 النجاشي stay joined; 59:9 (the guest and the land),
+  31:6 (النضر/فارس against بيع القينات), 33:4 (رجل لبيب against ابن عباس), 49:11 (ثابت بن
+  قيس against أبو جبيرة), 24:58, 11:5, 57:16, 2:272 and 26 others are split.
+* `merge.py`: `same_event()` is now echo-only; the v5 overlap/chain/name tests are
+  deleted; `reviewed()` reads `groups.json` in both directions and matches the exact
+  book set (a `<=` test once fired a الواحدي+المحرر row onto single-book cards); the
+  summary follows the best-ranked book. A final guard joins two cards on one ayah that
+  still share eight story words, unless curation has read the pair and refused it.
+* `split_sections.py`: `lead_number()` now reads the Cairo comma form «{٢،١}»; a header
+  glued to the closing brace of the previous quote («… فثم وجه الله}قوله تعالى: {وقالوا
+  اتخذ الله ولدا} {١١٦}») is now cut. 11 blocks split (was 10), 438 الواحدي entries.
+  **2:116 exists after all** — its الواحدي section had no space before «قوله تعالى», so
+  it stayed inside 2:115 and the ayah claimed «لم يرد في هذه الكتب». A new card and a
+  new summary were written for it.
+* لباب النقول: a narration now keeps the ayah the book files it under only if it echoes
+  it; otherwise it moves to the entry it does echo, or is left out. Five narrations the
+  book files under سورة الأحزاب sat on 33:4 explaining 2:231, 3:174, 28:57, 31:6 and
+  95:5; `curation/suyuti_fix.json` settles six of them by hand (three moved to the verse
+  their text names, three left out because they name no verse).
+* `check.py` gained rule 9: every multi-book card must have a reviewed `groups.json` row
+  with a reason. It is not weakened anywhere — rule 8 gained a narrow, written exception
+  for the refusals the reader recorded.
+* Result: **542 cards / 639 ayahs / 875 texts** (v5: 500 / 632 / 876), 243 multi-book
+  cards, 206 cards carrying السيوطي, 32 cards with a span ≥3 ayahs, 0 cards without a
+  summary, 132 cards carrying a grade. `groups.json` = 282 rows (46 read joins, 200
+  echo joins of السيوطي, 36 refusals). Checker: 0 problems. 102 repo tests; browser test
+  green on 19 named ayahs, including 2:116, 59:9, 31:6, 33:4, 49:11, 49:2 and 20:2.

@@ -65,14 +65,15 @@ window.ASBAB_DATA = {
 |---|---|---|
 | 1 | `download.py --check` | sha256 of every raw/aligned/curated file and of `data/asbab_data.js`; prints the dump URLs and hashes the data came from |
 | 2 | `align.py` (+ `split_sections.py`) | every entry is matched to a real ayah of `data/quran_data.js`; wrong-ayah entries are moved, nothing deleted without a written reason in `aligned/align_report.json`; curated overrides live in `curation/align_fixes.json` and win; every block is **cut at its own «قوله تعالى: {…} {N}» headers**, so one section = one ayah = one range (see §6) |
-| 3 | `check.py` | the eight rules below; must print `OK` |
-| 4 | `merge.py` | writes `data/asbab_data.js` atomically (`tmp` + `os.replace`), bumps `sw.js`, splits the file if it ever passes 5 MB, and refuses a `checked_460` key that is not an ayah |
-| 5 | `ui_test.js` | headless Chromium: desktop 1280 + 375px, dark + light, 8 named ayahs, the search badge, zero console errors from this feature, no horizontal overflow, screenshots into `screens/` |
+| 3 | `merge.py` | writes `data/asbab_data.js` atomically (`tmp` + `os.replace`), bumps `sw.js`, splits the file if it ever passes 5 MB, and refuses a `checked_460` key that is not an ayah |
+| 4 | `make_groups.py` | rebuilds `curation/groups.json`: one row per multi-book card; hand rows and rejections are preserved, missing rows are added as `echo` or `unreviewed` |
+| 5 | `check.py` | the nine rules below; must print `OK` |
+| 6 | `ui_test.js` | headless Chromium: desktop 1280 + 375px, dark + light, 19 named ayahs, the search badge, zero console errors from this feature, no horizontal overflow, screenshots into `screens/` |
 
 Summaries live in `summaries/*.jsonl`, one JSON object per line:
 `{"k":"2:144","b":"460","s":"…","g":"صحيح","e":"…"}`.
 
-## 4. The eight rules `check.py` enforces
+## 4. The nine rules `check.py` enforces
 
 1. **A real ayah key.** Every `k` must exist in `data/quran_data.js`; a range must sit
    inside its surah and contain the ayah the entry is on.
@@ -92,9 +93,13 @@ Summaries live in `summaries/*.jsonl`, one JSON object per line:
 7. **One stray ayah header at most** (added in v5). A card whose texts open with
    «قوله تعالى: {…} {N}» for more than one ayah number *outside* its own range is a
    fused block and is refused. This is the rule the 4:102 / 4:105 case broke.
-8. **One event, one card** (added in v5). Two cards that sit on the same ayah may not
-   share a run of eight consecutive words once Quranic wording and isnad words are
-   removed — that is the same story told twice.
+8. **One event, one card** (v5). Two cards that sit on the same ayah may not share a
+   run of eight consecutive words once Quranic wording and isnad words are removed —
+   unless `curation/rejected.json` records that the pair was read and tells two stories.
+9. **A reviewed row for every multi-book card** (v6). Every card that carries two or
+   more books must have a row in `curation/groups.json` with `same_event: true`, the
+   same book set (السيوطي aside) and a non-empty reason. A group the reader cannot
+   justify fails the build instead of shipping.
 
 ## 5. How a range is decided (v5)
 
@@ -110,10 +115,32 @@ Refused on purpose: a range inherited from a block that carries several
 `قوله تعالى` sections, and `إلى آخر السورة` (it would hang one story on every
 remaining ayah of the surah). Both were the v4 fusing bug.
 
-Grouping: `merge.py` joins two books' entries when their spans overlap **and** they
-share eight consecutive words, or ≥12 shared five-word chains with a word overlap of
-0.10, or two names beside «بن/ابن» with overlap 0.07, or a row of
-`curation/groups.json` (pairs the automatic tests cannot see, each with its evidence).
+Grouping (v6): one test only — **eight consecutive story words** (non-Quranic,
+isnad-free) shared verbatim by two entries whose ayahs touch. The v5 percentage
+overlap, the five-word-chain count and the «بن/ابن» name test are gone: they joined
+59:9 (the guest story with the land story) and 31:6, 33:4, 49:11 … and put one book's
+grade beside another book's story. A row of `curation/groups.json` may still join a
+pair the echo cannot see, but only after a reader compared the two stories, and every
+multi-book card must have such a row. A curated rejection (`curation/rejected.json`)
+wins over the echo test and over the last-resort join in `merge.py`.
+
+## 5b. Where a لباب النقول narration is shown (v6)
+
+The narration keeps the ayah the book files it under *only if* it shares nine or more
+consecutive words with that entry. Otherwise it moves to the entry it does echo; if it
+echoes nothing it is left out rather than shown on a story it does not tell. A
+narration that shares nothing with the card it sits on is moved to the card it echoes
+or dropped. Six narrations the book files under سورة الأحزاب rather than under a verse
+are settled by hand in `curation/suyuti_fix.json` (sid = its index in
+`raw/asbab-suyuti.json`): three move to the verse their own text names (2:231, 28:57,
+31:6, 49:2), three are left out because they name no verse.
+
+## 5c. The summary of a joined card (v6)
+
+When one card keeps two books that tell the event differently, the summary is the one
+belonging to the book whose grade is shown first (صحيح → حسن → لم يُحكم عليه →
+ضعيف); a grade never appears beside a summary of another story, because a group that
+mixes stories is split instead of summarised.
 
 ## 6. Adding a summary (the only routine task left)
 

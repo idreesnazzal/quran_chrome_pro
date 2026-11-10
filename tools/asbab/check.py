@@ -350,7 +350,42 @@ def main(argv):
                 errors.append('%s: %d ayah headers from outside its range (%s)'
                               % (tag, len(outside), ','.join(str(x) for x in sorted(outside))))
 
-        # (b) two cards on one ayah must not tell the same story
+        # (g) every card that carries two books or more must be a reviewed one:
+        # a row in curation/groups.json with same_event=true and a written reason.
+        # This is what keeps a grade from sitting beside another story's summary.
+        groups_path = os.path.join(HERE, 'curation', 'groups.json')
+        rows = json.load(open(groups_path, encoding='utf-8'))['groups'] if os.path.exists(groups_path) else []
+        for i, c in enumerate(cards):
+            card_books = sorted({str(t.get('b')) for t in (c.get('t') or [])})
+            if len(card_books) < 2:
+                continue
+            keys = [k for k, ids in (payload.get('index') or {}).items() if i in ids]
+            ok_row = None
+            for r in rows:
+                rb = sorted(set(r.get('books') or []) - {'suyuti'}) if 'suyuti' in (r.get('books') or []) else sorted(r.get('books') or [])
+                cb = sorted(set(card_books) - {'suyuti'})
+                if rb and cb and set(rb) != set(cb):
+                    continue
+                if r.get('ayah') not in keys:
+                    continue
+                if r.get('same_event') is not True:
+                    errors.append('card %d at %s: groups.json marks it same_event=false' % (i, r.get('ayah')))
+                    ok_row = r
+                    break
+                if not (r.get('reason') or '').strip():
+                    errors.append('card %d at %s: groups.json row has no reason' % (i, r.get('ayah')))
+                ok_row = r
+                break
+            if ok_row is None:
+                errors.append('card %d (%s): %d books with no reviewed row in groups.json'
+                              % (i, ','.join(card_books), len(card_books)))
+
+        # (b) two cards on one ayah must not tell the same story — unless curation
+        # has already read the pair and recorded that the stories differ
+        rejected = set()
+        for r in rows:
+            if r.get('same_event') is False:
+                rejected.add((r.get('ayah'), frozenset(set(r.get('books') or []) - {'suyuti'})))
         by_ayah = (payload.get('index') or {})
         for key, ids in by_ayah.items():
             if len(ids) < 2:
@@ -359,6 +394,9 @@ def main(argv):
                 for y in range(x + 1, len(ids)):
                     a, b = cards[ids[x]], cards[ids[y]]
                     run = same_story(a, b)
+                    both = frozenset({t.get('b') for t in (a.get('t') or []) + (b.get('t') or [])} - {'suyuti'})
+                    if run and (key, both) in rejected:
+                        run = 0
                     if run:
                         errors.append('index %s: cards %d and %d share %d words — one event, two cards'
                                       % (key, ids[x], ids[y], run))

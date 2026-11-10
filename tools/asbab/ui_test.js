@@ -36,8 +36,16 @@ const AYAHS = [
   // show a neighbour's story, while 4:105 keeps the طعمة story on its own span
   { s: 4, a: 103, expect: 'empty' },
   { s: 4, a: 105, expect: 'summary', range: '105–116' },
-  { s: 2, a: 116, expect: 'empty' },
   { s: 39, a: 22, expect: 'summary' },
+  // v6: 2:116 was never missing — its الواحدي section had no «قوله تعالى» header and
+  // stayed glued to 2:115. The rest are the pairs v6 read and refused to join.
+  { s: 2, a: 116, expect: 'summary' },
+  { s: 59, a: 9, expect: 'summary' },     // the guest story, not the land story
+  { s: 31, a: 6, expect: 'summary' },     // النضر وفارس, apart from بيع القينات
+  { s: 33, a: 4, expect: 'summary' },     // رجل لبيب, apart from ابن عباس
+  { s: 49, a: 11, expect: 'summary' },    // ثابت بن قيس, apart from أبو جبيرة
+  { s: 49, a: 2, expect: 'summary' },     // the narration moved off 49:1
+  { s: 20, a: 2, expect: 'summary' },     // the {٢،١} pair from the Cairo print
 ];
 
 // Errors that the untouched app already produced before this feature existed, and

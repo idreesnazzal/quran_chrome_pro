@@ -17,7 +17,10 @@ import unicodedata
 TASHKEEL = re.compile(r'[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]')
 AR_DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
 # a section opens at «قوله تعالى: {…}», with or without the «(١) - » in front
-HEADER = re.compile(r'(?:^|(?<=[\s\.]))\(?[0-9٠-٩]{0,2}\)?\s*[-–]?\s*قوله تعالى\s*:?\s*[\{﴿]')
+# a header starts at the beginning, or anywhere that is not the middle of an Arabic
+# word — the print often glues it to the closing brace of the previous quote:
+# «… فثم وجه الله}قوله تعالى: {وقالوا اتخذ الله ولدا} {١١٦}»
+HEADER = re.compile(r'(?:^|(?<![\u0621-\u064a]))\(?[0-9٠-٩]{0,2}\)?\s*[-–]?\s*قوله تعالى\s*:?\s*[\{﴿]')
 
 
 def bare(text):
@@ -79,6 +82,13 @@ def lead_number(text):
     if m:
         a, b = int(m.group(1)), int(m.group(2))
         if 0 < a <= b:
+            return a, b
+    # «{٢،١}» — the Cairo print separates two numbers with a comma, sometimes
+    # descending; the pair is the printed span of the quoted passage
+    m = re.search(r'[\{﴿]\s*([0-9]{1,3})\s*[،,]\s*([0-9]{1,3})\s*[\}﴾]', head)
+    if m:
+        a, b = sorted((int(m.group(1)), int(m.group(2))))
+        if 0 < a < b:
             return a, b
     m = re.search(r'الآي[ةه]\s*\{?\s*([0-9]{1,3})', head)
     if m:
