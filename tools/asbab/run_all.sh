@@ -14,6 +14,9 @@ python3 align.py | grep -E '^align' || true
 echo "== 3/5 merge: data/asbab_data.js (+ sw.js VERSION bump, atomic replace)"
 python3 merge.py
 
+echo "== 3b editor: حكم المحقق from the الواحدي footnotes (curation/editor_grades.json)"
+python3 editor_grades.py
+
 echo "== 4/5 groups: one reviewed row for every multi-book card"
 python3 make_groups.py
 

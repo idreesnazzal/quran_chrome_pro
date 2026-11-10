@@ -35,6 +35,7 @@ SUMM = os.path.join(HERE, 'summaries')
 CURATION = os.path.join(HERE, 'curation')
 
 GRADES = ('صحيح', 'حسن', 'ضعيف', 'لم يُحكم عليه')
+ED_LABELS = ('صحيح', 'حسن', 'صحيح لغيره', 'حسن لغيره', 'ضعيف', 'ضعيف جدًا', 'مرسل', 'موضوع', None)
 ISNAD = re.compile(r'(أخرج|أخرجه|حدثنا|حدّثنا|حدثني|أخبرنا|أخبرني|رواه|روى|عن\s+\S+\s+عن|بن\s+\S+\s+عن)')
 # book names only as whole words: «المسلمين» is not «مسلم»
 ISNAD_BOOKS = re.compile(r'(?<![\u0621-\u064a])(الطبراني|البخاري|مسلم|الترمذي|أبو\s+داود|النسائي|ابن\s+ماجه|الإمام\s+أحمد)(?![\u0621-\u064a])')
@@ -326,6 +327,23 @@ def main(argv):
                     continue
                 if g != 'لم يُحكم عليه' and not (v.get('e') or '').strip():
                     errors.append('%s: %s says %s with no quoted sentence' % (tag, b, g))
+                # حكم المحقق (editor_grades.py): only on الواحدي, a known label, and the
+                # editor's own words, verbatim from a footnote this card prints, ≤ 15 words
+                if v.get('ed'):
+                    if b != '2919':
+                        errors.append('%s: an editor verdict on %s (only الواحدي has one)' % (tag, b))
+                    own = re.sub(r'\s+', ' ', re.sub('[ً-ْٰـ]', '', ' '.join(
+                        p for t in texts if str(t.get('b')) == '2919' for p in t.get('t') or [])))
+                    for e in v['ed']:
+                        if e.get('g') not in ED_LABELS:
+                            errors.append('%s: editor label %r' % (tag, e.get('g')))
+                        q = re.sub(r'\s+', ' ', e.get('q') or '').strip()
+                        if e.get('g') and not q:
+                            errors.append('%s: editor verdict %s without his words' % (tag, e.get('g')))
+                        if len(q.split()) > 15:
+                            errors.append('%s: editor quote is %d words (max 15)' % (tag, len(q.split())))
+                        if q and q not in own:
+                            errors.append('%s: editor quote not in the footnotes: «%s»' % (tag, q))
             for t in texts:
                 if str(t.get('b')) not in full_books:
                     errors.append('%s: text from %r, which is not a full-text book' % (tag, t.get('b')))
@@ -336,6 +354,7 @@ def main(argv):
         for i, c in enumerate(cards):
             tag = 'card %d (%s)' % (i, c.get('s', '')[:30])
             rng = c.get('r') or None
+            texts = c.get('t') or []      # this card's own texts (the old loop reused the last card's)
             outside = set()
             for t in texts:
                 for part in t['t']:

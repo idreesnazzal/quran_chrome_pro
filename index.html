@@ -3065,6 +3065,7 @@
     }
 
     /* سبب النزول: ملخّص سهل + حكم الكتاب + النص الأصلي */
+    .asbab-editor-line { padding-inline-start: 14px; opacity: 0.92; font-size: 0.95em; }
     .asbab-picker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     .asbab-picker .tafsir-select { max-width: 100%; flex: 1 1 220px; }
     .asbab-entry {
@@ -6241,6 +6242,11 @@
     }
     function asbabBook(b) { const A = window.ASBAB_DATA; return (A && A.books && A.books[b]) || {}; }
     function asbabGradeClass(g) { return ({ 'صحيح': 'g-sahih', 'حسن': 'g-hasan', 'ضعيف': 'g-daif' })[g] || 'g-none'; }
+    function asbabEdClass(g) {
+      if (/^صحيح/.test(g)) return 'g-sahih';
+      if (/^حسن/.test(g)) return 'g-hasan';
+      return g ? 'g-daif' : 'g-none';     // ضعيف، ضعيف جدًا، مرسل، موضوع
+    }
     const ASBAB_RANK = { 'صحيح': 0, 'حسن': 1, 'لم يُحكم عليه': 2, 'ضعيف': 3 };
     function asbabBestGrade(card) {
       const gs = (card.v || []).map((v) => v.g).sort((a, b) => (ASBAB_RANK[a] ?? 2) - (ASBAB_RANK[b] ?? 2));
@@ -6264,10 +6270,15 @@
       const verdicts = (card.v || []).map((v) => {
         const bk = asbabBook(v.b);
         const ev = v.e ? `<span class="asbab-evidence-inline">«${asbabEsc(v.e)}»</span>` : '';
+        // حكم المحقق: the modern editor's verdict from the footnotes (الواحدي does not grade)
+        const ed = (v.ed || []).map((e) => `<div class="asbab-verdict-line asbab-editor-line">
+            ${e.g ? `<span class="asbab-grade ${asbabEdClass(e.g)}">${asbabEsc(e.g)}</span>` : ''}
+            <b>حكم المحقق</b>${e.src ? `<span class="asbab-ref">رواه ${asbabEsc(e.src)}</span>` : ''}${e.q ? `<span class="asbab-evidence-inline">«${asbabEsc(e.q)}»</span>` : ''}
+          </div>`).join('');
         return `<div class="asbab-verdict-line">
             <span class="asbab-grade ${asbabGradeClass(v.g)}">${asbabEsc(v.g)}</span>
             <b>${asbabEsc(bk.s || 'الكتاب')}</b>${v.ref ? `<span class="asbab-ref">${asbabEsc(v.ref)}</span>` : ''}${ev}
-          </div>`;
+          </div>${ed}`;
       }).join('');
       const blocks = texts.map((x) => {
         const bk = asbabBook(x.b);
@@ -6347,7 +6358,8 @@
         const where = asbabWhere(card);
         let s = `📜 سبب النزول${where ? ' — ' + where : ''}\n`;
         if (card.s) s += `${card.s}\n`;
-        s += 'حكم الكتب:\n' + (card.v || []).map((v) => `  • ${asbabBook(v.b).s || 'الكتاب'}: ${v.g}${v.e ? ` — «${v.e}»` : ''}`).join('\n') + '\n';
+        s += 'حكم الكتب:\n' + (card.v || []).map((v) => `  • ${asbabBook(v.b).s || 'الكتاب'}: ${v.g}${v.e ? ` — «${v.e}»` : ''}` +
+          (v.ed || []).map((e) => `\n  • حكم المحقق: ${e.g || ''}${e.src ? ` (رواه ${e.src})` : ''}${e.q ? ` — «${e.q}»` : ''}`).join('')).join('\n') + '\n';
         s += (card.t || []).map((x) => `النص من ${asbabBook(x.b).n || 'الكتاب'}${x.page ? ` (ص ${x.page[1]})` : ''}:\n` + (x.t || []).join('\n\n')).join('\n\n') + '\n';
         return s;
       }).join('\n');
