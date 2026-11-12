@@ -1,6 +1,8 @@
 /* Ayah lists ("قوائمي"): save ayahs into named lists, notes per ayah,
  * per-list properties (sort, group by surah, spaced review, quiz mode, pin,
  * icon, colour), export/import. Stored in this browser (localStorage).
+ * Icons: line SVGs of assets/js/ayah-list-icons.js (tools/ayah_lists/build_icons.py), or an emoji.
+ * A new list is a draft (ui.form) until «إنشاء القائمة»; list names are unique (nameKey).
  *
  * Entry points (index.html):
  *   header «📚 قوائمي»            -> AyahLists.open()
@@ -17,8 +19,26 @@
 
   var KEY = 'ayahLists.v1';
   var REVIEW_DAYS = [1, 3, 7, 14, 30, 60];          // spaced review intervals
-  var ICONS = ['⭐', '🔖', '📌', '💚', '🌙', '🕋', '📿', '🤲', '🎯', '🧠', '🎙️', '📖', '✨', '🌿', '🔥', '💎'];
-  var COLORS = ['#c9a227', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#f97316', '#14b8a6', '#ec4899'];
+  // icons: ids of assets/js/ayah-list-icons.js (line SVGs); any other string is shown as typed (an emoji)
+  var ICONS = ['star', 'book-heart', 'kaaba', 'moon-star', 'tasbih', 'hand-heart', 'lightbulb', 'anchor', 'brain', 'repeat', 'sparkles', 'leaf', 'cloud-rain', 'rub-hizb', 'lantern', 'gem'];
+  var COLORS = ['#c9a227', '#d97706', '#ea580c', '#dc2626', '#e11d48', '#db2777', '#c026d3', '#7c3aed', '#4f46e5',
+                '#2563eb', '#0284c7', '#0891b2', '#0d9488', '#059669', '#16a34a', '#65a30d', '#92400e', '#475569'];
+  // the emoji icons of v1 lists, drawn again as line icons
+  var EMOJI_TO_ICON = { '⭐': 'star', '🔖': 'bookmark', '📌': 'pin', '💚': 'book-heart', '🌙': 'moon-star', '🕋': 'kaaba',
+    '📿': 'tasbih', '🤲': 'hand-heart', '🎯': 'target', '🧠': 'brain', '🎙️': 'mic', '🎙': 'mic', '📖': 'book-open',
+    '✨': 'sparkles', '🌿': 'leaf', '🔥': 'flame', '💎': 'gem' };
+  // ready ideas for a new list: [name, icon, colour, description, review]
+  var TEMPLATES = [
+    ['آيات الصبر والثبات', 'anchor', '#0d9488', 'آيات تثبّت القلب عند الشدة'],
+    ['أدعية من القرآن', 'hand-heart', '#7c3aed', 'أدعية قرآنية أدعو بها'],
+    ['مراجعة الحفظ', 'repeat', '#2563eb', 'آيات أراجعها على فترات متباعدة', true],
+    ['آيات أثّرت فيّ', 'book-heart', '#e11d48', ''],
+    ['للتدبر والسؤال', 'lightbulb', '#d97706', 'آيات أريد أن أتعمق في معناها'],
+    ['بشرى ورحمة', 'cloud-rain', '#059669', 'آيات الرجاء والبشارة'],
+    ['قصص الأنبياء', 'map', '#92400e', ''],
+    ['المتشابهات', 'puzzle', '#c026d3', 'آيات متشابهة الألفاظ أخلط بينها']
+  ];
+  var DEFAULT_NAME = 'قائمة جديدة';
   var SORTS = [
     ['added_desc', 'الأحدث إضافة'], ['added_asc', 'الأقدم إضافة'],
     ['mushaf', 'ترتيب المصحف'], ['manual', 'ترتيب يدوي'], ['due', 'الأقرب للمراجعة']
@@ -29,23 +49,60 @@
   var st = null;
   function uid() { return 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function newList(o) {
-    return Object.assign({ id: uid(), name: 'قائمة جديدة', icon: '🔖', color: COLORS[0], desc: '',
+    return Object.assign({ id: uid(), name: DEFAULT_NAME, icon: 'bookmark', color: COLORS[0], desc: '',
       sort: 'added_desc', group: false, review: false, quiz: false, pinned: false, created: Date.now(), items: [] }, o || {});
+  }
+  function mistakesList() {
+    return newList({ name: 'أخطاء التسميع', kind: 'mistakes', icon: 'mic', color: '#dc2626', review: true, sort: 'due',
+      desc: 'آيات أخطأتُ فيها أثناء التسميع — تُعرض للمراجعة على فترات متباعدة' });
+  }
+  // a name the reader would call «the same»: spaces, alef/ya/ta-marbuta forms and tashkeel aside
+  function nameKey(n) {
+    return String(n || '').replace(/[ً-ْٰـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي')
+      .replace(/ة/g, 'ه').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  function nameTaken(name, exceptId) {
+    var key = nameKey(name);
+    return load().lists.filter(function (l) { return l.id !== exceptId && nameKey(l.name) === key; })[0] || null;
+  }
+  function uniqueName(base) {
+    var n = base, i = 2;
+    while (nameTaken(n)) n = base + ' ' + i++;
+    return n;
   }
   function load() {
     if (st) return st;
     try { st = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { st = null; }
     if (!st || !Array.isArray(st.lists)) {
-      st = { v: 1, lists: [], notes: {}, activeId: null, lastIds: [] };
-      st.lists.push(newList({ name: 'المفضلة', icon: '⭐', color: COLORS[0], desc: 'آيات أحبها وأعود إليها' }));
-      st.lists.push(newList({ name: 'أخطاء التسميع', icon: '🎙️', color: COLORS[4], review: true, sort: 'due',
-        desc: 'آيات أخطأتُ فيها أثناء التسميع — تُعرض للمراجعة على فترات متباعدة' }));
+      st = { v: 2, lists: [], notes: {}, activeId: null, lastIds: [] };
+      st.lists.push(newList({ name: 'المفضلة', icon: 'star', color: COLORS[0], desc: 'آيات أحبها وأعود إليها' }));
+      st.lists.push(mistakesList());
       st.activeId = st.lists[0].id;
       save();
     }
     st.notes = st.notes || {};
     st.lastIds = st.lastIds || [];
+    if ((st.v || 1) < 2) migrateV2();
     return st;
+  }
+  // v1 → v2: «＋ قائمة جديدة» used to save an unnamed list at once, so every unfinished
+  // attempt left an empty «قائمة جديدة» behind; drop those, make every name unique,
+  // draw the emoji icons as line icons, and mark the mistakes list by kind (not by name)
+  function migrateV2() {
+    st.lists = st.lists.filter(function (l) {
+      return l && Array.isArray(l.items) && !(nameKey(l.name) === nameKey(DEFAULT_NAME) && !l.items.length && !l.desc);
+    });
+    var seen = {};
+    st.lists.forEach(function (l) {
+      var base = String(l.name || '').trim() || 'قائمة', n = base, i = 2;
+      while (seen[nameKey(n)]) n = base + ' ' + i++;
+      l.name = n; seen[nameKey(n)] = 1;
+      if (EMOJI_TO_ICON[l.icon]) l.icon = EMOJI_TO_ICON[l.icon];
+      if (!l.kind && nameKey(l.name) === nameKey('أخطاء التسميع')) l.kind = 'mistakes';
+    });
+    if (!st.lists.some(function (l) { return l.id === st.activeId; })) st.activeId = st.lists.length ? st.lists[0].id : null;
+    st.v = 2;
+    save();
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { toast('تعذّر الحفظ في المتصفح'); } }
   function listById(id) { return load().lists.filter(function (l) { return l.id === id; })[0] || null; }
@@ -66,6 +123,14 @@
   function g(name) { try { return (0, eval)(name); } catch (e) { return undefined; } }   // index.html globals (let/const)
   function toast(m) { var f = g('showToast'); if (typeof f === 'function') f(m); }
   function esc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // a list's icon: a line icon of ayah-list-icons.js, or the emoji the reader typed
+  function iconDef(icon) { var I = window.AL_ICONS; return (I && I.icons && I.icons[icon]) || null; }
+  function iconHtml(icon) {
+    var d = iconDef(icon);
+    if (d) return '<svg class="al-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d.s + '</svg>';
+    return '<span class="al-emo">' + esc(icon || '🔖') + '</span>';
+  }
+  function iconText(icon) { var d = iconDef(icon); return d ? d.e : (icon || '🔖'); }   // for copied plain text
   function ayahRow(s, a) {
     var map = g('ayaIndexMap'), data = g('activeData');
     if (!map || !data) return null;
@@ -113,7 +178,7 @@
         var on = hasItem(l, s, a);
         return '<label class="al-pop-row' + (on ? ' on' : '') + '" style="--lc:' + esc(l.color) + '">' +
           '<input type="checkbox" data-list="' + esc(l.id) + '"' + (on ? ' checked' : '') + '>' +
-          '<span class="al-dot">' + esc(l.icon) + '</span><span class="al-pop-name">' + esc(l.name) + '</span>' +
+          '<span class="al-dot">' + iconHtml(l.icon) + '</span><span class="al-pop-name">' + esc(l.name) + '</span>' +
           '<span class="al-pop-count">' + l.items.length + '</span></label>';
       }).join('') + '</div>' +
       '<form class="al-pop-new" data-act="new"><input type="text" maxlength="40" placeholder="＋ قائمة جديدة… (اكتب الاسم ثم Enter)"></form>' +
@@ -135,11 +200,17 @@
     });
     pop.querySelector('form').addEventListener('submit', function (e) {
       e.preventDefault();
-      var name = this.querySelector('input').value.trim();
+      var name = this.querySelector('input').value.trim().replace(/\s+/g, ' ');
       if (!name) return;
-      var l = newList({ name: name, icon: ICONS[(st.lists.length + 2) % ICONS.length], color: COLORS[st.lists.length % COLORS.length] });
-      st.lists.push(l); addItem(l, s, a);
-      toast('أُنشئت «' + name + '» وأُضيفت الآية إليها');
+      var same = nameTaken(name);
+      if (same) {                       // never a second list with the same name: use that one
+        addItem(same, s, a);
+        toast('القائمة «' + same.name + '» موجودة — أُضيفت الآية إليها');
+      } else {
+        var l = newList({ name: name, icon: ICONS[(st.lists.length + 2) % ICONS.length], color: COLORS[(st.lists.length * 5) % COLORS.length] });
+        st.lists.push(l); addItem(l, s, a);
+        toast('أُنشئت «' + name + '» وأُضيفت الآية إليها');
+      }
       renderSaver(s, a, row); refreshAll(s, a);
     });
     var ta = pop.querySelector('textarea'), tmr = 0;
@@ -182,7 +253,7 @@
     if (!ls.length && !note) { box.innerHTML = ''; box.style.display = 'none'; return; }
     box.style.display = '';
     box.innerHTML = (ls.length ? '<div class="al-info-lists">🔖 محفوظة في: ' + ls.map(function (l) {
-      return '<button class="al-chip" style="--lc:' + esc(l.color) + '" data-open="' + esc(l.id) + '">' + esc(l.icon) + ' ' + esc(l.name) + '</button>';
+      return '<button class="al-chip" style="--lc:' + esc(l.color) + '" data-open="' + esc(l.id) + '">' + iconHtml(l.icon) + ' ' + esc(l.name) + '</button>';
     }).join('') + '</div>' : '') + (note ? '<div class="al-info-note">📝 ' + esc(note) + '</div>' : '');
     box.querySelectorAll('[data-open]').forEach(function (b) {
       b.onclick = function () { st.activeId = b.getAttribute('data-open'); save(); open(); };
@@ -203,7 +274,8 @@
   }
 
   /* =========================== lists modal =========================== */
-  var modal = null, ui = { q: '', filter: 'all', editing: null, audio: null, playing: null, revealed: {} };
+  // editing: null | 'new' (a draft, not in the store until «إنشاء») | 'edit'; form: the editor's values
+  var modal = null, ui = { q: '', filter: 'all', editing: null, form: null, audio: null, playing: null, revealed: {} };
 
   function sortedLists() {
     return load().lists.slice().sort(function (x, y) { return (y.pinned - x.pinned) || (x.created - y.created); });
@@ -219,7 +291,7 @@
       modal.addEventListener('mousedown', function (e) { if (e.target === modal) close(); });
       document.body.appendChild(modal);
     }
-    ui.editing = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {};
+    ui.editing = null; ui.form = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {};
     renderModal();
     var m0 = modal; requestAnimationFrame(function () { if (m0 === modal) m0.classList.add('show'); });   // closed meanwhile: nothing
   }
@@ -244,23 +316,36 @@
       '<div class="al-side-head"><span class="al-brand">📚 قوائمي</span><button class="al-x" data-act="close" title="إغلاق (Esc)">✕</button></div>' +
       '<div class="al-side-lists">' + lists.map(function (l) {
         var due = l.review ? l.items.filter(isDue).length : 0;
-        return '<button class="al-side-item' + (l.id === st.activeId ? ' active' : '') + '" data-pick="' + esc(l.id) + '" style="--lc:' + esc(l.color) + '">' +
-          '<span class="al-dot">' + esc(l.icon) + '</span>' +
-          '<span class="al-side-name">' + esc(l.name) + (l.pinned ? ' <i class="al-pin">📌</i>' : '') + '</span>' +
-          (due ? '<span class="al-due" title="مستحقة للمراجعة">' + due + '</span>' : '') +
-          '<span class="al-count">' + l.items.length + '</span></button>';
-      }).join('') + '</div>' +
-      '<button class="al-new" data-act="new">＋ قائمة جديدة</button>' +
+        return '<button class="al-side-item' + (l.id === st.activeId && ui.editing !== 'new' ? ' active' : '') + '" data-pick="' + esc(l.id) + '" style="--lc:' + esc(l.color) + '">' +
+          '<span class="al-dot">' + iconHtml(l.icon) + '</span>' +
+          '<span class="al-side-name">' + esc(l.name) + (l.pinned ? ' <i class="al-pin" title="مثبّتة">📌</i>' : '') + '</span>' +
+          (due ? '<span class="al-due" title="' + due + ' مستحقة للمراجعة الآن">⏰ ' + due + '</span>' : '') +
+          '<span class="al-count" title="عدد الآيات">' + l.items.length + '</span></button>';
+      }).join('') +
+      (ui.editing === 'new' && ui.form ? '<div class="al-side-item active al-draft" style="--lc:' + esc(ui.form.color) + '">' +
+        '<span class="al-dot">' + iconHtml(ui.form.icon) + '</span><span class="al-side-name">' + esc(ui.form.name || 'قائمة جديدة…') + '</span>' +
+        '<span class="al-count">مسودة</span></div>' : '') + '</div>' +
+      '<button class="al-new" data-act="new"' + (ui.editing === 'new' ? ' disabled' : '') + '>＋ قائمة جديدة</button>' +
       '<div class="al-side-foot"><button class="al-link" data-act="export" title="نسخة احتياطية لكل القوائم والملاحظات">⬇ تصدير</button>' +
       '<button class="al-link" data-act="import" title="استيراد نسخة احتياطية (تُدمج مع الموجود)">⬆ استيراد</button></div>';
     side.querySelectorAll('[data-pick]').forEach(function (b) {
-      b.onclick = function () { st.activeId = b.getAttribute('data-pick'); ui.editing = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {}; save(); renderModal(); };
+      b.onclick = function () { st.activeId = b.getAttribute('data-pick'); ui.editing = null; ui.form = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {}; save(); renderModal(); };
     });
     side.onclick = function (e) {
       var b = e.target.closest('[data-act]'); if (!b) return;
       var act = b.getAttribute('data-act');
       if (act === 'close') close();
-      if (act === 'new') { var l = newList({ icon: ICONS[(st.lists.length + 2) % ICONS.length], color: COLORS[st.lists.length % COLORS.length] }); st.lists.push(l); st.activeId = l.id; ui.editing = 'new'; save(); renderModal(); }
+      if (act === 'new' && ui.editing !== 'new') {   // a draft only: nothing is stored until «إنشاء القائمة»
+        var used = {};
+        st.lists.forEach(function (l) { used[l.icon] = 1; used[l.color] = 1; });
+        ui.editing = 'new';
+        ui.form = { name: '', desc: '', review: false,
+          icon: ICONS.filter(function (x) { return !used[x]; })[0] || ICONS[st.lists.length % ICONS.length],
+          color: COLORS.filter(function (x) { return !used[x]; })[0] || COLORS[(st.lists.length * 5) % COLORS.length],
+          cat: 'all', q: '' };
+        renderModal();
+        var inp = modal.querySelector('.al-in-name'); if (inp) inp.focus();
+      }
       if (act === 'export') exportAll();
       if (act === 'import') importAll();
     };
@@ -296,15 +381,16 @@
   function renderMain() {
     var main = modal.querySelector('.al-main');
     var l = listById(st.activeId);
+    if (ui.editing && ui.form && (ui.editing === 'new' || l)) { renderStudio(main, ui.editing === 'edit' ? l : null); return; }
     if (!l) { main.innerHTML = '<div class="al-empty"><div>📚</div><h3>لا توجد قوائم بعد</h3><p>أنشئ قائمة من الشريط الجانبي.</p></div>'; return; }
     var items = itemsView(l);
     var suras = {}, pages = {};
     l.items.forEach(function (x) { suras[x.s] = 1; var r = ayahRow(x.s, x.a); if (r) pages[r[2]] = 1; });
     var due = l.items.filter(isDue).length;
 
-    var head = ui.editing ? editForm(l) :
+    var head =
       '<div class="al-head" style="--lc:' + esc(l.color) + '">' +
-        '<div class="al-head-icon">' + esc(l.icon) + '</div>' +
+        '<div class="al-head-icon">' + iconHtml(l.icon) + '</div>' +
         '<div class="al-head-txt"><h2>' + esc(l.name) + '</h2>' + (l.desc ? '<p>' + esc(l.desc) + '</p>' : '') +
         '<div class="al-stats"><span>' + l.items.length + ' آية</span><span>' + Object.keys(suras).length + ' سورة</span><span>' + Object.keys(pages).length + ' صفحة</span>' +
         (l.review ? '<span class="al-stat-due">' + due + ' مستحقة للمراجعة</span>' : '') + '</div></div>' +
@@ -326,7 +412,7 @@
 
     var body;
     if (!l.items.length) {
-      body = '<div class="al-empty"><div>' + esc(l.icon) + '</div><h3>القائمة فارغة</h3>' +
+      body = '<div class="al-empty" style="--lc:' + esc(l.color) + '"><div class="al-empty-ic">' + iconHtml(l.icon) + '</div><h3>القائمة فارغة</h3>' +
         '<p>احفظ آيات هنا من زر <b>🔖 حفظ</b> في نافذة الآية (انقر أي آية في المصحف)، أو في نتائج البحث، أو أثناء التسميع، أو بالضغط على <kbd>B</kbd> بعد تظليل آية.</p></div>';
     } else if (!items.length) {
       body = '<div class="al-empty small"><h3>لا نتائج</h3><p>غيّر البحث أو المرشّح.</p></div>';
@@ -342,7 +428,7 @@
       });
       body = '<div class="al-items">' + html + '</div>';
     }
-    main.innerHTML = '<div class="al-main-top">' + head + (ui.editing ? '' : props) + '</div>' + body;
+    main.innerHTML = '<div class="al-main-top">' + head + props + '</div>' + body;
     wireMain(l);
   }
 
@@ -388,7 +474,11 @@
       var b;
       if ((b = e.target.closest('[data-act]'))) {
         var act = b.getAttribute('data-act');
-        if (act === 'edit') { ui.editing = 'edit'; renderMain(); }
+        if (act === 'edit') {
+          ui.editing = 'edit';
+          ui.form = { name: l.name, desc: l.desc || '', icon: l.icon, color: l.color, review: !!l.review, cat: 'all', q: '' };
+          renderModal();
+        }
         if (act === 'copy') copyList(l);
         if (act === 'delete') {
           if (confirm('حذف القائمة «' + l.name + '» (' + l.items.length + ' آية)؟ الملاحظات على الآيات تبقى.')) {
@@ -396,13 +486,6 @@
             st.activeId = st.lists.length ? sortedLists()[0].id : null; save(); renderModal(); toast('حُذفت القائمة');
           }
         }
-        if (act === 'save-edit') saveEdit(l, main);
-        if (act === 'cancel-edit') {
-          if (ui.editing === 'new' && !l.items.length && l.name === 'قائمة جديدة') { st.lists = st.lists.filter(function (x) { return x.id !== l.id; }); st.activeId = st.lists.length ? st.lists[0].id : null; save(); }
-          ui.editing = null; renderModal();
-        }
-        if (act === 'pick-icon') { main.querySelectorAll('[data-act=pick-icon]').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); }
-        if (act === 'pick-color') { main.querySelectorAll('[data-act=pick-color]').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); }
         return;
       }
       if ((b = e.target.closest('[data-toggle]'))) {
@@ -463,23 +546,146 @@
     save(); renderMain();
   }
 
-  function editForm(l) {
-    return '<div class="al-edit" style="--lc:' + esc(l.color) + '">' +
-      '<div class="al-edit-row"><input class="al-in-name" maxlength="40" value="' + esc(ui.editing === 'new' ? '' : l.name) + '" placeholder="اسم القائمة (مثال: آيات الصبر، مراجعة جزء عمّ)">' +
-      '<input class="al-in-desc" maxlength="120" value="' + esc(l.desc) + '" placeholder="وصف قصير (اختياري)"></div>' +
-      '<div class="al-edit-lbl">الأيقونة</div><div class="al-icons">' + ICONS.map(function (ic) {
-        return '<button data-act="pick-icon" data-v="' + ic + '" class="' + (ic === l.icon ? 'on' : '') + '">' + ic + '</button>'; }).join('') + '</div>' +
-      '<div class="al-edit-lbl">اللون</div><div class="al-colors">' + COLORS.map(function (c) {
-        return '<button data-act="pick-color" data-v="' + c + '" class="' + (c === l.color ? 'on' : '') + '" style="--c:' + c + '"></button>'; }).join('') + '</div>' +
-      '<div class="al-edit-foot"><button class="al-btn ghost" data-act="cancel-edit">إلغاء</button><button class="al-btn gold" data-act="save-edit">حفظ</button></div></div>';
+  /* ------------- the list studio: create (a draft) or edit, with a live preview ------------- */
+  function renderStudio(main, l) {
+    var f = ui.form, isNew = !l, I = window.AL_ICONS || { cats: [], icons: {} };
+    var tpls = isNew ? TEMPLATES.filter(function (t) { return !nameTaken(t[0]); }) : [];
+    main.innerHTML =
+      '<div class="al-studio" style="--lc:' + esc(f.color) + '">' +
+        '<div class="al-studio-top">' +
+          '<div class="al-studio-title">' + (isNew ? 'قائمة جديدة' : 'تعديل القائمة') + '</div>' +
+          '<div class="al-preview" aria-label="معاينة">' +
+            '<div class="al-pv-tile">' + iconHtml(f.icon) + '</div>' +
+            '<div class="al-pv-txt"><div class="al-pv-name"></div><div class="al-pv-desc"></div>' +
+              '<div class="al-pv-meta">' + (isNew ? '0 آية' : l.items.length + ' آية') + '<span class="al-pv-rev"> · 🧠 مراجعة متباعدة</span></div></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="al-studio-body">' +
+          '<label class="al-field"><span>اسم القائمة</span>' +
+            '<input class="al-in-name" maxlength="40" autocomplete="off" placeholder="مثال: آيات الصبر، مراجعة جزء عمّ"></label>' +
+          '<div class="al-err" role="alert"></div>' +
+          '<label class="al-field"><span>وصف قصير <small>(اختياري)</small></span>' +
+            '<input class="al-in-desc" maxlength="120" autocomplete="off" placeholder="ما الذي تجمعه هذه القائمة؟"></label>' +
+          (tpls.length ? '<div class="al-field"><span>أفكار جاهزة <small>— اضغط لتعبئة الاسم والأيقونة واللون</small></span><div class="al-templates">' +
+            tpls.map(function (t) { return '<button type="button" class="al-tpl" data-tpl="' + esc(t[0]) + '" style="--lc:' + t[2] + '">' + iconHtml(t[1]) + '<span>' + esc(t[0]) + '</span></button>'; }).join('') +
+            '</div></div>' : '') +
+          '<div class="al-field"><span>الأيقونة</span>' +
+            '<div class="al-ic-tools"><div class="al-ic-cats" role="tablist">' +
+              [['all', 'الكل']].concat(I.cats).map(function (c) {
+                return '<button type="button" data-cat="' + c[0] + '"' + (f.cat === c[0] ? ' class="on"' : '') + '>' + esc(c[1]) + '</button>'; }).join('') +
+              '</div><input class="al-ic-search" type="search" autocomplete="off" placeholder="ابحث: صبر، دعاء، ليل، حفظ…"></div>' +
+            '<div class="al-icons" role="listbox" aria-label="الأيقونات"></div>' +
+            '<label class="al-emoji-in"><span>أو اكتب رمزًا تعبيريًا:</span><input class="al-in-emoji" maxlength="8" placeholder="🌷"></label>' +
+          '</div>' +
+          '<div class="al-field"><span>اللون</span><div class="al-colors">' +
+            COLORS.map(function (c) { return '<button type="button" data-color="' + c + '" style="--c:' + c + '" title="' + c + '"></button>'; }).join('') +
+            '<label class="al-color-custom" title="لون من اختيارك"><input type="color"><span aria-hidden="true">＋</span></label>' +
+          '</div></div>' +
+          '<label class="al-check"><input type="checkbox" class="al-in-review"> 🧠 مراجعة متباعدة <small>تعود كل آية للمراجعة بعد 1، 3، 7، 14، 30، 60 يومًا</small></label>' +
+        '</div>' +
+        '<div class="al-studio-foot"><button type="button" class="al-btn ghost" data-st="cancel">إلغاء</button>' +
+          '<button type="button" class="al-btn gold" data-st="save">' + (isNew ? '✓ إنشاء القائمة' : '✓ حفظ التعديلات') + '</button></div>' +
+      '</div>';
+    // values go in through the DOM, never through markup
+    main.querySelector('.al-in-name').value = f.name;
+    main.querySelector('.al-in-desc').value = f.desc;
+    main.querySelector('.al-ic-search').value = f.q;
+    main.querySelector('.al-in-emoji').value = iconDef(f.icon) ? '' : f.icon;
+    main.querySelector('.al-in-review').checked = !!f.review;
+    main.querySelector('.al-color-custom input').value = /^#[0-9a-f]{6}$/i.test(f.color) ? f.color : '#c9a227';
+    paintIcons(main); paintPreview(main, l); wireStudio(main, l);
   }
-  function saveEdit(l, main) {
-    var name = main.querySelector('.al-in-name').value.trim();
-    if (!name) { main.querySelector('.al-in-name').focus(); toast('اكتب اسمًا للقائمة'); return; }
-    l.name = name; l.desc = main.querySelector('.al-in-desc').value.trim();
-    var ic = main.querySelector('[data-act=pick-icon].on'), co = main.querySelector('[data-act=pick-color].on');
-    if (ic) l.icon = ic.getAttribute('data-v'); if (co) l.color = co.getAttribute('data-v');
-    ui.editing = null; save(); renderModal();
+
+  function paintIcons(main) {
+    var f = ui.form, I = window.AL_ICONS || { icons: {} }, q = nameKey(f.q);
+    var ids = Object.keys(I.icons).filter(function (id) {
+      var d = I.icons[id];
+      if (q) return nameKey(d.k).indexOf(q) >= 0 || id.indexOf(q) >= 0;
+      return f.cat === 'all' || d.c === f.cat;
+    });
+    var box = main.querySelector('.al-icons');
+    box.innerHTML = ids.length ? ids.map(function (id) {
+      return '<button type="button" role="option" data-icon="' + id + '" title="' + esc(I.icons[id].k.split(' ')[0]) + '"' +
+        (id === f.icon ? ' class="on" aria-selected="true"' : '') + '>' + iconHtml(id) + '</button>';
+    }).join('') : '<div class="al-ic-none">لا أيقونة بهذا الوصف — جرّب كلمة أخرى أو اكتب رمزًا تعبيريًا</div>';
+  }
+
+  function paintPreview(main, l) {
+    var f = ui.form, studio = main.querySelector('.al-studio');
+    studio.style.setProperty('--lc', f.color);
+    main.querySelector('.al-pv-tile').innerHTML = iconHtml(f.icon);
+    main.querySelector('.al-pv-name').textContent = f.name.trim() || 'اسم القائمة';
+    main.querySelector('.al-pv-name').classList.toggle('ph', !f.name.trim());
+    main.querySelector('.al-pv-desc').textContent = f.desc.trim() || 'وصف قصير يظهر تحت الاسم';
+    main.querySelector('.al-pv-desc').classList.toggle('ph', !f.desc.trim());
+    main.querySelector('.al-pv-rev').style.display = f.review ? '' : 'none';
+    main.querySelectorAll('[data-color]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-color').toLowerCase() === f.color.toLowerCase()); });
+    main.querySelector('.al-color-custom').classList.toggle('on', COLORS.indexOf(f.color) < 0);
+    // the name must be new: «آيات الصبر» twice is one list
+    var name = f.name.trim(), same = name && nameTaken(name, l && l.id), err = main.querySelector('.al-err');
+    err.textContent = same ? 'توجد قائمة بهذا الاسم: «' + same.name + '» — اختر اسمًا آخر.' : '';
+    main.querySelector('[data-st=save]').disabled = !name || !!same;
+    var draft = modal && modal.querySelector('.al-draft');   // the draft row in the side list follows along
+    if (draft) {
+      draft.style.setProperty('--lc', f.color);
+      draft.querySelector('.al-dot').innerHTML = iconHtml(f.icon);
+      draft.querySelector('.al-side-name').textContent = name || 'قائمة جديدة…';
+    }
+  }
+
+  function wireStudio(main, l) {
+    var f = ui.form;
+    main.querySelector('.al-in-name').addEventListener('input', function () { f.name = this.value; paintPreview(main, l); });
+    main.querySelector('.al-in-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); saveStudio(main, l); } });
+    main.querySelector('.al-in-desc').addEventListener('input', function () { f.desc = this.value; paintPreview(main, l); });
+    main.querySelector('.al-ic-search').addEventListener('input', function () { f.q = this.value; paintIcons(main); });
+    main.querySelector('.al-in-emoji').addEventListener('input', function () {
+      var v = this.value.trim();
+      if (v) { f.icon = v; } else if (!iconDef(f.icon)) { f.icon = f.lastIcon || ICONS[0]; }
+      paintIcons(main); paintPreview(main, l);
+    });
+    main.querySelector('.al-in-review').addEventListener('change', function () { f.review = this.checked; paintPreview(main, l); });
+    main.querySelector('.al-color-custom input').addEventListener('input', function () { f.color = this.value; paintPreview(main, l); });
+    main.onclick = function (e) {
+      var b;
+      if ((b = e.target.closest('[data-icon]'))) {
+        f.icon = f.lastIcon = b.getAttribute('data-icon'); main.querySelector('.al-in-emoji').value = '';
+        main.querySelectorAll('[data-icon]').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
+        paintPreview(main, l); return;
+      }
+      if ((b = e.target.closest('[data-cat]'))) {
+        f.cat = b.getAttribute('data-cat'); f.q = ''; main.querySelector('.al-ic-search').value = '';
+        main.querySelectorAll('[data-cat]').forEach(function (x) { x.classList.toggle('on', x === b); });
+        paintIcons(main); return;
+      }
+      if ((b = e.target.closest('[data-color]'))) { f.color = b.getAttribute('data-color'); paintPreview(main, l); return; }
+      if ((b = e.target.closest('[data-tpl]'))) {
+        var t = TEMPLATES.filter(function (x) { return x[0] === b.getAttribute('data-tpl'); })[0];
+        if (t) { f.name = t[0]; f.icon = f.lastIcon = t[1]; f.color = t[2]; f.desc = t[3] || ''; f.review = !!t[4]; renderStudio(main, l); renderSide(); }
+        return;
+      }
+      if ((b = e.target.closest('[data-st]'))) {
+        if (b.getAttribute('data-st') === 'save') saveStudio(main, l);
+        else { ui.editing = null; ui.form = null; renderModal(); }
+      }
+    };
+  }
+
+  function saveStudio(main, l) {
+    var f = ui.form, name = f.name.trim().replace(/\s+/g, ' ');
+    if (!name) { main.querySelector('.al-in-name').focus(); return; }
+    if (nameTaken(name, l && l.id)) { paintPreview(main, l); main.querySelector('.al-in-name').focus(); return; }
+    var fields = { name: name, desc: f.desc.trim(), icon: f.icon || ICONS[0], color: f.color };
+    if (!l) {
+      var nl = newList(Object.assign(fields, { review: !!f.review, sort: f.review ? 'due' : 'added_desc' }));
+      st.lists.push(nl); st.activeId = nl.id;
+      toast('أُنشئت قائمة «' + name + '»');
+    } else {
+      Object.assign(l, fields);
+      if (!!f.review !== !!l.review) { l.review = !!f.review; if (l.review) l.sort = 'due'; else if (l.sort === 'due') l.sort = 'added_desc'; }
+      toast('حُفظت التعديلات');
+    }
+    ui.editing = null; ui.form = null; save(); renderModal();
   }
 
   /* ----------------------------- audio ------------------------------- */
@@ -499,7 +705,7 @@
 
   /* -------------------------- copy / backup -------------------------- */
   function copyList(l) {
-    var lines = [l.icon + ' ' + l.name + (l.desc ? ' — ' + l.desc : ''), ''];
+    var lines = [iconText(l.icon) + ' ' + l.name + (l.desc ? ' — ' + l.desc : ''), ''];
     itemsView(l).forEach(function (x) {
       var r = ayahRow(x.s, x.a); if (!r) return;
       lines.push('﴿' + ayahText(x.s, x.a) + '﴾ [' + r[3] + ': ' + x.a + ']');
@@ -524,11 +730,23 @@
         var d = JSON.parse(t);
         if (!d || d.type !== 'ayah-lists' || !Array.isArray(d.lists)) throw new Error('bad');
         var added = 0;
+        var clean = function (it, n) {   // a backup may come from an older version: give every field a value
+          var now = Date.now();
+          return Object.assign({}, it, { s: +it.s, a: +it.a, added: isFinite(it.added) ? +it.added : now, order: isFinite(it.order) ? +it.order : n + 1,
+            lvl: Math.max(0, Math.min(6, it.lvl | 0)), next: isFinite(it.next) ? +it.next : now });
+        };
         d.lists.forEach(function (nl) {
-          if (!nl || !Array.isArray(nl.items)) return;
-          var cur = listById(nl.id) || st.lists.filter(function (x) { return x.name === nl.name; })[0];   // same name = same list
-          if (!cur) { st.lists.push(newList(nl)); added++; return; }
-          nl.items.forEach(function (it) { if (it && +it.s > 0 && +it.a > 0 && !hasItem(cur, +it.s, +it.a)) cur.items.push(Object.assign({}, it, { s: +it.s, a: +it.a })); });
+          if (!nl || !Array.isArray(nl.items) || !String(nl.name || '').trim()) return;
+          var cur = listById(nl.id) || nameTaken(nl.name);   // same id or same name = same list
+          var items = nl.items.filter(function (it) { return it && +it.s > 0 && +it.a > 0; });
+          if (!cur) {
+            var fresh = newList(Object.assign({}, nl, { icon: EMOJI_TO_ICON[nl.icon] || nl.icon || 'bookmark', items: [] }));
+            if (listById(fresh.id)) fresh.id = uid();
+            items.forEach(function (it, n) { if (!hasItem(fresh, +it.s, +it.a)) fresh.items.push(clean(it, n)); });
+            st.lists.push(fresh); added++; return;
+          }
+          var maxO = cur.items.reduce(function (m, it) { return Math.max(m, it.order || 0); }, 0);
+          items.forEach(function (it, n) { if (!hasItem(cur, +it.s, +it.a)) cur.items.push(clean(it, maxO + n)); });
         });
         Object.keys(d.notes || {}).forEach(function (key) { if (!st.notes[key]) st.notes[key] = d.notes[key]; });
         save(); renderModal(); toast('استُوردت القوائم (' + added + ' جديدة، والباقي دُمج)');
@@ -576,9 +794,10 @@
     // already there goes back to the start of its review
     addMistakes: function (items) {
       load();
-      var l = st.lists.filter(function (x) { return x.name === 'أخطاء التسميع'; })[0];
-      if (!l) { l = newList({ name: 'أخطاء التسميع', icon: '🎙️', color: COLORS[4], review: true, sort: 'due',
-        desc: 'آيات أخطأتُ فيها أثناء التسميع — تُعرض للمراجعة على فترات متباعدة' }); st.lists.push(l); }
+      // by its kind, so renaming the list does not make a second one appear
+      var l = st.lists.filter(function (x) { return x.kind === 'mistakes'; })[0] || nameTaken('أخطاء التسميع');
+      if (!l) { l = mistakesList(); l.name = uniqueName(l.name); st.lists.push(l); }
+      l.kind = 'mistakes';
       var added = 0;
       (items || []).forEach(function (it) {
         if (addItem(l, +it.s, +it.a)) added++;
