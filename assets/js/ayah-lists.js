@@ -174,14 +174,14 @@
       '<div class="al-pop-head"><span class="al-pop-title">🔖 حفظ الآية</span>' +
       '<span class="al-pop-ref">سورة ' + esc(row[3]) + ' • آية ' + a + '</span>' +
       '<button class="al-x" data-act="close" title="إغلاق">✕</button></div>' +
+      '<form class="al-pop-new" data-act="new"><input type="search" maxlength="40" autocomplete="off" placeholder="🔍 ابحث عن قائمة، أو اكتب اسمًا جديدًا ثم Enter"></form>' +
       '<div class="al-pop-lists">' + lists.map(function (l) {
         var on = hasItem(l, s, a);
-        return '<label class="al-pop-row' + (on ? ' on' : '') + '" style="--lc:' + esc(l.color) + '">' +
+        return '<label class="al-pop-row' + (on ? ' on' : '') + '" style="--lc:' + esc(l.color) + '" data-find="' + esc(nameKey(l.name + ' ' + (l.desc || ''))) + '">' +
           '<input type="checkbox" data-list="' + esc(l.id) + '"' + (on ? ' checked' : '') + '>' +
           '<span class="al-dot">' + iconHtml(l.icon) + '</span><span class="al-pop-name">' + esc(l.name) + '</span>' +
           '<span class="al-pop-count">' + l.items.length + '</span></label>';
-      }).join('') + '</div>' +
-      '<form class="al-pop-new" data-act="new"><input type="text" maxlength="40" placeholder="＋ قائمة جديدة… (اكتب الاسم ثم Enter)"></form>' +
+      }).join('') + '<div class="al-pop-hint" hidden></div></div>' +
       '<div class="al-pop-note"><div class="al-pop-label">📝 ملاحظة على الآية <span>تظهر في كل قوائمها</span></div>' +
       '<textarea rows="2" placeholder="مثال: أخطأت في «…»، أو فائدة من التفسير…">' + esc(note) + '</textarea></div>' +
       '<div class="al-pop-foot"><button class="al-btn ghost" data-act="lists">📚 فتح قوائمي</button>' +
@@ -198,14 +198,23 @@
         refreshAll(s, a);
       });
     });
+    // one box: it narrows the lists as you type; Enter saves into the list of that name, or makes it
+    var findIn = pop.querySelector('.al-pop-new input');
+    findIn.addEventListener('input', function () {
+      var raw = findIn.value.trim(), q = nameKey(raw), shown = 0;
+      pop.querySelectorAll('.al-pop-row').forEach(function (r) { var hit = !q || r.getAttribute('data-find').indexOf(q) >= 0; r.hidden = !hit; if (hit) shown++; });
+      var hint = pop.querySelector('.al-pop-hint'), exact = raw && nameTaken(raw);
+      hint.hidden = !raw || !!exact;
+      if (raw && !exact) hint.innerHTML = (shown ? '' : 'لا قائمة بهذا الاسم — ') + 'اضغط <b>Enter</b> لإنشاء «' + esc(raw) + '» وحفظ الآية فيها';
+    });
     pop.querySelector('form').addEventListener('submit', function (e) {
       e.preventDefault();
       var name = this.querySelector('input').value.trim().replace(/\s+/g, ' ');
       if (!name) return;
       var same = nameTaken(name);
       if (same) {                       // never a second list with the same name: use that one
-        addItem(same, s, a);
-        toast('القائمة «' + same.name + '» موجودة — أُضيفت الآية إليها');
+        if (hasItem(same, s, a)) toast('الآية محفوظة في «' + same.name + '» من قبل');
+        else { addItem(same, s, a); toast('أُضيفت إلى «' + same.name + '»'); }
       } else {
         var l = newList({ name: name, icon: ICONS[(st.lists.length + 2) % ICONS.length], color: COLORS[(st.lists.length * 5) % COLORS.length] });
         st.lists.push(l); addItem(l, s, a);
@@ -275,7 +284,8 @@
 
   /* =========================== lists modal =========================== */
   // editing: null | 'new' (a draft, not in the store until «إنشاء») | 'edit'; form: the editor's values
-  var modal = null, ui = { q: '', filter: 'all', editing: null, form: null, audio: null, playing: null, revealed: {} };
+  // lq: the side search; sel: {keys:{'s:a':1}, last:'s:a'} while «تحديد» is on; undo: {text, run, until}
+  var modal = null, ui = { q: '', filter: 'all', editing: null, form: null, audio: null, playing: null, revealed: {}, lq: '', sel: null, undo: null };
 
   function sortedLists() {
     return load().lists.slice().sort(function (x, y) { return (y.pinned - x.pinned) || (x.created - y.created); });
@@ -291,7 +301,7 @@
       modal.addEventListener('mousedown', function (e) { if (e.target === modal) close(); });
       document.body.appendChild(modal);
     }
-    ui.editing = null; ui.form = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {};
+    ui.editing = null; ui.form = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {}; ui.lq = ''; ui.sel = null; ui.undo = null;
     renderModal();
     var m0 = modal; requestAnimationFrame(function () { if (m0 === modal) m0.classList.add('show'); });   // closed meanwhile: nothing
   }
@@ -314,41 +324,77 @@
     var lists = sortedLists();
     side.innerHTML =
       '<div class="al-side-head"><span class="al-brand">📚 قوائمي</span><button class="al-x" data-act="close" title="إغلاق (Esc)">✕</button></div>' +
+      '<label class="al-side-search"><span aria-hidden="true">🔍</span><input type="search" autocomplete="off" placeholder="ابحث عن قائمة…" aria-label="ابحث عن قائمة بالاسم أو الوصف"></label>' +
       '<div class="al-side-lists">' + lists.map(function (l) {
         var due = l.review ? l.items.filter(isDue).length : 0;
-        return '<button class="al-side-item' + (l.id === st.activeId && ui.editing !== 'new' ? ' active' : '') + '" data-pick="' + esc(l.id) + '" style="--lc:' + esc(l.color) + '">' +
+        return '<button class="al-side-item' + (l.id === st.activeId && ui.editing !== 'new' ? ' active' : '') + '" data-pick="' + esc(l.id) + '" style="--lc:' + esc(l.color) + '"' +
+          ' data-find="' + esc(nameKey(l.name + ' ' + (l.desc || ''))) + '">' +
           '<span class="al-dot">' + iconHtml(l.icon) + '</span>' +
-          '<span class="al-side-name">' + esc(l.name) + (l.pinned ? ' <i class="al-pin" title="مثبّتة">📌</i>' : '') + '</span>' +
+          '<span class="al-side-name" data-name="' + esc(l.name) + '">' + esc(l.name) + (l.pinned ? ' <i class="al-pin" title="مثبّتة">📌</i>' : '') + '</span>' +
           (due ? '<span class="al-due" title="' + due + ' مستحقة للمراجعة الآن">⏰ ' + due + '</span>' : '') +
           '<span class="al-count" title="عدد الآيات">' + l.items.length + '</span></button>';
       }).join('') +
       (ui.editing === 'new' && ui.form ? '<div class="al-side-item active al-draft" style="--lc:' + esc(ui.form.color) + '">' +
         '<span class="al-dot">' + iconHtml(ui.form.icon) + '</span><span class="al-side-name">' + esc(ui.form.name || 'قائمة جديدة…') + '</span>' +
-        '<span class="al-count">مسودة</span></div>' : '') + '</div>' +
+        '<span class="al-count">مسودة</span></div>' : '') +
+        '<div class="al-side-none" hidden><span>لا قائمة بهذا الاسم</span><button type="button" class="al-btn ghost" data-act="new-named"></button></div>' +
+      '</div>' +
       '<button class="al-new" data-act="new"' + (ui.editing === 'new' ? ' disabled' : '') + '>＋ قائمة جديدة</button>' +
       '<div class="al-side-foot"><button class="al-link" data-act="export" title="نسخة احتياطية لكل القوائم والملاحظات">⬇ تصدير</button>' +
       '<button class="al-link" data-act="import" title="استيراد نسخة احتياطية (تُدمج مع الموجود)">⬆ استيراد</button></div>';
     side.querySelectorAll('[data-pick]').forEach(function (b) {
-      b.onclick = function () { st.activeId = b.getAttribute('data-pick'); ui.editing = null; ui.form = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {}; save(); renderModal(); };
+      b.onclick = function () { st.activeId = b.getAttribute('data-pick'); ui.editing = null; ui.form = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {}; ui.sel = null; save(); renderModal(); };
     });
+    // the search keeps its text across redraws; Enter opens the first list it shows
+    var find = side.querySelector('.al-side-search input');
+    find.value = ui.lq || '';
+    find.addEventListener('input', function () { ui.lq = find.value; filterSide(side); });
+    find.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var first = side.querySelector('[data-pick]:not([hidden])');
+        if (first) first.click(); else if (ui.lq.trim()) startDraft(ui.lq.trim());
+      }
+    });
+    filterSide(side);
     side.onclick = function (e) {
       var b = e.target.closest('[data-act]'); if (!b) return;
       var act = b.getAttribute('data-act');
       if (act === 'close') close();
-      if (act === 'new' && ui.editing !== 'new') {   // a draft only: nothing is stored until «إنشاء القائمة»
-        var used = {};
-        st.lists.forEach(function (l) { used[l.icon] = 1; used[l.color] = 1; });
-        ui.editing = 'new';
-        ui.form = { name: '', desc: '', review: false,
-          icon: ICONS.filter(function (x) { return !used[x]; })[0] || ICONS[st.lists.length % ICONS.length],
-          color: COLORS.filter(function (x) { return !used[x]; })[0] || COLORS[(st.lists.length * 5) % COLORS.length],
-          cat: 'all', q: '' };
-        renderModal();
-        var inp = modal.querySelector('.al-in-name'); if (inp) inp.focus();
-      }
+      if (act === 'new-named') startDraft((ui.lq || '').trim());
+      if (act === 'new' && ui.editing !== 'new') startDraft('');
       if (act === 'export') exportAll();
       if (act === 'import') importAll();
     };
+  }
+
+  // hide the lists the search does not match; mark the matched letters when they are written as typed
+  function filterSide(side) {
+    var raw = (ui.lq || '').trim(), q = nameKey(raw), shown = 0;
+    side.querySelectorAll('[data-pick]').forEach(function (b) {
+      var hit = !q || b.getAttribute('data-find').indexOf(q) >= 0;
+      b.hidden = !hit; if (hit) shown++;
+      var nm = b.querySelector('.al-side-name'), name = nm.getAttribute('data-name'), at = raw ? name.indexOf(raw) : -1;
+      var pin = nm.querySelector('.al-pin'), pinHtml = pin ? ' ' + pin.outerHTML : '';
+      nm.innerHTML = (at >= 0 ? esc(name.slice(0, at)) + '<mark>' + esc(name.slice(at, at + raw.length)) + '</mark>' + esc(name.slice(at + raw.length)) : esc(name)) + pinHtml;
+    });
+    var none = side.querySelector('.al-side-none');
+    none.hidden = !(q && !shown);
+    if (q && !shown) none.querySelector('button').textContent = '＋ أنشئ «' + raw + '»';
+  }
+
+  function startDraft(name) {     // a draft only: nothing is stored until «إنشاء القائمة»
+    if (ui.editing === 'new') return;
+    var used = {};
+    st.lists.forEach(function (l) { used[l.icon] = 1; used[l.color] = 1; });
+    ui.editing = 'new'; ui.sel = null; ui.lq = '';
+    ui.form = { name: name || '', desc: '', review: false,
+      icon: ICONS.filter(function (x) { return !used[x]; })[0] || ICONS[st.lists.length % ICONS.length],
+      color: COLORS.filter(function (x) { return !used[x]; })[0] || COLORS[(st.lists.length * 5) % COLORS.length],
+      cat: 'all', q: '' };
+    renderModal();
+    var inp = modal.querySelector('.al-in-name');
+    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
   }
 
   function itemsView(l) {
@@ -408,7 +454,9 @@
         toggle('pinned', '📌 تثبيت', l.pinned, 'إظهار القائمة أولًا') +
       '</div>' +
       '<div class="al-tools"><input class="al-search" type="search" placeholder="🔍 ابحث في هذه القائمة (نص، سورة، ملاحظة)…" value="' + esc(ui.q) + '">' +
-        '<div class="al-seg">' + seg('all', 'الكل') + seg('notes', 'بملاحظات') + (l.review ? seg('due', 'مستحقة الآن') : '') + '</div></div>';
+        '<div class="al-seg">' + seg('all', 'الكل') + seg('notes', 'بملاحظات') + (l.review ? seg('due', 'مستحقة الآن') : '') + '</div>' +
+        (l.items.length ? '<button class="al-btn al-sel-btn' + (ui.sel ? ' on' : '') + '" data-act="select" title="حدّد آيات لتنقلها أو تنسخها أو تزيلها معًا (أو اضغط مطوّلًا على آية)">' +
+          (ui.sel ? '✓ إنهاء التحديد' : '☑ تحديد') + '</button>' : '') + '</div>';
 
     var body;
     if (!l.items.length) {
@@ -428,7 +476,8 @@
       });
       body = '<div class="al-items">' + html + '</div>';
     }
-    main.innerHTML = '<div class="al-main-top">' + head + props + '</div>' + body;
+    main.innerHTML = '<div class="al-main-top">' + head + props + '</div>' + body + selBarHtml(l, items) + undoHtml();
+    main.classList.toggle('al-selecting', !!ui.sel);
     wireMain(l);
   }
 
@@ -453,8 +502,11 @@
         '<button class="al-btn ok" data-rev="ok" title="راجعتها وأتقنتها: تعود بعد مدة أطول">✓ أتقنتها</button>' +
         '<button class="al-btn bad" data-rev="bad" title="أخطأت فيها: تعود قريبًا">✗ أخطأت</button></div>';
     }
-    return '<article class="al-card" data-s="' + x.s + '" data-a="' + x.a + '" style="--lc:' + esc(l.color) + '">' +
-      '<div class="al-card-head"><span class="al-ref">سورة ' + esc(r[3]) + ' <b>' + x.a + '</b></span><span class="al-page">ص ' + r[2] + '</span>' +
+    var picked = ui.sel && ui.sel.keys[key];
+    return '<article class="al-card' + (picked ? ' picked' : '') + '" data-s="' + x.s + '" data-a="' + x.a + '" data-k="' + key + '" style="--lc:' + esc(l.color) + '"' +
+      (ui.sel ? ' role="checkbox" aria-checked="' + !!picked + '" tabindex="0"' : '') + '>' +
+      '<div class="al-card-head">' + (ui.sel ? '<span class="al-tick" aria-hidden="true"></span>' : '') +
+      '<span class="al-ref">سورة ' + esc(r[3]) + ' <b>' + x.a + '</b></span><span class="al-page">ص ' + r[2] + '</span>' +
       '<span class="al-when" title="' + esc(new Date(x.added).toLocaleString('ar')) + '">أُضيفت ' + ago(x.added) + '</span>' +
       (l.sort === 'manual' && !ui.q.trim() && ui.filter === 'all' && !l.group ? '<span class="al-move"><button data-move="-1" ' + (i === 0 ? 'disabled' : '') + ' title="إلى الأعلى">▲</button><button data-move="1" ' + (i === n - 1 ? 'disabled' : '') + ' title="إلى الأسفل">▼</button></span>' : '') +
       '</div>' +
@@ -468,12 +520,176 @@
       '<button class="al-btn ghost danger" data-do="remove" title="إزالة من هذه القائمة">إزالة</button></div></article>';
   }
 
+  /* ------------------ «تحديد»: pick ayahs, then act on them together ------------------ */
+  function selKeys() { return ui.sel ? Object.keys(ui.sel.keys) : []; }
+  function selBarHtml(l, items) {
+    if (!ui.sel) return '';
+    var n = selKeys().length, all = items.length && items.every(function (x) { return ui.sel.keys[k(x.s, x.a)]; });
+    var dis = n ? '' : ' disabled';
+    return '<div class="al-selbar" role="toolbar" aria-label="أوامر الآيات المحددة" style="--lc:' + esc(l.color) + '">' +
+      '<button class="al-sb-x" data-act="sel-close" title="إنهاء التحديد (Esc)">✕</button>' +
+      '<span class="al-sb-count"><b>' + n + '</b> ' + (n === 1 ? 'آية محددة' : n === 2 ? 'آيتان محددتان' : 'محددة') + '</span>' +
+      '<button class="al-sb-btn" data-act="sel-all">' + (all ? '◻ إلغاء الكل' : '☑ تحديد الكل (' + items.length + ')') + '</button>' +
+      '<span class="al-sb-sep"></span>' +
+      '<button class="al-sb-btn" data-act="sel-move"' + dis + ' title="انقلها إلى قائمة أخرى (تُحذف من هذه)">↪ نقل إلى…</button>' +
+      '<button class="al-sb-btn" data-act="sel-copy"' + dis + ' title="انسخها إلى قائمة أخرى (تبقى هنا أيضًا)">⧉ نسخ إلى…</button>' +
+      '<button class="al-sb-btn" data-act="sel-text"' + dis + ' title="انسخ نصها وملاحظاتها">📋 نص</button>' +
+      (l.review ? '<button class="al-sb-btn" data-act="sel-review"' + dis + ' title="أعدها للمراجعة الآن من البداية">↺ للمراجعة</button>' : '') +
+      '<button class="al-sb-btn danger" data-act="sel-remove"' + dis + ' title="أزلها من هذه القائمة">🗑 إزالة</button>' +
+    '</div>';
+  }
+  function undoHtml() {
+    if (!ui.undo || ui.undo.until < Date.now()) { ui.undo = null; return ''; }
+    return '<div class="al-undo" role="status"><span>' + esc(ui.undo.text) + '</span><button data-act="undo">↶ تراجع</button></div>';
+  }
+  function offerUndo(text, run) {
+    ui.undo = { text: text, run: run, until: Date.now() + 8000 };
+    clearTimeout(ui.undoTimer);
+    ui.undoTimer = setTimeout(function () { ui.undo = null; var u = modal && modal.querySelector('.al-undo'); if (u) u.remove(); }, 8000);
+  }
+  // the bar and the cards follow a click without redrawing the list (keeps the scroll)
+  function paintSel(l) {
+    var main = modal.querySelector('.al-main');
+    main.querySelectorAll('.al-card').forEach(function (c) {
+      var on = !!(ui.sel && ui.sel.keys[c.getAttribute('data-k')]);
+      c.classList.toggle('picked', on); c.setAttribute('aria-checked', String(on));
+    });
+    var bar = main.querySelector('.al-selbar');
+    if (bar) { var tmp = el('div', null, selBarHtml(l, itemsView(l))); bar.replaceWith(tmp.firstChild); }
+  }
+  function toggleKey(l, key, range) {
+    if (!ui.sel) ui.sel = { keys: {}, last: null };
+    var view = itemsView(l).map(function (x) { return k(x.s, x.a); });
+    if (range && ui.sel.last && view.indexOf(ui.sel.last) >= 0) {          // Shift: everything between
+      var i = view.indexOf(ui.sel.last), j = view.indexOf(key), on = !ui.sel.keys[key];
+      view.slice(Math.min(i, j), Math.max(i, j) + 1).forEach(function (x) { if (on) ui.sel.keys[x] = 1; else delete ui.sel.keys[x]; });
+    } else if (ui.sel.keys[key]) delete ui.sel.keys[key]; else ui.sel.keys[key] = 1;
+    ui.sel.last = key;
+    paintSel(l);
+  }
+  function itemsOf(l, keys) { return l.items.filter(function (x) { return keys.indexOf(k(x.s, x.a)) >= 0; }); }
+  function plural(n) { return n === 1 ? 'آية' : n === 2 ? 'آيتان' : n <= 10 ? n + ' آيات' : n + ' آية'; }
+
+  // move / copy: a picker of the other lists, with its own search and «＋ أنشئ»
+  function openPicker(l, mode, anchor) {
+    var keys = selKeys(); if (!keys.length) return;
+    closeSaver();
+    pop = el('div', 'al-pop al-picker'); pop.setAttribute('dir', 'rtl'); pop.setAttribute('role', 'dialog');
+    pop.innerHTML = '<div class="al-pop-head"><span class="al-pop-title">' + (mode === 'move' ? '↪ نقل ' : '⧉ نسخ ') + plural(keys.length) + ' إلى…</span>' +
+      '<button class="al-x" data-act="close" title="إغلاق">✕</button></div>' +
+      '<input class="al-pick-q" type="search" autocomplete="off" placeholder="🔍 ابحث عن قائمة أو اكتب اسمًا جديدًا">' +
+      '<div class="al-pop-lists"></div>';
+    var box = pop.querySelector('.al-pop-lists'), q = pop.querySelector('.al-pick-q');
+    function rows() {
+      var raw = q.value.trim(), key = nameKey(raw), exact = raw && nameTaken(raw);
+      var others = sortedLists().filter(function (x) { return x.id !== l.id && (!key || nameKey(x.name + ' ' + (x.desc || '')).indexOf(key) >= 0); });
+      box.innerHTML = others.map(function (x) {
+        var have = keys.filter(function (kk) { var p = kk.split(':'); return hasItem(x, +p[0], +p[1]); }).length;
+        return '<button class="al-pop-row al-pick-row" data-to="' + esc(x.id) + '" style="--lc:' + esc(x.color) + '">' +
+          '<span class="al-dot">' + iconHtml(x.icon) + '</span><span class="al-pop-name">' + esc(x.name) + '</span>' +
+          (have ? '<span class="al-pick-have" title="موجودة فيها من قبل">' + (have === keys.length ? 'كلها فيها' : have + ' فيها') + '</span>' : '') +
+          '<span class="al-pop-count">' + x.items.length + '</span></button>';
+      }).join('') +
+      (raw && !exact ? '<button class="al-pop-row al-pick-new" data-new="1"><span class="al-dot">＋</span><span class="al-pop-name">قائمة جديدة «' + esc(raw) + '»</span></button>' : '') +
+      (!others.length && !raw ? '<div class="al-ic-none">لا قوائم أخرى — اكتب اسمًا لإنشاء واحدة</div>' : '');
+    }
+    rows();
+    document.body.appendChild(pop); placePop(anchor);
+    setTimeout(function () { document.addEventListener('mousedown', outsideSaver, true); q.focus(); }, 0);
+    q.addEventListener('input', rows);
+    q.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      var first = box.querySelector('[data-to], [data-new]'); if (first) first.click();
+    });
+    pop.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-to], [data-new], [data-act=close]'); if (!b) return;
+      if (b.getAttribute('data-act') === 'close') { closeSaver(); return; }
+      var to;
+      if (b.hasAttribute('data-new')) {
+        to = newList({ name: q.value.trim().replace(/\s+/g, ' '), icon: ICONS[(st.lists.length + 2) % ICONS.length], color: COLORS[(st.lists.length * 5) % COLORS.length] });
+        st.lists.push(to);
+      } else to = listById(b.getAttribute('data-to'));
+      closeSaver();
+      if (to) transfer(l, to, keys, mode);
+    });
+  }
+
+  function transfer(from, to, keys, mode) {
+    var now = Date.now(), maxO = to.items.reduce(function (m, it) { return Math.max(m, it.order || 0); }, 0);
+    var src = itemsOf(from, keys), addedKeys = [], had = 0;
+    src.forEach(function (it) {
+      if (hasItem(to, it.s, it.a)) { had++; return; }
+      // a move keeps the ayah's review progress; a copy starts it fresh in the new list
+      to.items.push(mode === 'move' ? Object.assign({}, it, { order: ++maxO })
+        : { s: it.s, a: it.a, added: now, order: ++maxO, lvl: 0, next: now });
+      addedKeys.push(k(it.s, it.a));
+    });
+    if (mode === 'move') from.items = from.items.filter(function (x) { return keys.indexOf(k(x.s, x.a)) < 0; });
+    st.lastIds = [to.id].concat(st.lastIds.filter(function (x) { return x !== to.id; })).slice(0, 5);
+    ui.sel = null; save();
+    var verb = mode === 'move' ? 'نُقلت ' : 'نُسخت ';
+    var msg = verb + plural(src.length) + ' إلى «' + to.name + '»' + (had ? ' (' + had + ' كانت فيها)' : '');
+    offerUndo(msg, function () {
+      to.items = to.items.filter(function (x) { return addedKeys.indexOf(k(x.s, x.a)) < 0; });
+      if (mode === 'move') src.forEach(function (it) { if (!hasItem(from, it.s, it.a)) from.items.push(it); });
+      if (!to.items.length && nameKey(to.name) && st.lists.indexOf(to) >= 0 && to.created > now - 1000) st.lists = st.lists.filter(function (x) { return x !== to; });
+    });
+    renderModal(); paintSaveButtons();
+  }
+
+  function removeSelected(l) {
+    var keys = selKeys(), gone = itemsOf(l, keys);
+    if (!gone.length) return;
+    if (gone.length > 1 && !confirm('إزالة ' + plural(gone.length) + ' من «' + l.name + '»؟ (يمكنك التراجع بعدها)')) return;
+    l.items = l.items.filter(function (x) { return keys.indexOf(k(x.s, x.a)) < 0; });
+    ui.sel = null; save();
+    offerUndo('أُزيلت ' + plural(gone.length) + ' من «' + l.name + '»', function () {
+      gone.forEach(function (it) { if (!hasItem(l, it.s, it.a)) l.items.push(it); });
+    });
+    renderModal(); paintSaveButtons();
+  }
+
   function wireMain(l) {
     var main = modal.querySelector('.al-main');
+    // a long press on a card starts «تحديد» with that ayah picked (the phone's way in)
+    var lp = null;
+    main.onpointerdown = function (e) {
+      var c = e.target.closest('.al-card');
+      if (!c || ui.sel || e.target.closest('button, textarea, input, select, a') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      var x0 = e.clientX, y0 = e.clientY;
+      lp = { t: setTimeout(function () { lp = { fired: true }; ui.sel = { keys: {}, last: null }; ui.sel.keys[c.getAttribute('data-k')] = 1; ui.sel.last = c.getAttribute('data-k'); renderMain(); if (navigator.vibrate) navigator.vibrate(15); }, 480),
+        x: x0, y: y0 };
+    };
+    main.onpointermove = function (e) { if (lp && lp.t && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) { clearTimeout(lp.t); lp = null; } };
+    main.onpointerup = main.onpointercancel = function () { if (lp && lp.t) { clearTimeout(lp.t); lp = null; } };
     main.onclick = function (e) {
       var b;
+      if (lp && lp.fired) { lp = null; return; }         // the click that ends the long press
+      if (ui.sel && !e.target.closest('[data-act], .al-main-top')) {
+        var pc = e.target.closest('.al-card');
+        if (pc) { e.preventDefault(); toggleKey(l, pc.getAttribute('data-k'), e.shiftKey); }
+        return;
+      }
       if ((b = e.target.closest('[data-act]'))) {
         var act = b.getAttribute('data-act');
+        if (act === 'select') { ui.sel = ui.sel ? null : { keys: {}, last: null }; renderMain(); return; }
+        if (act === 'sel-close') { ui.sel = null; renderMain(); return; }
+        if (act === 'sel-all') {
+          var view = itemsView(l).map(function (x) { return k(x.s, x.a); });
+          var allOn = view.every(function (x) { return ui.sel.keys[x]; });
+          view.forEach(function (x) { if (allOn) delete ui.sel.keys[x]; else ui.sel.keys[x] = 1; });
+          paintSel(l); return;
+        }
+        if (act === 'sel-move' || act === 'sel-copy') { openPicker(l, act === 'sel-move' ? 'move' : 'copy', b); return; }
+        if (act === 'sel-text') { copyList(l, selKeys()); return; }
+        if (act === 'sel-review') {
+          var rk = itemsOf(l, selKeys());
+          rk.forEach(function (it) { it.lvl = 0; it.next = Date.now(); });
+          ui.sel = null; save(); renderModal(); toast('عادت ' + plural(rk.length) + ' للمراجعة الآن'); return;
+        }
+        if (act === 'sel-remove') { removeSelected(l); return; }
+        if (act === 'undo') { if (ui.undo) { var run = ui.undo.run; ui.undo = null; run(); save(); renderModal(); paintSaveButtons(); toast('تم التراجع'); } return; }
         if (act === 'edit') {
           ui.editing = 'edit';
           ui.form = { name: l.name, desc: l.desc || '', icon: l.icon, color: l.color, review: !!l.review, cat: 'all', q: '' };
@@ -704,9 +920,9 @@
   }
 
   /* -------------------------- copy / backup -------------------------- */
-  function copyList(l) {
+  function copyList(l, onlyKeys) {   // onlyKeys: the picked ayahs of «تحديد»
     var lines = [iconText(l.icon) + ' ' + l.name + (l.desc ? ' — ' + l.desc : ''), ''];
-    itemsView(l).forEach(function (x) {
+    itemsView(l).filter(function (x) { return !onlyKeys || onlyKeys.indexOf(k(x.s, x.a)) >= 0; }).forEach(function (x) {
       var r = ayahRow(x.s, x.a); if (!r) return;
       lines.push('﴿' + ayahText(x.s, x.a) + '﴾ [' + r[3] + ': ' + x.a + ']');
       var n = (st.notes[k(x.s, x.a)] || {}).text; if (n) lines.push('📝 ' + n);
@@ -775,8 +991,22 @@
       openSaver(c.s, c.a, db);
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { if (pop) { closeSaver(); e.stopPropagation(); return; } if (modal) { close(); e.stopPropagation(); return; } }
       var t = e.target, typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+      if (e.key === 'Escape') {
+        if (pop) { closeSaver(); e.stopPropagation(); return; }
+        if (modal) {                                   // one step back at a time
+          e.stopPropagation();
+          if (t && t.matches && t.matches('.al-side-search input') && t.value) { t.value = ''; ui.lq = ''; filterSide(modal.querySelector('.al-side')); return; }
+          if (ui.sel) { ui.sel = null; renderMain(); return; }
+          close(); return;
+        }
+      }
+      if (modal && ui.sel && !typing && (e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A' || e.key === 'ش')) {
+        e.preventDefault();
+        var cur = listById(st.activeId);
+        if (cur) { itemsView(cur).forEach(function (x) { ui.sel.keys[k(x.s, x.a)] = 1; }); paintSel(cur); }
+        return;
+      }
       if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === 'b' || e.key === 'B' || e.key === 'لا') {
         var h = g('currentHighlightedAyah') || null, c = currentReciteAyah();

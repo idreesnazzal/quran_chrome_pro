@@ -285,3 +285,73 @@
   .al-pv-name { font-size: 1.1rem; }
   .al-studio .al-icons { max-height: 168px; }
 }
+
+/* ======================= v3: list search, «تحديد», move / copy, undo ======================= */
+.al-side-item[hidden], .al-pop-row[hidden], .al-side-none[hidden], .al-pop-hint[hidden] { display: none !important; }
+.al-side-search { display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: 11px; padding: 0 10px; transition: border-color 0.15s, box-shadow 0.15s; }
+.al-side-search:focus-within { border-color: var(--gold-primary); box-shadow: 0 0 0 3px var(--gold-bg); }
+.al-side-search span { font-size: 0.8rem; opacity: 0.7; }
+.al-side-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--text-main);
+  font-family: inherit; font-size: 0.86rem; padding: 8px 0; }
+.al-side-name mark, .al-pop-name mark { background: color-mix(in srgb, var(--lc, var(--gold-primary)) 28%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.al-side-none { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+.al-pop-hint { font-size: 0.78rem; color: var(--text-muted); padding: 6px 8px; line-height: 1.7; }
+.al-pop-hint b { color: var(--gold-ink); }
+.al-pop-new input[type=search] { border-style: solid; }
+
+/* «تحديد» */
+.al-sel-btn { margin-inline-start: auto; }
+.al-sel-btn.on { background: var(--gold-primary); border-color: var(--gold-primary); color: var(--btn-gold-text); }
+.al-selecting .al-card { cursor: pointer; user-select: none; position: relative; }
+.al-selecting .al-card-foot, .al-selecting .al-rev, .al-selecting .al-move { display: none; }
+.al-selecting .al-note:not(.has) { display: none; }
+.al-selecting .al-note textarea { pointer-events: none; }
+.al-selecting .al-card:hover { border-color: color-mix(in srgb, var(--lc) 55%, var(--border-color)); }
+.al-card.picked { background: color-mix(in srgb, var(--lc) 9%, var(--bg-primary)); border-color: var(--lc); box-shadow: 0 0 0 2px color-mix(in srgb, var(--lc) 35%, transparent); }
+.al-card:focus-visible { outline: 2px solid var(--lc); outline-offset: 2px; }
+.al-tick { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--border-color); background: var(--bg-card);
+  display: grid; place-items: center; transition: 0.15s; }
+.al-card.picked .al-tick { background: var(--lc); border-color: var(--lc); }
+.al-card.picked .al-tick::after { content: "\2713"; color: #fff; font-size: 0.78rem; font-weight: 900; }
+.al-selbar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin: 0 14px 14px; padding: 8px 10px; border-radius: 16px; background: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--lc) 45%, var(--border-color)); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  animation: alBarIn 0.18s ease-out; }
+@keyframes alBarIn { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+.al-sb-x { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; }
+.al-sb-count { font-size: 0.84rem; font-weight: 700; color: var(--text-muted); padding: 0 4px; white-space: nowrap; }
+.al-sb-count b { color: var(--lc); font-size: 1.05rem; font-weight: 900; }
+.al-sb-sep { flex: 1; }
+.al-sb-btn { font-family: inherit; font-size: 0.8rem; font-weight: 700; padding: 6px 11px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-main); transition: 0.15s; }
+.al-sb-btn:hover:not(:disabled) { border-color: var(--lc); color: var(--lc); }
+.al-sb-btn.danger:hover:not(:disabled) { border-color: var(--danger-ink); color: var(--danger-ink); }
+.al-sb-btn:disabled { opacity: 0.4; cursor: default; }
+.al-undo { position: sticky; bottom: 0; z-index: 6; margin: 0 auto 14px; display: flex; align-items: center; gap: 12px; width: fit-content; max-width: calc(100% - 28px);
+  padding: 8px 8px 8px 14px; border-radius: 12px; background: var(--text-main); color: var(--bg-card); font-size: 0.86rem; font-weight: 700;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3); animation: alBarIn 0.18s ease-out; }
+.al-undo button { font-family: inherit; font-weight: 800; font-size: 0.84rem; border: 0; border-radius: 8px; padding: 5px 12px; cursor: pointer;
+  background: var(--gold-primary); color: var(--btn-gold-text); }
+.al-selbar ~ .al-undo { bottom: 64px; }
+
+/* the move / copy picker */
+.al-picker .al-pick-q { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 0.86rem; color: var(--text-main); background: var(--bg-primary);
+  border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px; outline: none; }
+.al-picker .al-pick-q:focus { border-color: var(--gold-primary); }
+.al-pick-row, .al-pick-new { font-family: inherit; width: 100%; background: transparent; color: var(--text-main); text-align: start; }
+.al-pick-row:hover, .al-pick-new:hover { border-color: color-mix(in srgb, var(--lc, var(--gold-primary)) 45%, transparent); }
+.al-pick-new .al-dot { color: var(--gold-ink); font-weight: 900; }
+.al-pick-new .al-pop-name { color: var(--gold-ink); }
+.al-pick-have { font-size: 0.7rem; font-weight: 700; color: var(--ok-ink); background: rgba(16, 185, 129, 0.1); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .al-selbar { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); margin: 0; gap: 4px; padding: 6px 8px; z-index: 2600; }
+  .al-undo { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 2601; margin: 0; }
+  .al-selbar ~ .al-undo { bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
+  .al-selecting .al-items { padding-bottom: 130px; }
+  .al-sb-sep { flex-basis: 100%; height: 0; }
+  .al-sb-btn { flex: 1 1 auto; padding: 7px 8px; }
+  .al-side-search { order: 0; }
+  .al-main { min-height: 0; }        /* the column must not grow past the screen, or the bar falls off it */
+}
