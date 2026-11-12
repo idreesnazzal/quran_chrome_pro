@@ -2706,6 +2706,17 @@
       color: var(--gold-ink);
     }
 
+    /* the reason's status is already in the strip above the tabs («سبب النزول: …») */
+    #nuzulStatusBadge { display: none; }
+
+    /* phones: three equal tabs that always fit (the third was cut off at 375px) */
+    @media (max-width: 600px) {
+      .tafsir-tabs-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .tafsir-tab-btn { justify-content: center; padding: 8px 4px; gap: 4px; font-size: 0.76rem; white-space: nowrap; min-width: 0; overflow: hidden; }
+      .tafsir-tab-btn > span:first-child { display: none; }      /* the emoji; the word is enough */
+      .tafsir-tab-btn .tab-badge-pill { display: none !important; }   /* «معاني الكلمات» + count did not fit (JS sets an inline display) */
+    }
+
     .tafsir-tab-content {
       display: none;
       flex-direction: column;
@@ -3064,192 +3075,116 @@
       text-align: right;
     }
 
-    /* سبب النزول: ملخّص سهل + حكم الكتاب + النص الأصلي */
-    .asbab-editor-line { padding-inline-start: 14px; opacity: 0.92; font-size: 0.95em; }
-    .asbab-picker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-    .asbab-picker .tafsir-select { max-width: 100%; flex: 1 1 220px; }
-    .asbab-entry {
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 14px 16px;
+    /* سبب النزول — one filter, then one card per event: summary, then a row per book */
+    .asb-panel { display: flex; flex-direction: column; gap: 14px; }
+    .asb-filter {
+      display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+      background: var(--bg-secondary); border: 1px solid var(--border-color);
+      border-radius: 12px; padding: 4px;
     }
-
-    .asbab-entry + .asbab-entry {
-      margin-top: 12px;
+    .asb-filter::-webkit-scrollbar { display: none; }
+    .asb-seg {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px;
+      border: 0; background: transparent; color: var(--text-muted);
+      font: inherit; font-size: 0.86rem; font-weight: 700; white-space: nowrap;
+      padding: 7px 14px; border-radius: 9px; cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
     }
-
-    .asbab-top {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
+    .asb-seg:hover:not(:disabled) { color: var(--text-main); background: var(--bg-card-hover); }
+    .asb-seg.on { background: var(--bg-card); color: var(--gold-ink); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+    .asb-seg:disabled { opacity: 0.45; cursor: default; }
+    .asb-seg-n {
+      font-size: 0.72rem; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+      display: inline-grid; place-items: center; background: var(--gold-bg); color: var(--gold-ink);
     }
+    .asb-seg:disabled .asb-seg-n { background: var(--border-color); color: var(--text-muted); }
 
-    .asbab-book-tag {
-      font-size: 0.74rem;
-      font-weight: 700;
-      color: var(--gold-ink);
-      background: var(--gold-bg);
-      border: 1px solid var(--gold-primary);
-      border-radius: 10px;
-      padding: 1px 9px;
+    .asb-list { display: flex; flex-direction: column; gap: 14px; }
+    .asb-card {
+      position: relative; background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 14px; padding: 18px 22px 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
-
-    .asbab-range-tag {
-      font-size: 0.74rem;
-      color: var(--text-main);
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 1px 9px;
+    .asb-card::before {
+      content: ""; position: absolute; inset-inline-start: -1px; top: 18px; bottom: 18px;
+      width: 3px; border-radius: 3px; background: var(--gold-primary); opacity: 0.75;
     }
-
-    .asbab-grade {
-      font-size: 0.76rem;
-      font-weight: 700;
-      border-radius: 10px;
-      padding: 1px 10px;
-      border: 1px solid transparent;
+    .asb-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .asb-tag {
+      font-size: 0.76rem; color: var(--text-muted); background: var(--bg-secondary);
+      border: 1px solid var(--border-color); border-radius: 20px; padding: 2px 10px;
     }
+    .asb-best, .asb-pill { border: 1px solid; border-radius: 20px; white-space: nowrap; }
+    .asb-best { font-size: 0.78rem; font-weight: 800; padding: 2px 11px; }
+    .asb-best small { font-size: 0.92em; font-weight: 600; opacity: 0.85; }
+    .asb-pill { font-size: 0.74rem; font-weight: 700; padding: 0 9px; line-height: 1.85; }
+    .asb-pill i { font-style: normal; font-weight: 600; opacity: 0.8; }
+    .asb-best.g-sahih, .asb-pill.g-sahih { color: var(--ok-ink); background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.4); }
+    .asb-best.g-hasan, .asb-pill.g-hasan { color: var(--warn-ink); background: rgba(245, 158, 11, 0.13); border-color: rgba(245, 158, 11, 0.45); }
+    .asb-best.g-daif,  .asb-pill.g-daif  { color: var(--danger-ink); background: rgba(239, 68, 68, 0.11); border-color: rgba(239, 68, 68, 0.4); }
+    .asb-pill.g-none { color: var(--text-muted); background: transparent; border-color: var(--border-color); font-weight: 600; }
+    .asb-pill.g-src  { color: var(--gold-ink); background: var(--gold-bg); border-color: transparent; }
 
-    .asbab-grade.g-sahih { color: #15803d; background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.45); }
-    .asbab-grade.g-hasan { color: #b45309; background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.45); }
-    .asbab-grade.g-daif  { color: #b91c1c; background: rgba(239, 68, 68, 0.13); border-color: rgba(239, 68, 68, 0.45); }
-    .asbab-grade.g-none  { color: var(--text-muted); background: var(--bg-card); border-color: var(--border-color); }
-
-    .asbab-summary {
-      margin: 0 0 10px;
-      font-size: 1.06rem;
-      line-height: 2;
-      font-weight: 600;
-      color: var(--text-main);
+    .asb-summary {
+      margin: 0 0 14px; font-size: 1.12rem; line-height: 2.05; font-weight: 500;
+      color: var(--text-main); text-wrap: pretty;
     }
-
-    .asbab-pending {
-      margin: 0 0 10px;
-      font-size: 0.92rem;
-      line-height: 1.9;
-      color: var(--text-muted);
+    .asb-note {
+      font-size: 0.88rem; line-height: 1.9; color: var(--text-main); background: var(--gold-subtle);
+      border: 1px dashed var(--gold-primary); border-radius: 8px; padding: 8px 12px; margin: -4px 0 12px;
     }
-
-    .asbab-evidence {
-      font-size: 0.88rem;
-      line-height: 1.9;
-      color: var(--text-muted);
-      border-right: 3px solid var(--gold-primary);
-      background: var(--bg-card);
-      border-radius: 6px;
-      padding: 8px 12px;
-      margin-bottom: 8px;
+    .asb-sources { border-top: 1px solid var(--border-color); padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+    .asb-sources-label { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin: 0 4px 2px; }
+    .asb-src > summary {
+      list-style: none; display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 10px; cursor: pointer; user-select: none;
     }
-
-    .asbab-verdicts {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      margin-bottom: 10px;
+    .asb-src > summary::-webkit-details-marker { display: none; }
+    .asb-src > summary:hover, .asb-src[open] > summary { background: var(--bg-secondary); }
+    .asb-src-name { font-weight: 800; font-size: 0.92rem; color: var(--text-main); min-width: 58px; }
+    .asb-pills { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+    .asb-chev {
+      width: 7px; height: 7px; flex-shrink: 0; margin-inline-end: 4px;
+      border-left: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted);
+      transform: rotate(-45deg) translateY(-2px); transition: transform 0.2s ease;
     }
-
-    .asbab-verdict-line {
-      display: flex;
-      align-items: baseline;
-      flex-wrap: wrap;
-      gap: 6px;
-      font-size: 0.88rem;
-      line-height: 1.85;
-      color: var(--text-main);
+    .asb-src[open] .asb-chev { transform: rotate(135deg) translateY(-2px); }
+    .asb-src-body { padding: 10px 12px 12px; margin: 4px 8px 8px; border-inline-start: 2px solid var(--gold-bg); }
+    .asb-src-title { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; }
+    .asb-why {
+      font-size: 0.86rem; line-height: 1.9; color: var(--text-main); background: var(--gold-subtle);
+      border-radius: 8px; padding: 7px 12px; margin-bottom: 8px; overflow-wrap: anywhere;
     }
-
-    .asbab-ref {
-      font-size: 0.84rem;
-      color: var(--gold-ink);
-      font-weight: 600;
+    .asb-why b { color: var(--gold-ink); }
+    .asb-block + .asb-block { border-top: 1px dashed var(--border-color); margin-top: 12px; padding-top: 12px; }
+    .asb-page { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; }
+    .asb-par, .asb-head, .asb-fn { white-space: pre-line; overflow-wrap: anywhere; }
+    .asb-par { font-size: 1rem; line-height: 2.1; color: var(--text-main); margin: 0 0 8px; text-align: justify; }
+    .asb-head { font-size: 0.9rem; line-height: 2; color: var(--text-muted); margin: 0 0 8px; }
+    .asb-sec { font-size: 0.78rem; font-weight: 800; color: var(--gold-ink); margin: 12px 0 2px; }
+    .asb-fn {
+      font-size: 0.8rem; line-height: 1.9; color: var(--text-muted); margin: 6px 0 0;
+      padding-inline-start: 10px; border-inline-start: 2px solid var(--border-color);
     }
+    .asb-q { font-family: 'Amiri', serif; font-size: 1.08em; color: var(--gold-ink); }
 
-    .asbab-evidence-inline {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      line-height: 1.85;
-      overflow-wrap: anywhere;
+    .asb-empty {
+      text-align: center; padding: 30px 16px; border: 1px dashed var(--border-color);
+      border-radius: 14px; background: var(--bg-card);
     }
-
-    .asbab-note {
-      font-size: 0.88rem;
-      line-height: 1.9;
-      color: var(--text-main);
-      background: var(--gold-bg);
-      border: 1px dashed var(--gold-primary);
-      border-radius: 6px;
-      padding: 8px 12px;
-      margin-bottom: 8px;
+    .asb-empty-sm { padding: 20px 14px; }
+    .asb-empty-icon { font-size: 2rem; margin-bottom: 6px; opacity: 0.85; }
+    .asb-empty-title { font-weight: 800; font-size: 1.02rem; margin: 0 0 6px; color: var(--text-main); }
+    .asb-empty-sub { font-size: 0.84rem; color: var(--text-muted); margin: 0 0 8px; }
+    .asb-empty-books { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+    .asb-empty-books span {
+      font-size: 0.76rem; color: var(--text-main); background: var(--bg-secondary);
+      border: 1px solid var(--border-color); border-radius: 20px; padding: 2px 10px;
     }
-
-    .asbab-texts {
-      margin-top: 6px;
-    }
-
-    .asbab-texts > summary {
-      cursor: pointer;
-      font-size: 0.86rem;
-      font-weight: 700;
-      color: var(--gold-ink);
-      padding: 2px 0;
-    }
-
-    .asbab-texts[open] > summary {
-      margin-bottom: 8px;
-    }
-
-    .asbab-text-block {
-      margin-top: 8px;
-      border-top: 1px dashed var(--border-color);
-      padding-top: 8px;
-    }
-
-    .asbab-text-book {
-      font-size: 0.84rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 4px;
-    }
-
-    .asbab-text-part {
-      font-size: 0.92rem;
-      line-height: 2.05;
-      color: var(--text-main);
-      text-align: justify;
-      margin: 0 0 8px;
-      overflow-wrap: anywhere;
-    }
-
-    .asbab-text-part:last-child {
-      margin-bottom: 0;
-    }
-
-    .asbab-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      text-align: center;
-      padding: 18px 12px;
-    }
-
-    .asbab-empty-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin: 0;
-    }
-
-    .asbab-empty-sub {
-      font-size: 0.88rem;
-      line-height: 1.9;
-      color: var(--text-muted);
-      margin: 0;
-      max-width: 520px;
+    @media (max-width: 600px) {
+      .asb-card { padding: 14px 14px 10px; }
+      .asb-summary { font-size: 1.04rem; }
+      .asb-src > summary { flex-wrap: wrap; row-gap: 4px; }
+      .asb-src-body { margin-inline: 2px; padding-inline: 10px; }
     }
 
     .asbab-loading {
@@ -4022,7 +3957,11 @@
             <div class="revelation-meta-chip" id="chipNuzulTiming" title="ترتيب وموعد النزول الزمني في تاريخ الوحي">
               <span>⏳</span>
               <span class="chip-label">ترتيب النزول:</span>
-              <span class="chip-val" id="chipTimingVal">السورة رقم 5 نزولاً</span>
+              <span class="chip-val" id="chipTimingVal">5 من 114</span>
+            </div>
+            <div class="revelation-meta-chip" id="chipNuzulVerses" title="عدد آيات السورة">
+              <span>🔢</span>
+              <span class="chip-val" id="chipVersesVal">7 آيات</span>
             </div>
             <div class="revelation-meta-chip chip-reason" id="chipNuzulReason" onclick="switchTafsirTab('nuzul')" role="button" title="اضغط لمطالعة سبب النزول وموعده بالتفصيل">
               <span>📜</span>
@@ -4046,7 +3985,7 @@
           </button>
           <button class="tafsir-tab-btn" id="tabBtnNuzul" onclick="switchTafsirTab('nuzul')">
             <span>📜</span>
-            <span>سبب وموعد النزول</span>
+            <span>سبب النزول</span>
             <span id="nuzulStatusBadge" class="tab-badge-pill asbab-general">عام</span>
           </button>
         </div>
@@ -4074,67 +4013,9 @@
 
         <!-- Tab 3: Reason & Timing of Revelation (سبب وموعد النزول) -->
         <div class="tafsir-tab-content" id="nuzulTabContent">
-          <div class="nuzul-panel-container">
-            <!-- Revelation Timing & Era Card -->
-            <div class="nuzul-card">
-              <div class="nuzul-card-header">
-                <div class="nuzul-card-title">
-                  <span>⏳</span>
-                  <span>موعد وفترة النزول والترتيب الزمني في تاريخ الوحي</span>
-                </div>
-                <div class="words-source-badge" id="nuzulEraBadge">العهد المكي المبارك</div>
-              </div>
-              <div class="nuzul-card-body">
-                <div class="nuzul-timing-grid">
-                  <div class="timing-stat-box">
-                    <span class="timing-stat-icon" id="timingStatPlaceIcon">🕋</span>
-                    <div class="timing-stat-info">
-                      <span class="timing-stat-label">مكان النزول</span>
-                      <span class="timing-stat-value" id="nuzulTimingPlace">مكية</span>
-                    </div>
-                  </div>
-                  <div class="timing-stat-box">
-                    <span class="timing-stat-icon">📜</span>
-                    <div class="timing-stat-info">
-                      <span class="timing-stat-label">ترتيب النزول الزمني</span>
-                      <span class="timing-stat-value" id="nuzulTimingOrder">السورة رقم 5 نزولاً</span>
-                    </div>
-                  </div>
-                  <div class="timing-stat-box">
-                    <span class="timing-stat-icon">🕰️</span>
-                    <div class="timing-stat-info">
-                      <span class="timing-stat-label">فترة والعهد النبوي</span>
-                      <span class="timing-stat-value" id="nuzulTimingEra">قبل الهجرة النبوية</span>
-                    </div>
-                  </div>
-                  <div class="timing-stat-box">
-                    <span class="timing-stat-icon">🔢</span>
-                    <div class="timing-stat-info">
-                      <span class="timing-stat-label">إجمالي آيات السورة</span>
-                      <span class="timing-stat-value" id="nuzulTimingVerses">7 آيات</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="nuzul-historical-narrative" id="nuzulTimingDesc">
-                  نزلت هذه السورة الكريمة في مكة المكرمة خلال العهد المكي قبل هجرة النبي ﷺ إلى المدينة المنورة، وترتيبها الزمني في مسيرة التنزيل هو السورة رقم (5)، وتمتاز السور المكية بتثبيت أركان الإيمان والتوحيد.
-                </div>
-              </div>
-            </div>
-
-            <!-- Occasion / Reason of Revelation Card -->
-            <div class="nuzul-card">
-              <div class="nuzul-card-header">
-                <div class="nuzul-card-title" id="nuzulReasonStatus">
-                  <span>📜</span>
-                  <span>سبب النزول الملخّص</span>
-                </div>
-                <div class="words-source-badge" id="nuzulSourceLabel">من كتب أسباب النزول</div>
-              </div>
-              <div class="nuzul-card-body asbab-body-text" id="nuzulReasonBody">
-                <!-- Populated dynamically via JS -->
-              </div>
-            </div>
-          </div>
+          <!-- the surah's place / order / length are in the strip above the tabs (once);
+               this tab is only the reason: a book filter, then one card per event -->
+          <div class="asb-panel" id="nuzulReasonBody"></div>
         </div>
       </div>
 
@@ -4427,14 +4308,7 @@
     const chipTimingVal = document.getElementById('chipTimingVal');
     const chipNuzulReason = document.getElementById('chipNuzulReason');
     const chipReasonVal = document.getElementById('chipReasonVal');
-    const nuzulEraBadge = document.getElementById('nuzulEraBadge');
-    const timingStatPlaceIcon = document.getElementById('timingStatPlaceIcon');
-    const nuzulTimingPlace = document.getElementById('nuzulTimingPlace');
-    const nuzulTimingOrder = document.getElementById('nuzulTimingOrder');
-    const nuzulTimingEra = document.getElementById('nuzulTimingEra');
-    const nuzulTimingVerses = document.getElementById('nuzulTimingVerses');
-    const nuzulTimingDesc = document.getElementById('nuzulTimingDesc');
-    const nuzulReasonStatus = document.getElementById('nuzulReasonStatus');
+    const chipVersesVal = document.getElementById('chipVersesVal');
     const nuzulReasonBody = document.getElementById('nuzulReasonBody');
 
     const TAFSIR_CONFIG = {
@@ -6159,7 +6033,7 @@
       } else if (tab === 'words') {
         tafsirCopyBtn.textContent = '📋 نسخ معاني الكلمات';
       } else if (tab === 'nuzul') {
-        tafsirCopyBtn.textContent = '📋 نسخ سبب وموعد النزول';
+        tafsirCopyBtn.textContent = '📋 نسخ سبب النزول';
       }
     }
 
@@ -6262,49 +6136,116 @@
       (card.t || []).forEach((x) => { if (seen.indexOf(x.b) < 0) seen.push(x.b); });
       return seen;
     }
-    // one card = one event: one summary, every book's verdict side by side, and the
-    // full texts of the books that print their narration (الواحدي / المحرر / السيوطي)
-    function asbabCardHtml(card) {
-      const books = asbabCardBooks(card), where = asbabWhere(card), texts = card.t || [];
-      const tags = books.map((b) => `<span class="asbab-book-tag">${asbabEsc(asbabBook(b).s || 'الكتاب')}</span>`).join('');
-      const verdicts = (card.v || []).map((v) => {
-        const bk = asbabBook(v.b);
-        const ev = v.e ? `<span class="asbab-evidence-inline">«${asbabEsc(v.e)}»</span>` : '';
-        // حكم المحقق: the modern editor's verdict from the footnotes (الواحدي does not grade)
-        const ed = (v.ed || []).map((e) => `<div class="asbab-verdict-line asbab-editor-line">
-            ${e.g ? `<span class="asbab-grade ${asbabEdClass(e.g)}">${asbabEsc(e.g)}</span>` : ''}
-            <b>حكم المحقق</b>${e.src ? `<span class="asbab-ref">رواه ${asbabEsc(e.src)}</span>` : ''}${e.q ? `<span class="asbab-evidence-inline">«${asbabEsc(e.q)}»</span>` : ''}
+    // ---- the book's own text, made readable without changing a letter of it -------------
+    //  * the editor's footnotes «(n) - أخرجه …» (undiacritized prose) are set apart, smaller
+    //  * المحرر's «سبب النزول: / دراسة السبب: / النتيجة:» become small headings
+    //  * Quran words in {…} or ﴿…﴾ are set in the Quran ink
+    const ASBAB_DIAC = /[ً-ْٰ]/g;
+    function asbabIsFootnote(p) {
+      const m = /^\s*\(([٠-٩0-9]+)\)\s*-?\s*/.exec(p);
+      if (!m) return false;
+      const body = p.slice(m[0].length);
+      const letters = (body.match(/[ء-ي]/g) || []).length || 1;
+      const diac = (body.match(ASBAB_DIAC) || []).length;
+      return diac / letters < 0.15 && !/^(قوله|وقال|قال|أخبرنا|حدثنا|نزلت|روى)/.test(body.replace(ASBAB_DIAC, ''));
+    }
+    function asbabInline(s) {
+      return asbabEsc(s)
+        .replace(/\{([^{}]{2,400})\}/g, '<span class="asb-q">﴿$1﴾</span>')
+        .replace(/﴿([^﴿﴾]{2,400})﴾/g, '<span class="asb-q">﴿$1﴾</span>');
+    }
+    function asbabPartHtml(p) {
+      let s = String(p || '').replace(/(\s*\*\s*){3,}/g, '\n').replace(/^[\s*]+|[\s*]+$/g, '');
+      if (!s) return '';
+      if (asbabIsFootnote(s)) return `<p class="asb-fn">${asbabInline(s)}</p>`;
+      const plainHead = s.split('\n')[0].replace(ASBAB_DIAC, '').trim();
+      const sec = /^(سبب النزول|دراسة السبب|النتيجة)\s*:\s*$/.exec(plainHead) ||
+                  /^(سبب النزول|دراسة السبب|النتيجة)\s*:/.exec(plainHead);
+      if (sec) {
+        const rest = s.replace(/^[^\n:]*:\s*/, '');
+        return `<div class="asb-sec">${sec[1]}</div><p class="asb-par">${asbabInline(rest)}</p>`;
+      }
+      if (/^[٠-٩0-9]+\s*-\s*قال الله تعالى/.test(plainHead)) return `<p class="asb-head">${asbabInline(s)}</p>`;
+      return `<p class="asb-par">${asbabInline(s)}</p>`;
+    }
+    const ASBAB_BOOK_ORDER = ['460', '2919', 'suyuti'];
+    function asbabBooksOf(card) {
+      const ids = [];
+      (card.v || []).forEach((v) => { if (ids.indexOf(String(v.b)) < 0) ids.push(String(v.b)); });
+      (card.t || []).forEach((x) => { if (ids.indexOf(String(x.b)) < 0) ids.push(String(x.b)); });
+      return ids;
+    }
+    // the strongest graded verdict on a card: the books' own first, then the editor's
+    function asbabTopVerdict(card) {
+      let best = null;
+      (card.v || []).forEach((v) => {
+        if (v.g && v.g !== 'لم يُحكم عليه' && (!best || (ASBAB_RANK[v.g] ?? 2) < (ASBAB_RANK[best.g] ?? 2))) {
+          best = { g: v.g, who: asbabBook(v.b).s || '', cls: asbabGradeClass(v.g) };
+        }
+      });
+      if (best) return best;
+      (card.v || []).forEach((v) => (v.ed || []).forEach((e) => {
+        if (e.g && !best) best = { g: e.g, who: 'المحقق', cls: asbabEdClass(e.g) };
+      }));
+      return best;
+    }
+    // one book inside a card: a single row (name + its verdicts), its text one tap away
+    function asbabSourceHtml(card, b, open) {
+      const bk = asbabBook(b);
+      const v = (card.v || []).find((x) => String(x.b) === b) || {};
+      const blocks = (card.t || []).filter((x) => String(x.b) === b);
+      const pills = [];
+      if (v.g && v.g !== 'لم يُحكم عليه') pills.push(`<span class="asb-pill ${asbabGradeClass(v.g)}">${asbabEsc(v.g)}</span>`);
+      const edSeen = new Set();
+      (v.ed || []).forEach((e) => {
+        if (e.g && !edSeen.has(e.g)) { edSeen.add(e.g); pills.push(`<span class="asb-pill ${asbabEdClass(e.g)}"><i>المحقق:</i> ${asbabEsc(e.g)}</span>`); }
+        if (e.src && !edSeen.has('src:' + e.src)) { edSeen.add('src:' + e.src); pills.push(`<span class="asb-pill g-src">رواه ${asbabEsc(e.src)}</span>`); }
+      });
+      if (!pills.length) pills.push('<span class="asb-pill g-none">بلا حكم</span>');
+      const why = [];
+      if (v.e) why.push(`<div class="asb-why"><b>حكم ${asbabEsc(bk.s || 'الكتاب')}:</b> «${asbabEsc(v.e)}»</div>`);
+      (v.ed || []).forEach((e) => {
+        if (e.q) why.push(`<div class="asb-why asb-why-ed"><b>حكم المحقق${e.g ? ' (' + asbabEsc(e.g) + ')' : ''}:</b> «${asbabEsc(e.q)}»</div>`);
+      });
+      const text = blocks.map((x) => `
+          <div class="asb-block">
+            ${x.page ? `<div class="asb-page">ص ${asbabEsc(x.page[1])}</div>` : ''}
+            ${(x.t || []).map(asbabPartHtml).join('')}
           </div>`).join('');
-        return `<div class="asbab-verdict-line">
-            <span class="asbab-grade ${asbabGradeClass(v.g)}">${asbabEsc(v.g)}</span>
-            <b>${asbabEsc(bk.s || 'الكتاب')}</b>${v.ref ? `<span class="asbab-ref">${asbabEsc(v.ref)}</span>` : ''}${ev}
-          </div>${ed}`;
-      }).join('');
-      const blocks = texts.map((x) => {
-        const bk = asbabBook(x.b);
-        const page = x.page ? ` — ص ${x.page[1]}` : '';
-        return `<div class="asbab-text-block">
-            <div class="asbab-text-book">${asbabEsc(bk.n || '')}${bk.a ? ' — ' + asbabEsc(bk.a) : ''}${asbabEsc(page)}</div>
-            ${(x.t || []).map((p) => `<p class="asbab-text-part">${asbabEsc(p)}</p>`).join('')}
-          </div>`;
-      }).join('');
-      const best = asbabBestGrade(card);
       return `
-        <div class="asbab-entry">
-          <div class="asbab-top">
-            ${tags}
-            ${where ? `<span class="asbab-range-tag">${asbabEsc(where)}</span>` : ''}
-            <span class="asbab-grade ${asbabGradeClass(best)}">${asbabEsc(best)}</span>
+        <details class="asb-src"${open ? ' open' : ''}>
+          <summary>
+            <span class="asb-src-name">${asbabEsc(bk.s || 'الكتاب')}</span>
+            <span class="asb-pills">${pills.join('')}</span>
+            <span class="asb-chev" aria-hidden="true"></span>
+          </summary>
+          <div class="asb-src-body">
+            <div class="asb-src-title">${asbabEsc(bk.n || '')}${bk.a ? ' — ' + asbabEsc(bk.a) : ''}</div>
+            ${why.join('')}
+            ${text}
           </div>
-          ${card.s ? `<p class="asbab-summary">${asbabEsc(card.s)}</p>`
-                   : (card.na ? '' : `<p class="asbab-pending">لم يُكتب لهذا الأثر ملخّص سهل بعد؛ نص الكتاب كما هو أدناه.</p>`)}
-          <div class="asbab-verdicts">${verdicts}</div>
-          ${card.n ? `<div class="asbab-note">${asbabEsc(card.n)}</div>` : ''}
-          <details class="asbab-texts">
-            <summary>النص من الكتب (${texts.length}) ▾</summary>
-            ${blocks}
-          </details>
-        </div>`;
+        </details>`;
+    }
+    // one card = one event: the easy summary first, then one row per book that tells it
+    function asbabCardHtml(card, onlyBook) {
+      const where = asbabWhere(card);
+      const books = asbabBooksOf(card)
+        .filter((b) => !onlyBook || b === onlyBook)
+        .sort((a, b) => (ASBAB_BOOK_ORDER.indexOf(a) + 9) % 9 - (ASBAB_BOOK_ORDER.indexOf(b) + 9) % 9);
+      const top = asbabTopVerdict(onlyBook ? asbabCardForBook(card, onlyBook) : card);
+      const meta = [];
+      if (where) meta.push(`<span class="asb-tag">${asbabEsc(where)}</span>`);
+      if (top) meta.push(`<span class="asb-best ${top.cls}">${asbabEsc(top.g)}<small> · ${asbabEsc(top.who)}</small></span>`);
+      return `
+        <article class="asb-card">
+          ${meta.length ? `<div class="asb-meta">${meta.join('')}</div>` : ''}
+          ${card.s ? `<p class="asb-summary">${asbabEsc(card.s)}</p>` : ''}
+          ${card.n ? `<div class="asb-note">${asbabEsc(card.n)}</div>` : ''}
+          <div class="asb-sources">
+            <div class="asb-sources-label">المصادر</div>
+            ${books.map((b) => asbabSourceHtml(card, b, !!onlyBook)).join('')}
+          </div>
+        </article>`;
     }
     // the reader picks a book, like the tafsir source picker: 'all' or a book id
     let asbabPick = 'all';
@@ -6312,14 +6253,16 @@
     let asbabLast = null;   // [sura, aya, suraName] of the last render, to redraw on a pick
     function asbabPickerHtml(cards) {
       const A = window.ASBAB_DATA || {};
-      const ids = Object.keys(A.books || {});
-      const count = (b) => cards.filter((c) => asbabCardBooks(c).indexOf(b) >= 0 ||
-        (c.v || []).some((v) => v.b === b)).length;
-      const opts = [`<option value="all"${asbabPick === 'all' ? ' selected' : ''}>📚 كل الكتب (${cards.length})</option>`]
-        .concat(ids.map((b) => `<option value="${asbabEsc(b)}"${asbabPick === b ? ' selected' : ''}>📖 ${asbabEsc(asbabBook(b).s || b)}${asbabBook(b).n ? ' — ' + asbabEsc(asbabBook(b).n) : ''} (${count(b)})</option>`));
-      return `<div class="asbab-picker">
-          <span class="tafsir-select-label">الكتاب:</span>
-          <select id="asbabBookSelect" class="tafsir-select" title="اختر كتاب أسباب النزول">${opts.join('')}</select>
+      const ids = Object.keys(A.books || {})
+        .sort((a, b) => (ASBAB_BOOK_ORDER.indexOf(a) + 9) % 9 - (ASBAB_BOOK_ORDER.indexOf(b) + 9) % 9);
+      const count = (b) => cards.filter((c) => asbabBooksOf(c).indexOf(b) >= 0).length;
+      const seg = (val, label, n, title) =>
+        `<button type="button" class="asb-seg${asbabPick === val ? ' on' : ''}" data-book="${asbabEsc(val)}"` +
+        `${n ? '' : ' disabled'} title="${asbabEsc(title)}" role="tab" aria-selected="${asbabPick === val}">` +
+        `${asbabEsc(label)}<span class="asb-seg-n">${n}</span></button>`;
+      return `<div class="asb-filter" role="tablist" aria-label="اختر الكتاب">
+          ${seg('all', 'كل الكتب', cards.length, 'كل الروايات من كل الكتب')}
+          ${ids.map((b) => seg(b, asbabBook(b).s || b, count(b), asbabBook(b).n || '')).join('')}
         </div>`;
     }
     // one book's view of a card: that book's verdict and its own text, opened
@@ -6331,15 +6274,16 @@
     }
     function asbabEmptyHtml(checked) {
       const names = checked.map((b) => asbabBook(b).s).filter(Boolean);
-      const full = checked.map((b) => { const k = asbabBook(b); return k.n ? `${k.n} — ${k.a || ''}`.replace(/ — $/, '') : ''; }).filter(Boolean);
       const line = names.length >= 2
-        ? 'لم يرد في هذه الكتب سبب نزول خاص لهذه الآية.'
-        : `لم يرد في ${names.length ? 'كتاب ' + names[0] : 'الكتب المُراجَعة'} سبب نزول خاص لهذه الآية.`;
+        ? 'لم يرد في كتب أسباب النزول سبب خاص لهذه الآية'
+        : `لم يرد في ${names.length ? 'كتاب ' + names[0] : 'الكتب المُراجَعة'} سبب نزول خاص لهذه الآية`;
+      const full = checked.map((b) => asbabBook(b).n).filter(Boolean);
       return `
-        <div class="asbab-empty">
-          <span style="font-size: 1.9rem;">📖</span>
-          <p class="asbab-empty-title">${asbabEsc(line)}</p>
-          <p class="asbab-empty-sub">${asbabEsc('الكتب المُراجَعة: ' + full.join(' · '))}</p>
+        <div class="asb-empty">
+          <div class="asb-empty-icon" aria-hidden="true">📖</div>
+          <p class="asb-empty-title">${asbabEsc(line)}</p>
+          <p class="asb-empty-sub">الكتب المُراجَعة:</p>
+          <div class="asb-empty-books">${full.map((n) => `<span>${asbabEsc(n)}</span>`).join('')}</div>
         </div>`;
     }
     function asbabCopyText(sura, aya, suraName, page, ayahText) {
@@ -6381,13 +6325,15 @@
         chipPlaceIcon.textContent = isMakki ? '🕋' : '🕌';
       }
       if (chipTimingVal) {
-        chipTimingVal.textContent = `السورة رقم ${order} نزولاً`;
+        chipTimingVal.textContent = `${order} من 114`;
+      }
+      if (chipVersesVal) {
+        chipVersesVal.textContent = `${totalVerses} آية`;
       }
 
       // 2. Asbab al-Nuzul: the summary, the book's own grade, and its text
       const cards = asbabCards(sura, aya);
       const checked = asbabChecked(sura, aya);
-      const sourceLabel = document.getElementById('nuzulSourceLabel');
 
       if (cards === null) {          // data/asbab_data.js has not arrived yet
         if (chipReasonVal) {
@@ -6397,9 +6343,6 @@
         if (nuzulStatusBadge) {
           nuzulStatusBadge.textContent = '…';
           nuzulStatusBadge.className = 'tab-badge-pill asbab-general';
-        }
-        if (nuzulReasonStatus) {
-          nuzulReasonStatus.innerHTML = `<span>📜</span><span>سبب النزول</span>`;
         }
         if (nuzulReasonBody) {
           nuzulReasonBody.innerHTML = `<div class="asbab-loading">جارٍ تحميل أسباب النزول…</div>`;
@@ -6419,13 +6362,8 @@
         nuzulStatusBadge.textContent = hasSabab ? (gradeNow === 'لم يُحكم عليه' ? 'مذكور' : gradeNow) : 'لا سبب خاص';
         nuzulStatusBadge.className = 'tab-badge-pill ' + (hasSabab ? 'asbab-found' : 'asbab-general');
       }
-      if (nuzulReasonStatus) {
-        nuzulReasonStatus.innerHTML = `<span>📜</span><span>سبب النزول الملخّص</span>`;
-      }
-      if (sourceLabel) {
-        const names = checked.map((b) => asbabBook(b).s).filter(Boolean);
-        sourceLabel.textContent = names.length ? 'المُراجَع: ' + names.join(' · ') : 'من كتب أسباب النزول';
-      }
+      // the surah's place / order / length live once, in the strip above the tabs;
+      // this tab holds only the reason for revelation
       if (nuzulReasonBody) {
         asbabLast = [sura, aya, suraName];
         if (!hasSabab) {
@@ -6435,51 +6373,24 @@
           if (asbabPick !== 'all' && !(A.books || {})[asbabPick]) asbabPick = 'all';
           let html;
           if (asbabPick === 'all') {
-            html = cards.map(asbabCardHtml).join('');
+            html = cards.map((c) => asbabCardHtml(c)).join('');
           } else {
-            const mine = cards.filter((c) => asbabCardBooks(c).indexOf(asbabPick) >= 0 ||
-              (c.v || []).some((v) => v.b === asbabPick));
+            const mine = cards.filter((c) => asbabBooksOf(c).indexOf(asbabPick) >= 0);
             const bk = asbabBook(asbabPick);
             html = mine.length
-              ? mine.map((c) => asbabCardHtml(asbabCardForBook(c, asbabPick)).replace('<details class="asbab-texts">', '<details class="asbab-texts" open>')).join('')
-              : `<div class="asbab-empty"><span style="font-size: 1.6rem;">📖</span>
-                   <p class="asbab-empty-title">${asbabEsc(`لم يذكر كتاب ${bk.s || bk.n || ''} سببًا لنزول هذه الآية.`)}</p>
-                   <p class="asbab-empty-sub">اختر «كل الكتب» لرؤية ما في الكتب الأخرى (${cards.length}).</p></div>`;
+              ? mine.map((c) => asbabCardHtml(c, asbabPick)).join('')
+              : `<div class="asb-empty asb-empty-sm">
+                   <p class="asb-empty-title">${asbabEsc(`لم يذكر ${bk.s || bk.n || 'هذا الكتاب'} سببًا لنزول هذه الآية`)}</p>
+                   <p class="asb-empty-sub">في الكتب الأخرى ${cards.length === 1 ? 'رواية واحدة' : cards.length + ' روايات'} — اختر «كل الكتب».</p></div>`;
           }
-          nuzulReasonBody.innerHTML = asbabPickerHtml(cards) + html;
-          const sel = document.getElementById('asbabBookSelect');
-          if (sel) sel.addEventListener('change', () => {
-            asbabPick = sel.value;
+          nuzulReasonBody.innerHTML = asbabPickerHtml(cards) + `<div class="asb-list">${html}</div>`;
+          nuzulReasonBody.querySelectorAll('.asb-seg').forEach((btn) => btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            asbabPick = btn.dataset.book;
             try { localStorage.setItem('asbabBookPick', asbabPick); } catch (e) { /* ignore */ }
             if (asbabLast) renderAyahRevelationContext(asbabLast[0], asbabLast[1], asbabLast[2]);
-          });
+          }));
         }
-      }
-
-      // 2. Revelation Timing & Historical Period Card
-      if (timingStatPlaceIcon) {
-        timingStatPlaceIcon.textContent = isMakki ? '🕋' : '🕌';
-      }
-      if (nuzulTimingPlace) {
-        nuzulTimingPlace.textContent = isMakki ? 'مكية (نزلت بمكة المكرمة)' : 'مدنية (نزلت بالمدينة المنورة)';
-      }
-      if (nuzulTimingOrder) {
-        nuzulTimingOrder.textContent = `السورة رقم ${order} في ترتيب النزول (من 114 سورة)`;
-      }
-      if (nuzulTimingEra) {
-        nuzulTimingEra.textContent = isMakki ? 'العهد المكي (قبل الهجرة النبوية)' : 'العهد المدني (بعد الهجرة النبوية)';
-      }
-      if (nuzulTimingVerses) {
-        nuzulTimingVerses.textContent = `${totalVerses} آية`;
-      }
-      if (nuzulEraBadge) {
-        nuzulEraBadge.textContent = isMakki ? '🕋 العهد المكي الشريف' : '🕌 العهد المدني المبارك';
-      }
-      if (nuzulTimingDesc) {
-        // only what data/quran_data.js actually holds: type, revelation order, verses
-        nuzulTimingDesc.innerHTML = `سورة <b>${suraName}</b>: ${isMakki ? 'مكية' : 'مدنية'}، ` +
-          `وهي السورة رقم <b>(${order})</b> في ترتيب النزول، وعدد آياتها <b>${totalVerses}</b>. ` +
-          `هذه بيانات السورة، وهي غير سبب النزول المذكور في كتب الأسباب.`;
       }
     }
 

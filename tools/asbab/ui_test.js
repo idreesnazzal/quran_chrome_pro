@@ -94,20 +94,20 @@ const ok = (m) => console.log('  ✓ ' + m);
           switchTafsirTab('nuzul');
           const q = (sel) => document.querySelector(sel);
           const body = document.getElementById('nuzulReasonBody');
-          const det = body.querySelector('details.asbab-texts');
+          const det = body.querySelector('details.asb-src');
           const out = {
             html: body.innerHTML.length,
-            summaries: [...body.querySelectorAll('.asbab-summary')].map((e) => e.textContent.trim()),
-            grades: [...body.querySelectorAll('.asbab-grade')].map((e) => e.textContent.trim()),
-            evidence: [...body.querySelectorAll('.asbab-evidence, .asbab-evidence-inline')].map((e) => e.textContent.trim()),
-            ranges: [...body.querySelectorAll('.asbab-range-tag')].map((e) => e.textContent.trim()),
-            empty: body.querySelector('.asbab-empty-title') ? body.querySelector('.asbab-empty-title').textContent.trim() : '',
-            emptySub: body.querySelector('.asbab-empty-sub') ? body.querySelector('.asbab-empty-sub').textContent.trim() : '',
-            textCount: det ? det.querySelectorAll('.asbab-text-part').length : 0,
-            textHead: det ? det.querySelector('.asbab-text-part').textContent.slice(0, 120) : '',
-            toggle: det ? det.querySelector('summary').textContent.trim() : '',
+            summaries: [...body.querySelectorAll('.asb-summary')].map((e) => e.textContent.trim()),
+            grades: [...body.querySelectorAll('.asb-best, .asb-pill')].map((e) => e.textContent.trim()),
+            evidence: [...body.querySelectorAll('.asb-why')].map((e) => e.textContent.trim()),
+            ranges: [...body.querySelectorAll('.asb-tag')].map((e) => e.textContent.trim()),
+            empty: body.querySelector('.asb-empty-title') ? body.querySelector('.asb-empty-title').textContent.trim() : '',
+            emptySub: body.querySelector('.asb-empty-books') ? body.querySelector('.asb-empty-books').textContent.trim() : '',
+            textCount: det ? det.querySelectorAll('.asb-par, .asb-head, .asb-fn').length : 0,
+            textHead: det && det.querySelector('.asb-par') ? det.querySelector('.asb-par').textContent.slice(0, 120) : '',
+            toggle: body.querySelectorAll('details.asb-src').length,
             badge: document.getElementById('nuzulStatusBadge').textContent.trim(),
-            books: document.getElementById('nuzulSourceLabel').textContent.trim(),
+            books: [...body.querySelectorAll('.asb-seg')].map((e) => e.textContent.trim()).join(' · '),
             chip: document.getElementById('chipReasonVal').textContent.trim(),
             overflowX: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth,
           };
@@ -116,19 +116,19 @@ const ok = (m) => console.log('  ✓ ' + m);
 
         if (ay.expect === 'empty') {
           if (info.summaries.length) fail(`${tag}: expected no sabab, got a summary`);
-          else if (!/لم يرد في هذه الكتب/.test(info.empty)) fail(`${tag}: empty line is “${info.empty}”`);
+          else if (!/لم يرد في/.test(info.empty)) fail(`${tag}: empty line is “${info.empty}”`);
           else ok(`${tag}: «${info.empty}» / ${info.emptySub}`);
         } else {
           if (!info.summaries.length) fail(`${tag}: no summary rendered`);
           if (!info.grades.length) fail(`${tag}: no grade pill`);
           const wantRange = ay.range ? new RegExp(ay.range) : (ay.expect === 'range' ? /11–24/ : null);
           if (wantRange && !info.ranges.some((r) => wantRange.test(r))) fail(`${tag}: range note missing (${info.ranges})`);
-          if (!info.textCount || !/النص من الكتب \(\d+\)/.test(info.toggle)) fail(`${tag}: book text toggle missing`);
+          if (!info.textCount || !info.toggle) fail(`${tag}: book text rows missing`);
           if (!info.books) fail(`${tag}: no source label`);
           if (info.summaries.length && info.summaries[0].split(/\s+/).length > 40) fail(`${tag}: summary over 40 words`);
-          const graded = info.grades.filter((g) => g !== 'لم يُحكم عليه');
+          const graded = info.grades.filter((g) => /صحيح|حسن|ضعيف|مرسل|موضوع/.test(g));
           if (graded.length && !info.evidence.length) fail(`${tag}: grade without the book's sentence`);
-          if (info.summaries.length) ok(`${tag}: [${info.grades.join('/')}] ${info.summaries[0].slice(0, 70)}… · ${info.toggle}`);
+          if (info.summaries.length) ok(`${tag}: [${info.grades.join('/')}] ${info.summaries[0].slice(0, 70)}… · ${info.toggle} book rows`);
         }
 
         // the copy button must carry the ayah, the summary, the grade and the texts
@@ -154,11 +154,11 @@ const ok = (m) => console.log('  ✓ ' + m);
             (ay.s === 74 && ay.a === 15) || (ay.s === 80 && ay.a === 1)) {
           const file = path.join(OUT, `nuzul_${view.name}_${theme}_${ay.s}-${ay.a}.png`);
           // the panel itself, with the toggle opened once so the book text is visible
-          await page.evaluate(() => { const d = document.querySelector('#nuzulReasonBody details.asbab-texts'); if (d) d.open = true; });
+          await page.evaluate(() => { const d = document.querySelector('#nuzulReasonBody details.asb-src'); if (d) d.open = true; });
           const panel = await page.$('#nuzulReasonBody');
           await page.evaluate(() => { const el = document.getElementById('tabBtnNuzul'); if (el) el.scrollIntoView({ block: 'start' }); });
           if (panel) await panel.screenshot({ path: file }).catch(async () => { await page.screenshot({ path: file }); });
-          await page.evaluate(() => { const d = document.querySelector('#nuzulReasonBody details.asbab-texts'); if (d) d.open = false; });
+          await page.evaluate(() => { const d = document.querySelector('#nuzulReasonBody details.asb-src'); if (d) d.open = false; });
         }
       }
 
