@@ -85,7 +85,7 @@
     var theme = document.documentElement.getAttribute('data-theme') || ls('mushaf_theme', 'dark');
     var bright = +ls('mushaf_brightness', '100');
     var eye = ls('mushaf_eye_comfort', 'false') === 'true';
-    var dbl = !!g('isDoublePageMode');
+    var vmode = ls('mushaf_view_mode', 'single');   // single / double / study («صفحة وآيات»)
     var ears = ls('recite_ears', 'browser');
     var match = ls('search_match', 'any');
     var lists = window.AyahLists && window.AyahLists._state ? window.AyahLists._state().lists.length : 0;
@@ -104,7 +104,8 @@
       '</section>' +
 
       '<section class="st-sec"><h3>📖 عرض المصحف</h3>' +
-        '<div class="st-row"><span><b>عدد الصفحات</b></span>' + seg('view', [['single', '📄 صفحة واحدة'], ['double', '📖 صفحتان']], dbl ? 'double' : 'single') + '</div>' +
+        '<div class="st-row"><span><b>طريقة العرض</b><small>«صفحة وآيات»: الصفحة وبجانبها آياتها بالتفسير أو المعاني أو سبب النزول</small></span>' +
+          seg('view', [['single', '📄 صفحة'], ['double', '📖 صفحتان'], ['study', '📑 صفحة وآيات']], ['single', 'double', 'study'].indexOf(vmode) >= 0 ? vmode : 'single') + '</div>' +
         '<div class="st-row"><span><b>حجم الصفحة</b><small>«على الشاشة» تُظهر الصفحة كاملة دون تمرير</small></span>' + seg('fit', [['0', '↔ ملء العرض'], ['1', '⤢ على الشاشة']], p.fit ? '1' : '0') + '</div>' +
         '<div class="st-sub">التنقل بين الصفحات</div>' +
         sw('navTop', 'شريط التنقل أعلى المصحف', p.navTop, 'الصفحة والسورة والآية والجزء والربع في سطر واحد') +

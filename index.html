@@ -3075,6 +3075,100 @@
       text-align: right;
     }
 
+    /* «صفحة وآيات»: the page and, beside it, the list of its ayahs (one kind of explanation) */
+    .view-mode-select { flex: 0 1 auto; }
+    .study-switch { display: none; }
+    .study-panel[hidden] { display: none !important; }
+    .study-panel {
+      display: flex; flex-direction: column; min-width: 0; width: 100%;
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 14px; box-shadow: var(--shadow-lg); overflow: hidden;
+    }
+    .sp-head {
+      display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;
+      background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
+    }
+    .sp-tabs { display: flex; gap: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 11px; padding: 3px; }
+    .sp-tabs button {
+      flex: 1 1 0; min-width: 0; border: 0; background: transparent; color: var(--text-muted);
+      font: inherit; font-size: 0.84rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      padding: 7px 6px; border-radius: 8px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+    }
+    .sp-tabs button:hover { color: var(--text-main); }
+    .sp-tabs button.on { background: var(--bg-card); color: var(--gold-ink); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+    .sp-source[hidden] { display: none; }
+    .sp-source { width: 100%; }
+    .sp-hint { font-size: 0.74rem; color: var(--text-muted); line-height: 1.6; }
+    .sp-list { padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 10px; overscroll-behavior: contain; }
+    .sp-surah {
+      display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 4px 0 0;
+      font-family: 'Amiri', serif; font-size: 1.15rem; font-weight: 700; color: var(--gold-ink);
+      padding: 6px; border-radius: 10px; background: var(--gold-subtle); border: 1px solid var(--gold-bg);
+    }
+    .sp-surah small { font-family: inherit; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
+    .sp-item {
+      border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 14px 12px;
+      background: var(--bg-primary); transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      scroll-margin-top: calc(var(--app-header-h, 0px) + 66px);
+    }
+    .sp-item.on { border-color: var(--gold-primary); background: var(--gold-subtle); box-shadow: 0 0 0 3px var(--gold-bg); }
+    .sp-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .sp-num {
+      min-width: 28px; height: 28px; padding: 0 6px; border-radius: 14px; display: inline-grid; place-items: center;
+      font-size: 0.8rem; font-weight: 800; color: var(--gold-ink); background: var(--gold-bg); border: 1px solid var(--gold-primary);
+    }
+    .sp-marks { display: flex; gap: 6px; flex: 1; font-size: 0.74rem; color: var(--text-muted); }
+    .sp-mark { white-space: nowrap; }
+    .sp-open {
+      border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-muted);
+      width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; line-height: 1;
+    }
+    .sp-open:hover { color: var(--gold-ink); border-color: var(--gold-primary); }
+    .sp-ayah { display: none; font-family: 'Amiri', serif; font-size: 1.2rem; line-height: 2.1; color: var(--text-main); margin: 2px 0 8px; }
+    .sp-text { margin: 0; font-size: 0.98rem; line-height: 2; color: var(--text-main); text-align: justify; }
+    .sp-wait { color: var(--text-muted); }
+    .sp-none { margin: 0; font-size: 0.86rem; color: var(--text-muted); }
+    .sp-words { display: flex; flex-direction: column; gap: 4px; }
+    .sp-w { font-size: 0.94rem; line-height: 1.9; color: var(--text-main); }
+    .sp-w b { font-family: 'Amiri', serif; font-size: 1.08em; color: var(--gold-ink); margin-inline-end: 6px; }
+    .sp-sabab + .sp-sabab { border-top: 1px dashed var(--border-color); margin-top: 8px; padding-top: 8px; }
+    .sp-sabab .asb-meta { margin-bottom: 4px; }
+    .sp-sabab p { margin: 0; font-size: 0.96rem; line-height: 2; color: var(--text-main); }
+
+    /* wide screens: the page on the right, the list on the left, scrolling on its own */
+    @media (min-width: 900px) {
+      .mushaf-stage.study {
+        display: grid; grid-template-columns: minmax(0, 640px) minmax(340px, 1fr);
+        align-items: start; gap: 16px;
+      }
+      .mushaf-stage.study > .book-spread { grid-column: 1; grid-row: 1; max-width: none; }
+      .mushaf-stage.study > .study-panel {
+        grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--app-header-h, 0px) + 10px);
+        max-height: calc(100vh - var(--app-header-h, 0px) - 20px);
+      }
+      .mushaf-stage.study > :not(.book-spread):not(.study-panel):not(.study-switch) { grid-column: 1 / -1; }
+      .mushaf-stage.study .sp-list { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+    }
+    /* phones and narrow windows: «الصفحة | آيات الصفحة», one at a time */
+    @media (max-width: 899px) {
+      .mushaf-stage.study .study-switch {
+        display: flex; gap: 4px; width: 100%; max-width: 680px; margin: 0 auto 10px; padding: 4px;
+        position: sticky; top: calc(var(--app-header-h, 0px) + 6px); z-index: 40; background: var(--bg-secondary);
+        border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow-lg);
+      }
+      .study-switch button {
+        flex: 1; border: 0; background: transparent; color: var(--text-muted); font: inherit;
+        font-size: 0.9rem; font-weight: 700; padding: 8px; border-radius: 9px; cursor: pointer;
+      }
+      .study-switch button.on { background: var(--bg-card); color: var(--gold-ink); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+      .mushaf-stage.study:not(.show-list) > .study-panel { display: none; }
+      .mushaf-stage.study.show-list > .book-spread { display: none; }
+      .mushaf-stage.study > .study-panel { max-width: 680px; margin: 0 auto; }
+      .sp-ayah { display: block; }
+    }
+    /* the long press of «صفحة وآيات» must not select text or raise the image menu */
+    .mushaf-stage.study .mushaf-card { -webkit-touch-callout: none; user-select: none; }
+
     /* سبب النزول — one filter, then one card per event: summary, then a row per book */
     .asb-panel { display: flex; flex-direction: column; gap: 14px; }
     .asb-filter {
@@ -3672,11 +3766,23 @@
         <select id="juzSelect" class="select-dropdown" title="انتقل إلى جزء">
           <option value="">انتقل للجزء...</option>
         </select>
+
+        <!-- طريقة العرض: صفحة / صفحتان / الصفحة مع قائمة آياتها وتفسيرها -->
+        <select id="viewModeSelect" class="select-dropdown view-mode-select" title="طريقة العرض">
+          <option value="single">📄 صفحة</option>
+          <option value="double">📖 صفحتان</option>
+          <option value="study">📑 صفحة وآيات</option>
+        </select>
       </div>
     </div>
 
     <!-- Mushaf Page Presentation with Ayah Highlight Shadow -->
-    <div class="mushaf-stage">
+    <div class="mushaf-stage" id="mushafStage">
+      <!-- «صفحة وآيات» on a phone: one of the two at a time -->
+      <div class="study-switch" id="studySwitch" role="tablist" aria-label="الصفحة أو آياتها">
+        <button type="button" class="on" data-view="page" role="tab">📄 الصفحة</button>
+        <button type="button" data-view="list" role="tab">📑 آيات الصفحة</button>
+      </div>
       <div class="book-spread single-page" id="bookSpreadContainer">
         <!-- Right Page (الصفحة اليمنى) - First in RTL order -->
         <div class="mushaf-card right-page" id="mushafCardRight" title="انقر على أي آية لعرض تفسيرها">
@@ -3703,6 +3809,20 @@
           <div class="page-corner-badge" id="leftPageCornerBadge">صفحة 2</div>
         </div>
       </div>
+
+      <!-- «صفحة وآيات»: every ayah of the open page with one kind of explanation -->
+      <aside class="study-panel" id="studyPanel" aria-label="آيات الصفحة" hidden>
+        <div class="sp-head">
+          <div class="sp-tabs" role="tablist">
+            <button type="button" data-k="tafsir" role="tab">📖 التفسير</button>
+            <button type="button" data-k="words" role="tab">📚 معاني الكلمات</button>
+            <button type="button" data-k="nuzul" role="tab">📜 سبب النزول</button>
+          </div>
+          <select id="studyTafsirSource" class="tafsir-select sp-source" title="اختر التفسير"></select>
+          <div class="sp-hint">المس آية في الصفحة لتنتقل إليها هنا، واضغط عليها مطوّلًا لفتح نافذتها.</div>
+        </div>
+        <div class="sp-list" id="studyList"></div>
+      </aside>
     </div>
 
     <!-- Bottom Reader Controls Bar (أزرار التنقل والتحكم السفلية) -->
@@ -4053,6 +4173,7 @@
     let currentRightPage = 1;
     let currentLeftPage = 2;
     let isDoublePageMode = localStorage.getItem('mushaf_view_mode') === 'double';
+    let isStudyMode = localStorage.getItem('mushaf_view_mode') === 'study';   // «صفحة وآيات»
     let currentFilter = 'all';
     // «any»: every word anywhere in the ayah (as before); «exact»: the words
     // consecutive and in order, whole words (the last may still be typed)
@@ -4459,8 +4580,18 @@
     }
 
     function setViewMode(mode, silent = false) {
+      if (['single', 'double', 'study'].indexOf(mode) < 0) mode = 'single';
+      const wasStudy = isStudyMode;
       isDoublePageMode = (mode === 'double');
+      isStudyMode = (mode === 'study');           // one page + the list of its ayahs
       localStorage.setItem('mushaf_view_mode', mode);
+      const vms = document.getElementById('viewModeSelect');
+      if (vms) vms.value = mode;
+      const stage = document.getElementById('mushafStage');
+      if (stage) stage.classList.toggle('study', isStudyMode);
+      const panel = document.getElementById('studyPanel');
+      if (panel) panel.hidden = !isStudyMode;
+      if (!isStudyMode && wasStudy) studySetPhoneView('page');
 
       if (singlePageModeBtn) singlePageModeBtn.classList.toggle('active', !isDoublePageMode);
       if (doublePageModeBtn) doublePageModeBtn.classList.toggle('active', isDoublePageMode);
@@ -4478,7 +4609,8 @@
       }
       goToPage(keep);
       if (!silent) {
-        showToast(isDoublePageMode ? 'تم تفعيل عرض صفحتين (كالمصحف المفتوح) 📖' : 'تم تفعيل عرض صفحة واحدة 📄');
+        showToast(isStudyMode ? 'عرض الصفحة مع آياتها وتفسيرها 📑'
+          : isDoublePageMode ? 'تم تفعيل عرض صفحتين (كالمصحف المفتوح) 📖' : 'تم تفعيل عرض صفحة واحدة 📄');
       }
     }
 
@@ -4803,8 +4935,34 @@
         });
       }
 
+      // «صفحة وآيات»: a long press on an ayah opens its window (a tap finds it in the list)
+      [[mushafCardRight, mushafImgRight, 'right'], [mushafCardLeft, mushafImgLeft, 'left']].forEach(([card, img, side]) => {
+        if (!card) return;
+        let timer = null, x0 = 0, y0 = 0;
+        const stop = () => { if (timer) { clearTimeout(timer); timer = null; } };
+        card.addEventListener('pointerdown', (e) => {
+          if (!isStudyMode || side !== 'right' || (e.pointerType === 'mouse' && e.button !== 0)) return;
+          x0 = e.clientX; y0 = e.clientY; stop();
+          timer = setTimeout(() => {
+            timer = null;
+            const hit = mushafHitAt(x0, y0, img, currentPage);
+            if (hit) { studyLongPressAt = Date.now(); openAyahTafsir(hit.sura, hit.aya); }
+          }, 520);
+        });
+        card.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) stop(); });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => card.addEventListener(t, stop));
+        card.addEventListener('contextmenu', (e) => { if (isStudyMode) e.preventDefault(); });   // the phone's image menu
+      });
+
+      // view mode: the dropdown in the bar, and the two buttons of «صفحة وآيات» on a phone
+      const viewModeSelect = document.getElementById('viewModeSelect');
+      if (viewModeSelect) viewModeSelect.addEventListener('change', () => setViewMode(viewModeSelect.value));
+      document.querySelectorAll('#studySwitch button').forEach((b) =>
+        b.addEventListener('click', () => studySetPhoneView(b.dataset.view)));
+      initStudyPanel();
+
       // Initialize view mode based on saved preference
-      setViewMode(isDoublePageMode ? 'double' : 'single', true);
+      setViewMode(isStudyMode ? 'study' : isDoublePageMode ? 'double' : 'single', true);
 
       // Initialize Audio Recitation System (المنشاوي والحصري)
       initAudioRecitation();
@@ -5777,21 +5935,27 @@
 
 
     // Handle click on Mushaf page image
-    function handleMushafCardClick(e, imgEl, pageNum) {
-      if (!imgEl || !pageNum) return;
+    function mushafHitAt(clientX, clientY, imgEl, pageNum) {
+      if (!imgEl || !pageNum) return null;
       const rect = imgEl.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      const clickX = clientX - rect.left;
+      const clickY = clientY - rect.top;
+      if (clickX < 0 || clickX > rect.width || clickY < 0 || clickY > rect.height) return null;
+      return findAyahAtCoords(pageNum, (clickX / rect.width) * 100, (clickY / rect.height) * 100);
+    }
 
-      if (clickX < 0 || clickX > rect.width || clickY < 0 || clickY > rect.height) return;
-
-      const px = (clickX / rect.width) * 100;
-      const py = (clickY / rect.height) * 100;
-
-      const hit = findAyahAtCoords(pageNum, px, py);
-      if (hit) {
-        openAyahTafsir(hit.sura, hit.aya);
+    let studyLongPressAt = 0;   // the click that ends a long press must not also act as a tap
+    function handleMushafCardClick(e, imgEl, pageNum) {
+      const hit = mushafHitAt(e.clientX, e.clientY, imgEl, pageNum);
+      if (!hit) return;
+      if (isStudyMode) {
+        if (Date.now() - studyLongPressAt < 900) return;
+        const row = activeData[ayaIndexMap.get(`${hit.sura}_${hit.aya}`)];
+        highlightSearchedAyah(hit.sura, hit.aya, row ? row[3] : '');
+        studyFocus(hit.sura, hit.aya, true);
+        return;
       }
+      openAyahTafsir(hit.sura, hit.aya);
     }
 
     // Navigation and Scroll Helper Functions
@@ -5939,6 +6103,192 @@
       }
       if (window.ReaderPlus) ReaderPlus.onPage();   // hizb/sajda strip, resume point, #link
       if (window.Tasmee) Tasmee.onPage();           // وضع التسميع: cover the new page's words
+      if (isStudyMode) renderStudyPanel();          // «صفحة وآيات»: the list follows the page
+    }
+
+    // ---------------------------------------------------------------------------
+    // «صفحة وآيات»: the open page beside the list of its ayahs, each with ONE kind of
+    // explanation picked at the top (تفسير بمصادره / معاني الكلمات / سبب النزول).
+    // A tap on an ayah of the page finds it in the list; a long press opens its window.
+    // ---------------------------------------------------------------------------
+    let studyContent = 'tafsir', studySource = 'muyassar', studyPhone = 'page', studyRenderSeq = 0, studyWaitTimer = null;
+    try {
+      studyContent = localStorage.getItem('study_content') || 'tafsir';
+      studySource = localStorage.getItem('study_tafsir_source') || localStorage.getItem('chosen_tafsir_source') || 'muyassar';
+    } catch (e) { /* private mode */ }
+
+    function initStudyPanel() {
+      const src = document.getElementById('studyTafsirSource');
+      if (src && tafsirSourceSelect) {
+        src.innerHTML = tafsirSourceSelect.innerHTML;          // the same sources as the tafsir window
+        if (!TAFSIR_CONFIG[studySource]) studySource = 'muyassar';
+        src.value = studySource;
+        src.addEventListener('change', () => {
+          studySource = src.value;
+          try { localStorage.setItem('study_tafsir_source', studySource); } catch (e) { /* ignore */ }
+          renderStudyPanel();
+        });
+      }
+      document.querySelectorAll('#studyPanel .sp-tabs button').forEach((b) => b.addEventListener('click', () => {
+        studyContent = b.dataset.k;
+        try { localStorage.setItem('study_content', studyContent); } catch (e) { /* ignore */ }
+        renderStudyPanel();
+      }));
+      const list = document.getElementById('studyList');
+      if (list) list.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sp-open');
+        if (btn) openAyahTafsir(Number(btn.dataset.s), Number(btn.dataset.a));
+      });
+    }
+
+    // the app header is sticky (162px tall on a phone): the switch and the list sit under it
+    (function trackHeaderHeight() {
+      const hdr = document.querySelector('body > header, header');
+      if (!hdr) return;
+      const set = () => document.documentElement.style.setProperty('--app-header-h', hdr.offsetHeight + 'px');
+      set();
+      if (window.ResizeObserver) new ResizeObserver(set).observe(hdr); else window.addEventListener('resize', set);
+    })();
+
+    function studySetPhoneView(v) {
+      studyPhone = v === 'list' ? 'list' : 'page';
+      const stage = document.getElementById('mushafStage');
+      if (stage) stage.classList.toggle('show-list', studyPhone === 'list');
+      document.querySelectorAll('#studySwitch button').forEach((b) => {
+        b.classList.toggle('on', b.dataset.view === studyPhone);
+        b.setAttribute('aria-selected', String(b.dataset.view === studyPhone));
+      });
+    }
+
+    function studyPageRows() {
+      return (activeData || []).filter((r) => r[2] === currentPage);
+    }
+
+    // one surah of a tafsir source, cached like the tafsir window does (tafsirSurahCache)
+    async function studyTafsirSurah(source, sura) {
+      const cfg = TAFSIR_CONFIG[source];
+      if (!cfg || !cfg.spa5kSlug) return null;
+      const cacheKey = `${cfg.id}_${sura}`;
+      if (tafsirSurahCache[cacheKey]) return tafsirSurahCache[cacheKey];
+      for (const url of [`https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/${cfg.spa5kSlug}/${sura}.json`,
+                         `https://raw.githubusercontent.com/spa5k/tafsir_api/main/tafsir/${cfg.spa5kSlug}/${sura}.json`]) {
+        try {
+          const resp = await fetch(url);
+          if (resp.ok) { const list = await resp.json(); tafsirSurahCache[cacheKey] = list; return list; }
+        } catch (e) { /* the next mirror */ }
+      }
+      return null;
+    }
+
+    function studyBodyHtml(r) {
+      const [s, a] = r;
+      if (studyContent === 'words') {
+        const items = (typeof wordMeaningItems === 'function' ? wordMeaningItems(s, a) : []) || [];
+        if (!items.length) return '<p class="sp-none">لا كلمات تحتاج بيانًا في هذه الآية.</p>';
+        return '<div class="sp-words">' + items.map(([term, meaning, , books]) => {
+          const m = meaning || (books && books[0] && books[0][2]) || '';
+          return `<div class="sp-w"><b>${asbabEsc(term)}</b><span>${asbabEsc(m)}</span></div>`;
+        }).join('') + '</div>';
+      }
+      if (studyContent === 'nuzul') {
+        const cards = asbabCards(s, a);
+        if (cards === null) return '<p class="sp-none">جارٍ تحميل أسباب النزول…</p>';
+        if (!cards.length) return '<p class="sp-none">لا سبب نزول خاص في الكتب.</p>';
+        return cards.map((c) => {
+          const top = asbabTopVerdict(c), where = asbabWhere(c);
+          const meta = (top ? `<span class="asb-best ${top.cls}">${asbabEsc(top.g)}<small> · ${asbabEsc(top.who)}</small></span>` : '') +
+                       (where ? `<span class="asb-tag">${asbabEsc(where)}</span>` : '');
+          return `<div class="sp-sabab">${meta ? `<div class="asb-meta">${meta}</div>` : ''}<p>${asbabEsc(c.s || '')}</p></div>`;
+        }).join('');
+      }
+      // tafsir: الميسر is in the app; the other sources arrive per surah and fill in below
+      if (studySource === 'muyassar' || (TAFSIR_CONFIG[studySource] || {}).isLocal) {
+        return `<p class="sp-text">${asbabEsc(r[5] || 'لا يوجد تفسير متاح لهذه الآية.')}</p>`;
+      }
+      return '<p class="sp-text sp-wait">جارٍ تحميل التفسير…</p>';
+    }
+
+    function renderStudyPanel() {
+      const panel = document.getElementById('studyPanel'), list = document.getElementById('studyList');
+      if (!isStudyMode || !panel || !list) return;
+      const seq = ++studyRenderSeq;
+      panel.querySelectorAll('.sp-tabs button').forEach((b) => {
+        b.classList.toggle('on', b.dataset.k === studyContent);
+        b.setAttribute('aria-selected', String(b.dataset.k === studyContent));
+      });
+      const src = document.getElementById('studyTafsirSource');
+      if (src) src.hidden = studyContent !== 'tafsir';
+      const rows = studyPageRows();
+      const S = (window.QURAN_DATA && window.QURAN_DATA.surahs) || [];
+      let lastSura = 0;
+      list.innerHTML = rows.map((r) => {
+        const [s, a] = r;
+        let head = '';
+        if (s !== lastSura) {
+          lastSura = s;
+          head = `<div class="sp-surah">سورة ${asbabEsc(r[3])}<small>${asbabEsc((S[s - 1] || {}).type || '')}</small></div>`;
+        }
+        const hasSabab = (asbabCards(s, a) || []).length > 0;
+        const nWords = (typeof wordMeaningItems === 'function' ? wordMeaningItems(s, a) : []).length;
+        const marks = (hasSabab ? '<span class="sp-mark" title="لها سبب نزول">📜</span>' : '') +
+                      (nWords ? `<span class="sp-mark" title="كلمات مشروحة">📚 ${nWords}</span>` : '');
+        const on = currentHighlightedAyah && currentHighlightedAyah.sura === s && currentHighlightedAyah.aya === a;
+        return head + `
+          <article class="sp-item${on ? ' on' : ''}" id="sp-${s}-${a}" data-s="${s}" data-a="${a}">
+            <div class="sp-item-head">
+              <span class="sp-num">${a}</span>
+              <span class="sp-marks">${marks}</span>
+              <button type="button" class="sp-open" data-s="${s}" data-a="${a}" title="فتح نافذة الآية">⤢</button>
+            </div>
+            <p class="sp-ayah">${asbabEsc(r[4] || '')}</p>
+            <div class="sp-body">${studyBodyHtml(r)}</div>
+          </article>`;
+      }).join('') || '<p class="sp-none">لا آيات في هذه الصفحة.</p>';
+
+      // the data files load after the page: draw again once they are here
+      const waiting = (studyContent === 'nuzul' && !window.ASBAB_DATA) || (studyContent === 'words' && !window.WORD_MEANINGS);
+      if (studyWaitTimer) { clearTimeout(studyWaitTimer); studyWaitTimer = null; }
+      if (waiting) studyWaitTimer = setTimeout(() => { if (seq === studyRenderSeq) renderStudyPanel(); }, 700);
+
+      // another tafsir source: one request per surah on the page, then fill each ayah
+      if (studyContent === 'tafsir' && studySource !== 'muyassar' && !(TAFSIR_CONFIG[studySource] || {}).isLocal) {
+        [...new Set(rows.map((r) => r[0]))].forEach(async (s) => {
+          const ayahs = await studyTafsirSurah(studySource, s);
+          if (seq !== studyRenderSeq) return;
+          rows.filter((r) => r[0] === s).forEach((r) => {
+            const el = document.querySelector(`#sp-${s}-${r[1]} .sp-body`);
+            if (!el) return;
+            const m = ayahs && ayahs.find((x) => x.ayah === r[1] || x.aya === r[1]);
+            const t = m && (m.text || m.translation);
+            el.innerHTML = t ? `<p class="sp-text">${asbabEsc(t.trim())}</p>`
+              : `<p class="sp-none">تعذّر جلب ${asbabEsc((TAFSIR_CONFIG[studySource] || {}).name || 'التفسير')} — هذا التفسير الميسر:</p><p class="sp-text">${asbabEsc(r[5] || '')}</p>`;
+          });
+        });
+      }
+    }
+
+    // a tap on the page: mark the ayah in the list and bring it into view
+    function studyFocus(sura, aya, scroll) {
+      if (!isStudyMode) return;
+      document.querySelectorAll('#studyList .sp-item.on').forEach((x) => x.classList.remove('on'));
+      const el = document.getElementById(`sp-${sura}-${aya}`);
+      if (!el) return;
+      el.classList.add('on');
+      if (!scroll) return;
+      const narrow = window.matchMedia('(max-width: 899px)').matches;
+      if (narrow) {                                   // a phone shows one at a time: show the list
+        studySetPhoneView('list');
+        // after the list is laid out: put the card just under the sticky header and switch
+        setTimeout(() => {
+          const hdr = document.querySelector('header');
+          const sw = document.getElementById('studySwitch');
+          const off = (hdr ? hdr.offsetHeight : 0) + (sw ? sw.offsetHeight : 0) + 18;
+          window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - off), behavior: 'auto' });
+        }, 30);
+      } else {
+        const list = document.getElementById('studyList');
+        list.scrollTo({ top: el.offsetTop - list.offsetTop - 12, behavior: 'smooth' });
+      }
     }
 
     // Robust Multi-tier Image Loader with local & online fallback

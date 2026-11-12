@@ -112,6 +112,7 @@
     s.onload = function () {   // the tafsir modal may be open already: refresh its revelation tab
       var bd = document.getElementById('tafsirModalBackdrop'), i = g('currentTafsirIndex'), data = g('activeData');
       if (bd && bd.classList.contains('active') && data && i >= 0 && data[i]) call('renderAyahRevelationContext', data[i][0], data[i][1], data[i][3]);
+      call('renderStudyPanel');   // «صفحة وآيات»: the 📜 marks and the سبب النزول list
     };
     document.body.appendChild(s);
   }
@@ -122,6 +123,7 @@
     s.onload = function () {
       var bd = document.getElementById('tafsirModalBackdrop'), i = g('currentTafsirIndex'), data = g('activeData');
       if (bd && bd.classList.contains('active') && data && i >= 0 && data[i]) call('renderWordMeanings', data[i][0], data[i][1]);
+      call('renderStudyPanel');   // «صفحة وآيات»: the 📚 counts and the معاني الكلمات list
     };
     document.body.appendChild(s);
   }
