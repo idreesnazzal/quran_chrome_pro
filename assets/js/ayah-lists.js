@@ -303,7 +303,8 @@
     }
     ui.editing = null; ui.form = null; ui.q = ''; ui.filter = 'all'; ui.revealed = {}; ui.lq = ''; ui.sel = null; ui.undo = null;
     renderModal();
-    var m0 = modal; requestAnimationFrame(function () { if (m0 === modal) m0.classList.add('show'); });   // closed meanwhile: nothing
+    var m0 = modal, show = function () { if (m0 === modal) m0.classList.add('show'); };   // closed meanwhile: nothing
+    requestAnimationFrame(show); setTimeout(show, 60);   // a background tab runs no frames: the timer still shows it
   }
   function close() {
     if (!modal) return;

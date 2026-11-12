@@ -349,9 +349,10 @@
   .al-selbar { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); margin: 0; gap: 4px; padding: 6px 8px; z-index: 2600; }
   .al-undo { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 2601; margin: 0; }
   .al-selbar ~ .al-undo { bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
-  .al-selecting .al-items { padding-bottom: 130px; }
+  .al-selecting .al-items { padding-bottom: 180px; }   /* the bar is ~150px tall on a phone */
   .al-sb-sep { flex-basis: 100%; height: 0; }
   .al-sb-btn { flex: 1 1 auto; padding: 7px 8px; }
   .al-side-search { order: 0; }
   .al-main { min-height: 0; }        /* the column must not grow past the screen, or the bar falls off it */
+  .al-modal { transform: none !important; transition: none; }   /* full screen: no scale-in, so «fixed» means the screen */
 }
