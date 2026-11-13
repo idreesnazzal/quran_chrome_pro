@@ -44,6 +44,9 @@
         ((e[l - 1] === 'ه' && t[l - 1] === 'ي') || (e[l - 1] === 'ي' && t[l - 1] === 'ه'))) return true;  // «يره» -> «يرى»
     if (l > 2 && (e[0] === 'و' || e[0] === 'ف') && e.slice(1) === t) return true;   // a spoken و / ف dropped
     if (l >= 3 && e[l - 1] === 'ا' && (t === e.slice(0, -1) || t === e.slice(0, -1) + 'ه')) return true;   // «كلا» -> «كل», «مهادا» -> «مهاده»
+    // «ءأنذرتهم» and the 17 other words that open with a double alif (ءأنتم، ءأسلمتم…): Chrome writes the
+    // two as one alif, a hamza, or a و (2:6, every session of 2026-11-13)
+    if (e[0] === 'ا' && e[1] === 'ا' && l > 3) { var r = e.slice(2), h = t.replace(/^(اا|ءا|اء|ءء|وا|ا|ء)/, ''); if (h === r) return true; }
     if (e.indexOf('ء') >= 0 || t.indexOf('ء') >= 0) return e.replace(/ء/g, '') === t.replace(/ء/g, '');  // hamza unwritten
     return false;
   }
@@ -86,7 +89,7 @@
   // heard word goes on from there. A word that is the expected one with a
   // و / ف more or less («اياك» at «واياك», which also opens the ayah) needs
   // that next word: alone it is the mistake. -1 = no, -2 = cannot tell yet
-  function backTo(X, i, t, nx, waiting) {
+  function backTo(X, i, t, nx, waiting, T) {
     var E = X.E;
     if (i <= 0) return -1;
     if (X.eq(E[i - 1], t)) return i - 1;
@@ -100,7 +103,8 @@
       if (!X.eq(E[k], t)) continue;
       if (nx != null) { if (k + 1 >= i || X.eq(E[k + 1], nx)) return k; continue; }
       if (waiting) undecided = true;
-      else if (!nearCur && (k === X.as[i] || k === X.pas[i])) return k;   // restarted the ayah, then paused
+      else if (!nearCur && (k === X.as[i] || k === X.pas[i] || k >= i - 8 ||
+               (T && T.st[k] !== S_OK && T.st[k] !== S_HID))) return k;   // restarted the ayah / said a recent or a doubtful word again, then paused
     }
     return undecided ? -2 : -1;
   }
@@ -158,6 +162,23 @@
       }
       if (ok3) return { a: a, b: 0 };
     }
+    // the same, with Chrome's noise in the words after («يؤمنون» for «يوقنون», then «اولئك لهدى من ربهم»)
+    var TOL = [[1, 0], [1, 1], [2, 1], [2, 0], [1, 2], [2, 2]];
+    for (u = 0; u < TOL.length; u++) {
+      a = TOL[u][0]; b = TOL[u][1];
+      if (i + a >= X.N || (b === 0 && credit < a)) continue;   // a word not heard at all needs the exact rule above
+      bad = false;
+      for (q = 0; q < b && !bad; q++) {
+        h = toks[j + q];
+        if (h == null || (!final && j + q === toks.length - 1)) { if (!final) wait = true; bad = true; break; }
+        for (d = 0; d <= 4 && i + d < X.N; d++) if (X.eq(E[i + d], h)) bad = true;
+        if (isAtf(E[i], h) || PARTICLES.indexOf(h) >= 0) bad = true;
+      }
+      if (bad) continue;
+      var f = flows(X, i + a, toks, j + b, final);
+      if (f === 1) return { a: a, b: b };
+      if (f === -1) wait = true;
+    }
     return wait ? -2 : null;
   }
   // going back to repeat, Chrome writing the FIRST repeated word otherwise («فيما كانوا يكذبون» repeating
@@ -179,14 +200,25 @@
   }
   // after a red word the reader went on: the next three words follow it exactly -> the test follows the
   // reader (the word stays a mistake, shown) instead of waiting there while the reading runs away
-  function goesOn(X, i, toks, j, final) {
-    if (i + 4 > X.N) return false;
-    for (var q = 0; q < 3; q++) {
-      var x = j + q, tk = toks[x];
-      if (tk == null || (!final && x === toks.length - 1)) return false;
-      if (!X.eq(X.E[i + 1 + q], tk)) return false;
+  function goesOn(X, i, toks, j, final) { return flows(X, i + 1, toks, j, final) === 1; }
+  // do the heard words from toks[j] go on with the expected words from E[s]? The first exactly, then at
+  // least three in order within five tokens, with Chrome's noise allowed: one token that is no word here
+  // and up to two expected words it swallowed or dropped («اولئك لهدى من ربهم» for «اولئك على هدى من
+  // ربهم», 2:5). 1 yes, 0 no, -1 cannot tell yet (the newest interim word is not judged)
+  function flows(X, s, toks, j, final) {
+    var E = X.E, p = s, got = 0, noise = 0, skip = 0;
+    if (s >= X.N) return 0;
+    for (var x = j; x < toks.length && x < j + 5; x++) {
+      var tk = toks[x];
+      if (!final && x === toks.length - 1) return -1;
+      var hit = -1;
+      for (var d = 0; d <= (got ? 2 : 0) && p + d < X.N; d++) if (confirms(X, E[p + d], tk)) { hit = d; break; }
+      if (hit < 0) { if (!got || noise) return 0; noise++; continue; }
+      skip += hit; if (skip > 2) return 0;
+      p += hit + 1; got++;
+      if (got >= 3 || (p >= X.N && got >= 2)) return 1;
     }
-    return true;
+    return final ? 0 : -1;
   }
   // a word that CONFIRMS the reader went on (never the word judged): also Chrome's usual slips on it —
   // an added «وا» («امنوا» for «امن») or the first letter among ا / و / ف («ولا» for «الا», 2:13)
@@ -233,7 +265,7 @@
       // the word Chrome is still writing shows as soon as its first letters are the expected word's
       // («تنذ» of «تنذرهم»): display only (an interim is fed to a copy), the final judges the word
       if (!final && last && t.length >= 3 && t.length * 2 >= E[i].length && E[i].indexOf(t) === 0) { accept(T, i); T.i = i + 1; break; }
-      var k = backTo(X, i, t, nx, last && !final);
+      var k = backTo(X, i, t, nx, last && !final, T);
       if (k === -2) break;
       if (k >= 0) { if (T.st[k] === S_UNS) T.st[k] = S_OK; T.shadow = k + 1 < i ? k + 1 : -1; T.run = -1; continue; }   // a yellow word said again and heard right
       if (T.opt >= 0) {                          // inside the isti'adha / basmala
@@ -274,7 +306,10 @@
         T.st[i] = S_ERR;
         if (X.reveal && T.tries[i] >= X.reveal) {
           T.st[i] = S_REV; T.ty[i] |= T_REV; T.i = i + 1; T.run = -1;
-          if (matchAt(X, T.i, t, nx)) j--;       // the reciter went on: this word may be the next one
+          // the rest of this attempt is still that word, garbled (Chrome: «ما انسى زاجه» for «ماء ثجاجا»,
+          // 78:14): judge from the first token that IS the next word, never the garble at the next word
+          for (var y = j; y < toks.length; y++) if (matchAt(X, T.i, toks[y], toks[y + 1])) break;
+          j = y - 1;
           continue;
         }
       }

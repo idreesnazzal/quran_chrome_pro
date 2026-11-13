@@ -235,7 +235,19 @@ Core.feed(t.T, t.X, tok('الم الارض مهادا'), true);
 ok('«نجعل» left out: a skip stays a mistake', t.T.st[15] === S.ERR && (t.T.ty[15] & TY.SKIP), { st: states(t, 18), ty: t.T.ty[15] });
 t = test(ayahIdx(1, 2));
 Core.feed(t.T, t.X, tok('الحمد في رب العالمين'), true);
-ok('a particle for a word («في» for «لله»): a mistake', t.T.st[1] === S.ERR, { st: states(t) });
+ok('a particle for a word («في» for «لله»): a mistake (counted, shown; the cursor follows the reader)', (t.T.ty[1] & TY.SUB) && (t.T.st[1] === S.ERR || t.T.st[1] === S.REV) && Core.summary(t.T, t.X).err === 1, { st: states(t) });
+// «ءأنذرتهم» as Chrome writes it (2026-11-13): one alif, a hamza, a و — right at once, no waiting
+t = test(ayahIdx(2, 6));
+Core.feed(t.T, t.X, tok('ان الذين كفروا سواء عليهم انذرتهم'), true);
+ok('«انذرتهم» (one alif) for «ءأنذرتهم»: right at once', t.T.st[5] === S.OK && t.T.i === 6, { i: t.T.i, st: states(t) });
+t = test(ayahIdx(2, 6));
+Core.feed(t.T, t.X, tok('ان الذين كفروا سواء عليهم وانذرتهم ام لم'), true);
+ok('«وانذرتهم» too', t.T.st[5] === S.OK && t.T.i === 8, { i: t.T.i, st: states(t) });
+// a lone word said again from a few words back, then a pause: repeating, not a mistake
+t = test(ayahIdx(2, 6, 7));
+Core.feed(t.T, t.X, tok('ان الذين كفروا سواء عليهم اانذرتهم ام لم تنذرهم لا يؤمنون'), true);
+Core.feed(t.T, t.X, tok('انذرتهم'), true);
+ok('«انذرتهم» said again alone after the ayah: no mistake at «ختم»', Core.summary(t.T, t.X).err === 0 && t.T.st[11] === S.HID, { i: t.T.i, sum: Core.summary(t.T, t.X) });
 t = test(ayahIdx(1, 2), { level: 'very' });
 Core.feed(t.T, t.X, tok('الحمد للحق رب العالمين'), true);
 ok('very strict: no yellow, a mistake', t.T.st[1] === S.ERR, { st: states(t) });
@@ -256,6 +268,9 @@ ok('al-Kursi at speed (real): no mistake at all, to the end', rp.bad.length === 
 rp = replay('tasmee_real_baqara_1_16.json', 2, 1, 16);
 ok('2:1-16 (real): only the reader\'s own two slips («اليم» for «عظيم», «وما يشعرون» left out); repeats Chrome misheard are no mistake',
   JSON.stringify(rp.bad) === JSON.stringify(['عظيم', 'وما']), rp.bad);
+rp = replay('tasmee_real_baqara_1_6.json', 2, 1, 16);
+ok('2:1-6 (real, 13:58): no mistake — «يؤمنون» for «يوقنون» then «اولئك لهدى من ربهم», «وانذرتهم», «انذرتهم» said again',
+  rp.bad.length === 0, rp.bad);
 rp = replay('tasmee_real_baqara_1_9.json', 2, 1, 16);
 ok('2:1-9 (real, 13:37): only «اليم» for «عظيم» (said twice); «بمؤمنون» at a pause, then going on = yellow',
   JSON.stringify(rp.bad) === JSON.stringify(['عظيم']), rp.bad);
