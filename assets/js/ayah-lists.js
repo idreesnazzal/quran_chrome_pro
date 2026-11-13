@@ -137,7 +137,11 @@
     var i = map.get(s + '_' + a);
     return i === undefined ? null : data[i];
   }
-  function ayahText(s, a) { var r = ayahRow(s, a); return r ? String(r[4]).replace(/\s*\(\d+\)\s*$/, '') : ''; }
+  // with its tashkeel when data/quran_tashkeel.js is here (index.html's ayahScriptOf), else the plain text
+  function ayahText(s, a) {
+    if (window.ayahScriptOf) { var t = window.ayahScriptOf(s, a); if (t) return t; }
+    var r = ayahRow(s, a); return r ? String(r[4]).replace(/\s*\(\d+\)\s*$/, '') : '';
+  }
   function ago(t) {
     if (!isFinite(t)) return '—';
     var d = (t - Date.now()) / 1000, rtf;
@@ -492,7 +496,7 @@
     if (!r) return '';
     var text = ayahText(x.s, x.a), note = (st.notes[k(x.s, x.a)] || {}).text || '';
     var key = k(x.s, x.a), hidden = l.quiz && !ui.revealed[key];
-    var words = text.split(/\s+/);
+    var words = text.split(/\s+/).filter(function (w) { return /[ء-يٱ]/.test(w); });   // the waqf marks (ۖ ۗ) are not words
     var shown = hidden ? '<span>' + esc(words[0]) + '</span> <span class="al-veil">' + words.slice(1).map(function () { return '•••'; }).join(' ') + '</span>' : esc(text);
     var rev = '';
     if (l.review) {
@@ -1019,7 +1023,7 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
-  window.AyahLists = { open: open, close: close, openSaver: openSaver, stopAudio: function () { if (ui.audio) { stopAudio(); if (modal) renderMain(); } }, renderAyahInfo: function (s, a) { renderAyahInfo(s, a); paintSaveButtons(); },
+  window.AyahLists = { open: open, close: close, refresh: function () { if (modal) renderMain(); }, openSaver: openSaver, stopAudio: function () { if (ui.audio) { stopAudio(); if (modal) renderMain(); } }, renderAyahInfo: function (s, a) { renderAyahInfo(s, a); paintSaveButtons(); },
     _state: function () { return load(); },
     // وضع التسميع results: into «أخطاء التسميع» (made again if deleted); an ayah
     // already there goes back to the start of its review

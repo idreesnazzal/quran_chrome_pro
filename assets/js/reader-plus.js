@@ -116,6 +116,13 @@
     };
     document.body.appendChild(s);
   }
+  /* the ayah text with tashkeel (1.3 MB, Tanzil Uthmani): same idea; the plain text stands in until then */
+  function loadTashkeel() {
+    if (window.QURAN_TASHKEEL || document.getElementById('tashkeelScript')) return;
+    var s = document.createElement('script'); s.id = 'tashkeelScript'; s.src = 'data/quran_tashkeel.js'; s.async = true;
+    s.onload = function () { call('onTashkeelReady'); };
+    document.body.appendChild(s);
+  }
   /* word meanings (several MB): same idea; the old السراج lines stand in until it arrives */
   function loadWordMeanings() {
     if (window.WORD_MEANINGS || document.getElementById('wordMeaningsScript')) return;
@@ -155,6 +162,7 @@
   function init() {
     registerSW();
     resume();
+    setTimeout(loadTashkeel, 600);
     setTimeout(loadAsbab, 1200);
     setTimeout(loadWordMeanings, 1500);
   }

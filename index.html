@@ -25,7 +25,7 @@
   <title>المصحف الشريف – قراءة وتظليل الآيات المبحوث عنها</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Amiri+Quran&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
     :root, [data-theme="dark"] {
       --bg-primary: #0b0f17;
@@ -2649,7 +2649,7 @@
     }
 
     .tafsir-ayah-text {
-      font-family: 'Amiri', serif;
+      font-family: 'Amiri Quran', 'Amiri', serif;
       font-size: 1.65rem;
       line-height: 2.3;
       color: var(--ayah-text-color);
@@ -3154,7 +3154,7 @@
       width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; line-height: 1;
     }
     .sp-open:hover { color: var(--gold-ink); border-color: var(--gold-primary); }
-    .sp-ayah { display: none; font-family: 'Amiri', serif; font-size: 1.2rem; line-height: 2.1; color: var(--text-main); margin: 2px 0 8px; }
+    .sp-ayah { display: none; font-family: 'Amiri Quran', 'Amiri', serif; font-size: 1.2rem; line-height: 2.4; color: var(--text-main); margin: 2px 0 8px; }
     .sp-text { margin: 0; font-size: 0.98rem; line-height: 2; color: var(--text-main); text-align: justify; }
     .sp-wait { color: var(--text-muted); }
     .sp-none { margin: 0; font-size: 0.86rem; color: var(--text-muted); }
@@ -4760,7 +4760,8 @@
 
       tafsirCopyBtn.addEventListener('click', () => {
         if (currentTafsirIndex >= 0 && currentTafsirIndex < activeData.length) {
-          const [sura, aya, page, suraName, text] = activeData[currentTafsirIndex];
+          const [sura, aya, page, suraName] = activeData[currentTafsirIndex];
+          const text = ayahScript(currentTafsirIndex);
           let copyText = '';
           if (currentActiveTab === 'words') {
             const wordsText = wordMeaningItems(sura, aya)
@@ -5547,7 +5548,7 @@
         let speedBadge = (currentAudioSpeed !== 1.0) ? ` [${currentAudioSpeed}x]` : '';
 
         if (audioNowPlayingText) {
-          audioNowPlayingText.textContent = `﴿ ${text.slice(0, 32)}... ﴾ سورة ${suraName} (${aya}) - ${reciter.name}${repeatBadge}${speedBadge}`;
+          audioNowPlayingText.textContent = `﴿ ${ayahScript(currentPlayingAyahIndex).split(' ').slice(0, 4).join(' ')}… ﴾ سورة ${suraName} (${aya}) - ${reciter.name}${repeatBadge}${speedBadge}`;
           audioNowPlayingText.title = `سورة ${suraName} - آية ${aya}`;
         }
         if (modalAudioPlayText) {
@@ -6267,7 +6268,7 @@
               <span class="sp-marks">${marks}</span>
               <button type="button" class="sp-open" data-s="${s}" data-a="${a}" title="فتح نافذة الآية">⤢</button>
             </div>
-            <p class="sp-ayah">${asbabEsc(r[4] || '')}</p>
+            <p class="sp-ayah">${asbabEsc(ayahScriptOf(s, a))} <span class="ayah-end">${ayahEndMark(a)}</span></p>
             <div class="sp-body">${studyBodyHtml(r)}</div>
           </article>`;
       }).join('') || '<p class="sp-none">لا آيات في هذه الصفحة.</p>';
@@ -6780,6 +6781,27 @@
     // (assets/js/tafsir-rich.js reads the marks the books already use: "…" «…» ﴿…﴾ {…} [[…]])
     // a verse quoted in plain quotation marks is recognised against the mushaf's own text
     if (window.TafsirRich) TafsirRich.quranTexts = () => ((window.QURAN_DATA && window.QURAN_DATA.ayahs) || []).map((a) => String(a[4]));
+    // The ayah as written in the mushaf, with its tashkeel: data/quran_tashkeel.js (Tanzil, Uthmani script;
+    // reader-plus.js loads it after the page). The plain text stands in until it arrives. Display only:
+    // search, the word boxes and recitation keep using the plain text.
+    function ayahScript(idx) {
+      const T = window.QURAN_TASHKEEL, row = activeData[idx];
+      return (T && T[idx]) || String((row && row[4]) || '').replace(/\s*\(\d+\)\s*$/, '');
+    }
+    function ayahScriptOf(sura, aya) { const i = ayaIndexMap.get(`${sura}_${aya}`); return i === undefined ? '' : ayahScript(i); }
+    const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+    // «… ۝١٢٣»: the end-of-ayah sign with its number, as in the mushaf (Amiri Quran draws the circle)
+    function ayahEndMark(aya) { return '۝' + String(aya).replace(/\d/g, (d) => AR_DIGITS[d]); }
+    window.ayahScript = ayahScript; window.ayahScriptOf = ayahScriptOf;
+    // the text arrived after the page: show it wherever an ayah is already on screen
+    window.onTashkeelReady = function () {
+      if (tafsirModalBackdrop && tafsirModalBackdrop.classList.contains('active') && activeData[currentTafsirIndex]) {
+        tafsirModalAyahText.textContent = ayahScript(currentTafsirIndex) + ' ' + ayahEndMark(activeData[currentTafsirIndex][1]);
+      }
+      if (typeof renderStudyPanel === 'function') renderStudyPanel();
+      if (window.AyahLists && AyahLists.refresh) AyahLists.refresh();
+    };
+
     function tafsirRichHtml(text) {
       if (!window.TafsirRich) return asbabEsc(text);
       const h = TafsirRich.html(text);
@@ -6905,7 +6927,7 @@
       tafsirSurahBadge.textContent = `سورة ${suraName}`;
       tafsirAyahBadge.textContent = `آية ${aya}`;
       tafsirPageBadge.textContent = `صفحة ${page}`;
-      tafsirModalAyahText.textContent = `﴿ ${text} ﴾`;
+      tafsirModalAyahText.textContent = ayahScript(idx) + ' ' + ayahEndMark(aya);
       if (window.AyahLists) AyahLists.renderAyahInfo(sura, aya);   // «محفوظة في…» + the ayah's note
       if (window.ReaderPlus) ReaderPlus.onAyah(sura, aya);         // «۩ آية سجدة»
 
