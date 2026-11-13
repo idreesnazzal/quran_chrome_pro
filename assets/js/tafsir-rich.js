@@ -115,16 +115,102 @@
     pairs.sort(function (a, b) { return a[0] - b[0] || b[1] - a[1]; });
     var top = [], end = -1;
     pairs.forEach(function (q) { if (q[0] > end) { top.push(q); end = q[1]; } });
-    var html = '', at = 0;
-    top.forEach(function (q) {
-      var a = q[0], b = q[1], kind = classify(s, a, b);
-      html += esc(s.slice(at, a));
-      var body = esc(s.slice(a + 1, b));
-      html += kind ? '<span class="tf-' + kind + '"><i class="tf-m">' + esc(s[a]) + '</i>' + body + '<i class="tf-m">' + esc(s[b]) + '</i></span>'
-                   : esc(s.slice(a, b + 1));
-      at = b + 1;
-    });
-    return html + esc(s.slice(at));
+    // the text of each narration (after its chain of narrators), around the quotes it holds
+    var matn = findMatn(s, top), html = '', at = 0;
+    function region(from, to) {
+      var h = '', pos = from;
+      top.forEach(function (q) {
+        if (q[0] < from || q[1] >= to) return;
+        var a = q[0], b = q[1], kind = classify(s, a, b);
+        h += esc(s.slice(pos, a));
+        h += kind ? '<span class="tf-' + kind + '"><i class="tf-m">' + esc(s[a]) + '</i>' + esc(s.slice(a + 1, b)) + '<i class="tf-m">' + esc(s[b]) + '</i></span>'
+                  : esc(s.slice(a, b + 1));
+        pos = b + 1;
+      });
+      return h + esc(s.slice(pos, to));
+    }
+    matn.forEach(function (m) { html += region(at, m[0]) + '<span class="tf-matn">' + region(m[0], m[1]) + '</span>'; at = m[1]; });
+    return html + region(at, s.length);
+  }
+
+  /* ---------------- the text of a narration, without its chain ----------------
+   * «حدثنا أبي، حدثنا عبيد، عن مجاهد، عن أبي ذر: أنه سأل رسول الله ﷺ …» — the chain runs from its first
+   * «حدثنا / أخبرنا / أنبأنا / سمعت» (or «روى/أخرج … عن») to the first colon that is not followed by more
+   * of the chain; the narration's text runs from there to where the author speaks again («رواه…»,
+   * «وهذا إسناد…», «وقال فلان:», «قلت:») or to the end of the paragraph. */
+  var CHAIN_START = /(^|[^ء-ي])و?(حدثنا|حدثني|أخبرنا|أخبرني|أنبأنا|أنبأني|ثنا|(?:روى|رواه|أخرج|أخرجه)(?![ء-ي])[^.:]{0,60}?عن)(?![ء-ي])/g;
+  var CHAIN_GOES_ON = /^\s*(\u0001\d+\u0002\s*)*(و?حدثنا|و?حدثني|و?أخبرنا|و?أخبرني|أنبأنا|ثنا|ثني|سمعت|عن|حدثه|أخبره)(?![ء-ي])/;
+  var AUTHOR_AGAIN = /^\s*(\u0001\d+\u0002\s*)*((و?رواه|و?أخرجه|[وف]?هذا|[وف]?هذه|[وف]?هكذا|و?اعلم|و?كذا رواه|و?إسناده|و?قد رواه|و?خرجه|و?ذكره|وذكر (?!لنا)|و?في رواية|و?في لفظ|تفرد|هذا حديث|و?قيل|و?المعنى|و?معنى|و?المراد|و?قد ذكر|و?في الحديث|و?في الصحيح|و?روى|و?أخرج)(?![ء-ي])|و?عن |و?قال (?:العلماء|المفسرون|علماؤنا)|ثم قال: (صحيح|حسن|غريب|هذا|إسناده)|وقال (?!رسول|النبي|لي|لهم|له|لها|لنا|الآخر|أحدهما|الرجل|رجل|الأعرابي|الملك|الغلام|المرأة|بعضهم)[^:.]{1,40}:|و?قال (?:الترمذي|البيهقي|الدارقطني|الحاكم|البخاري|النسائي|أبو داود|ابن ماجه|أبو زرعة|أبو حاتم|ابن المديني|علي بن المديني|ابن حبان|ابن عبد البر|أبو عمر|ابن العربي|النحاس|الأخفش|سيبويه|الفراء|الزجاج|القاضي|ابن عطية|الجوهري|القشيري|الأزهري|الزمخشري|ابن الأنباري|الطبري|ابن جرير|ابن عدي|العقيلي|الحافظ)|(?:الأولى|الثانية|الثالثة|الرابعة|الخامسة|السادسة|السابعة|الثامنة|التاسعة|العاشرة|الحادية|مسألة)\s*[-–:]|(?![^.:؟]{0,60}?قالوا:)[^.:؟]{0,60}:\s*(حدثنا|حدثني|أخبرنا|أخبرني|أنبأنا)\s+(?!ما|عن|بما|من|أي|كيف|لم|ب))/;
+  function findMatn(s, top) {
+    var P = plain(s), map = [], out = [];
+    // plain text without tashkeel, with each plain index pointing back into s
+    for (var i = 0, j = 0; i < s.length; i++) if (!/[ً-ْٰـ]/.test(s[i])) map[j++] = i;
+    map[P.length] = s.length;
+    var inPair = function (x) { return top.some(function (q) { return x > q[0] && x < q[1]; }); };
+    CHAIN_START.lastIndex = 0;
+    var m, from = 0;
+    while ((m = CHAIN_START.exec(P))) {
+      var at0 = m.index + m[1].length;
+      if (at0 < from || inPair(map[at0])) continue;
+      // the colon that ends the chain
+      var c = at0, start = -1;
+      while ((c = P.indexOf(':', c + 1)) >= 0 && c - at0 < 320) {
+        if (inPair(map[c])) continue;
+        if (CHAIN_GOES_ON.test(P.slice(c + 1, c + 30))) continue;
+        if (/(يعني|أي)\s*$/.test(P.slice(c - 8, c))) continue;                       // «سمعت داود -يعني: ابن أبي هند- عن عامر:»
+        if (/^[^.:؟!"«﴿]{0,60}?\s(أخبرته|أخبره|حدثته|حدثه|أخبرتني|حدثتني)(?![ء-ي])/.test(P.slice(c + 1, c + 80))) continue;
+        // «-قال عبد الرحمن: حسين بن علي -قال: …» — a narrator's name and another «قال:» still belong to the chain
+        var nx = /^[^.؟!"«﴿(:]{1,45}?[\s-]قال:/.exec(P.slice(c + 1, c + 60));
+        if (nx && !/رسول|النبي|ﷺ/.test(nx[0])) continue;
+        start = c + 1; break;
+      }
+      // «عن أبي هريرة، أن رسول الله ﷺ كان…» — a chain may end in «أن» instead of a colon
+      var an = /\sعن\s[^:.؟]{2,70}?،?\s(?=(أن|أنه|أنها|أنهم)\s)/.exec(P.slice(at0, at0 + 320));
+      if (an && (start < 0 || at0 + an.index + an[0].length < start)) start = at0 + an.index + an[0].length;
+      // a sentence ends inside the «chain»: it was not a chain (or it is over), and what follows is the author's
+      if (start < 0 || /[^\d]\.\s/.test(P.slice(at0, start).replace(/\d+/g, ''))) { CHAIN_START.lastIndex = at0 + 2; continue; }
+      if (/^(أخبرنا|حدثنا)/.test(P.slice(at0, at0 + 6)) &&
+          (/^\S+\s*(بذلك|بهذا|به|بأن|أن|أنه|الله|ربنا|،\s*ف)/.test(P.slice(at0, at0 + 20)) || /(الذي|التي|لقد|قد|كما|ما|لا|الله)\s*$/.test(P.slice(Math.max(0, at0 - 8), at0)))) {
+        CHAIN_START.lastIndex = at0 + 2; continue;                                   // «لأنه هو الذي أخبرنا بذلك» is not a chain
+      }
+      while (P[start] === ' ') start++;
+      // where the author speaks again
+      var end = P.length, re = /[.؟!](?=\s|[^\d.])|["»”](?=\s*[.،]?\s)/g, e;
+      re.lastIndex = start;
+      while ((e = re.exec(P))) {
+        var cut = e.index + 1;
+        if (inPair(map[e.index])) continue;
+        var rest = P.slice(cut).replace(/^[\s.،]+/, ' ');
+        if (AUTHOR_AGAIN.test(rest) || (P[e.index] === '.' && !/["»”]\s*$/.test(P.slice(e.index - 3, e.index)) && /^\s*قلت\s*:/.test(rest))) { end = cut; break; }
+        // a quoted saying closed by a full stop, after which the text is not the story going on
+        if (/["»”)]/.test(P[e.index]) && /^\s*\./.test(P.slice(cut)) &&
+            !/^\s*\[?(ف|ثم|قال|قلت|قالت|حتى|و?لما|وقال|وقالت|وكان|وإذا|قلنا|قلت يا)/.test(rest)) { end = cut; break; }
+      }
+      // a narration quoted in the middle of the author's own paragraph (al-Wasit, al-Qurtubi) is short:
+      // without a clear end it stops at its first full stop
+      if (at0 > 80 && end - start > 1200) {
+        var dot = /\.(?!\d)/g, d;
+        dot.lastIndex = start + 20;
+        while ((d = dot.exec(P)) && d.index < end) if (!inPair(map[d.index])) { end = d.index + 1; break; }
+      }
+      // «…عن ابن عباس قال: كذا، وقد روى ابن أبي حاتم في هذا حديثا…» — the author takes over mid-sentence
+      var cm = /،\s*(وقد روى|وقد رواه|ورواه|وأخرجه|وقد أخرجه|وهذا إسناد|وهذا حديث|وروى)(?![ء-ي])/g, k;
+      cm.lastIndex = start;
+      while ((k = cm.exec(P)) && k.index < end) if (!inPair(map[k.index])) { end = k.index; break; }
+      // a grading on its own («صحيح على شرطهما») is not a narration
+      if (/^(حسن|صحيح|غريب|حديث|إسناده|هذا حديث|هذا إسناد|لم يسمع)/.test(P.slice(start, start + 12))) { from = end; CHAIN_START.lastIndex = end; continue; }
+      var a = map[start], b = map[end];
+      // never cut a quotation: the text grows to cover a quote it starts inside
+      top.forEach(function (q) { if (q[0] < b && q[1] >= b) b = q[1] + 1; });
+      while (b > a && /[\s.،\u0001\u0002\d]/.test(s[b - 1]) && !/["»”]/.test(s[b - 1])) {
+        if (s[b - 1] === '\u0002') { var o = s.lastIndexOf('\u0001', b); if (o > a) { b = o; continue; } }
+        b--;
+      }
+      if (b - a > 12 && !inPair(a)) out.push([a, b]);
+      from = end;
+      CHAIN_START.lastIndex = end;
+    }
+    return out;
   }
 
   function classify(s, a, b) {
@@ -169,7 +255,7 @@
     });
   }
 
-  var KINDS = [['hadith', 'حديث نبوي'], ['say', 'كلام منقول'], ['q', 'آية'], ['poem', 'شعر'], ['fn', 'حاشية المحقق']];
+  var KINDS = [['matn', 'نص الرواية'], ['hadith', 'حديث نبوي'], ['say', 'كلام منقول'], ['q', 'آية'], ['poem', 'شعر'], ['fn', 'حاشية المحقق']];
   function legend(h) {
     var have = KINDS.filter(function (k) { return h.indexOf('class="tf-' + k[0] + '"') >= 0; });
     if (!have.length) return '';
