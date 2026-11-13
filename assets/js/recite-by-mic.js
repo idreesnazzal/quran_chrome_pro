@@ -1274,8 +1274,11 @@ function onSpeechResult(ev) {
   } catch (e) {}
   var interim = [], interimRaw = [];
   try {
-    for (var i = ev.resultIndex; i < ev.results.length; i++) {
+    // from the first result not committed yet, not from resultIndex: an event may re-send only the
+    // changed tail of an utterance, and the unchanged interim results before it are still the words heard
+    for (var i = Math.min(ev.resultIndex, S.finalIdx); i < ev.results.length; i++) {
       var r = ev.results[i];
+      if (!r) continue;
       var chosen = pickBestTranscript(r);
       var toks = tokenize(chosen);
       var raw = rawFor(toks, rawSplit(chosen));

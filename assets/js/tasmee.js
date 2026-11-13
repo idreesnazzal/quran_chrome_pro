@@ -203,7 +203,7 @@
     else if (T.st[k] === S_HID) T.st[k] = S_OK;
   }
   function feed(T, X, toks, final) {
-    var E = X.E;
+    var E = X.E, defer = null;
     for (var j = 0; j < toks.length; j++) {
       if (T.i >= X.N) break;
       var t = toks[j], nx = j + 1 < toks.length ? toks[j + 1] : null, last = j === toks.length - 1;
@@ -230,6 +230,9 @@
         T.i = i + m.e; j += m.t - 1; T.run = -1; T.opt = -1; T.pendAt = -1;
         continue;
       }
+      // the word Chrome is still writing shows as soon as its first letters are the expected word's
+      // («تنذ» of «تنذرهم»): display only (an interim is fed to a copy), the final judges the word
+      if (!final && last && t.length >= 3 && t.length * 2 >= E[i].length && E[i].indexOf(t) === 0) { accept(T, i); T.i = i + 1; break; }
       var k = backTo(X, i, t, nx, last && !final);
       if (k === -2) break;
       if (k >= 0) { if (T.st[k] === S_UNS) T.st[k] = S_OK; T.shadow = k + 1 < i ? k + 1 : -1; T.run = -1; continue; }   // a yellow word said again and heard right
@@ -260,6 +263,9 @@
         continue;
       }
       if (!final) break;                         // interim words may still change: a mistake waits for the final ones
+      // the last word of an utterance, close to the expected one, nothing after it to tell Chrome's slip
+      // from the reader's («بمؤمنون» for «بمؤمنين», then a pause): not red yet — the next words decide
+      if (X.uns && last && T.run !== i && !T.tries[i] && X.sim(t, E[i]) >= 0.6) { defer = t; break; }
       if (T.run !== i) {                         // a new attempt at this word
         var kind = classify(X, i, t);
         T.tries[i] = Math.min(255, T.tries[i] + 1);
@@ -278,6 +284,7 @@
       T.pendAt = T.run === T.i && T.runKind === T_SUB ? T.i : -1; T.pendLen = T.runLen; T.pendTok = T.runTok;
       T.run = -1;
     }
+    if (defer != null) { T.pendAt = T.i; T.pendLen = 1; T.pendTok = defer; }   // credit for unsure() with the next words
     return T;
   }
   // voice: show the word at the cursor (help); eye: next / back / «أخطأت»
@@ -491,7 +498,7 @@
       Object.keys(n.types).forEach(function (t) { A.types[t] = (A.types[t] || 0) + n.types[t]; });
       A.errs = A.errs.concat(r.errs);
     }
-    st.X = st.T = st.shown = st.at = st.first = null;
+    st.X = st.T = st.shown = st.at = st.first = st.stall = null;
     st.pre = [];
   }
   // the reader turned the page by hand: the test moves there
@@ -569,6 +576,21 @@
     buildLayers();
     return true;
   }
+  // the reader went on somewhere else (al-Kursi, then «آمن الرسول», 2026-11-13): the words heard since
+  // the cursor last moved run on exactly for 6+ words at a place more than an ayah away -> close this
+  // segment as it stood before those words (they are not its mistakes) and start a new one there
+  function jumpTo(stall) {
+    var toks = dropOpeners(stall.toks) || [];
+    if (toks.length < 6) return false;
+    var hit = locate(toks);
+    if (!hit || toks.length - hit.from < 6) return false;
+    var c = C(), aiNew = c.ayahOf[hit.pos], cur = st.at[Math.min(st.T.i, st.at.length - 1)];
+    if (!cur || (aiNew >= cur.ai - 1 && aiNew <= cur.ai + 1)) return false;   // near: the test itself judges it
+    st.T = st.shown = stall.T; st.stall = null;
+    closeSegment();
+    toast('↪ انتقلتَ إلى موضع آخر: التسميع يتابعك من هناك');
+    return tryAnchor(toks, []);
+  }
   function heard(words, raw, final) {
     if (!takesWords()) return;
     var S = R()._session;
@@ -587,7 +609,18 @@
     }
     st.X.pauseOnFinal = !(S && S.ears === 'local');   // the local model commits mid-speech
     var ws = st.skipIv ? words.slice(st.skipIv) : words;
-    if (final) { st.skipIv = 0; if (ws.length) feed(st.T, st.X, ws, true); st.shown = st.T; }
+    if (final) {
+      st.skipIv = 0;
+      var before = clone(st.T);
+      if (ws.length) feed(st.T, st.X, ws, true);
+      st.shown = st.T;
+      if (st.T.i > before.i) st.stall = null;
+      else if (ws.length && !st.fixed) {          // no step forward: did the reader go somewhere else?
+        if (!st.stall) st.stall = { T: before, toks: [] };
+        st.stall.toks = st.stall.toks.concat(ws).slice(-30);
+        if (jumpTo(st.stall)) { afterChange(); return; }
+      }
+    }
     else st.shown = ws.length ? feed(clone(st.T), st.X, ws, false) : st.T;
     afterChange();
   }

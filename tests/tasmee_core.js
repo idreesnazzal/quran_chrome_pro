@@ -211,9 +211,23 @@ ok('...the next words go on from after them: yellow, no mistake', t.T.st[16] ===
 t = test(a78);
 ['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون', 'كلا سيعلمون', 'ثم كلا سيعلمون', 'الم نجعل الارض'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
 Core.feed(t.T, t.X, tok('مدادا'), true);
-ok('«مدادا» alone before a pause: red', t.T.st[17] === S.ERR);
+ok('«مدادا» alone before a pause, close to «مهادا»: not red yet, the next words decide (2026-11-13)', t.T.st[17] === S.HID && t.T.i === 17 && !t.T.tries[17], { st: states(t, 21) });
 Core.feed(t.T, t.X, tok('مهادا والجبال اوتادا'), true);
-ok('...said again at once and heard right: yellow (Chrome misheard it), no mistake', t.T.st[17] === S.UNS && Core.summary(t.T, t.X).err === 0, { st: states(t, 21), ty: t.T.ty[17] });
+ok('...said again at once and heard right: right, no mistake', t.T.st[17] === S.OK && Core.summary(t.T, t.X).err === 0, { st: states(t, 21), ty: t.T.ty[17] });
+t = test(a78);
+['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون', 'كلا سيعلمون', 'ثم كلا سيعلمون', 'الم نجعل الارض', 'مدادا'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
+Core.feed(t.T, t.X, tok('والجبال اوتادا'), true);
+ok('...or the reader goes on: yellow (Chrome misheard it), no mistake', t.T.st[17] === S.UNS && Core.summary(t.T, t.X).err === 0 && t.T.i === 20, { st: states(t, 21) });
+t = test(a78);
+['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون', 'كلا سيعلمون', 'ثم كلا سيعلمون', 'الم نجعل الارض'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
+Core.feed(t.T, t.X, tok('فراشا'), true);
+ok('a different word before a pause («فراشا» for «مهادا»): red at once', t.T.st[17] === S.ERR, { st: states(t, 21) });
+// interim: the word Chrome is still writing shows from its first letters (display only)
+t = test(ayahIdx(2, 6));
+const pre = Core.feed(Core.clone(t.T), t.X, tok('ان الذين كفروا سواء عليهم اانذرتهم ام لم تنذ'), false);
+ok('interim «تنذ» of «تنذرهم»: shown at once', pre.i === 9 && pre.st[8] === S.OK, { i: pre.i });
+const pre2 = Core.feed(Core.clone(t.T), t.X, tok('ان الذين كفروا سواء عليهم اانذرتهم ام لم تن'), false);
+ok('...«تن» (2 letters) not yet', pre2.i === 8, { i: pre2.i });
 // still mistakes
 t = test(a78);
 ['عم يتساءلون', 'عن النبا العظيم', 'الذي هم فيه مختلفون', 'كلا سيعلمون', 'ثم كلا سيعلمون'].forEach((s) => Core.feed(t.T, t.X, tok(s), true));
@@ -242,6 +256,9 @@ ok('al-Kursi at speed (real): no mistake at all, to the end', rp.bad.length === 
 rp = replay('tasmee_real_baqara_1_16.json', 2, 1, 16);
 ok('2:1-16 (real): only the reader\'s own two slips («اليم» for «عظيم», «وما يشعرون» left out); repeats Chrome misheard are no mistake',
   JSON.stringify(rp.bad) === JSON.stringify(['عظيم', 'وما']), rp.bad);
+rp = replay('tasmee_real_baqara_1_9.json', 2, 1, 16);
+ok('2:1-9 (real, 13:37): only «اليم» for «عظيم» (said twice); «بمؤمنون» at a pause, then going on = yellow',
+  JSON.stringify(rp.bad) === JSON.stringify(['عظيم']), rp.bad);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
