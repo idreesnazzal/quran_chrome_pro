@@ -2706,8 +2706,12 @@
       color: var(--gold-ink);
     }
 
-    /* the reason's status is already in the strip above the tabs («سبب النزول: …») */
-    #nuzulStatusBadge { display: none; }
+    /* the reason's status sits on its own tab: the grade when there is a reason, nothing when there is none
+       (the strip above the tabs no longer repeats it). Phones: a coloured dot, the tabs are narrow */
+    #nuzulStatusBadge.asbab-general { display: none; }
+    @media (max-width: 600px) {
+      #nuzulStatusBadge { font-size: 0; width: 8px; height: 8px; min-width: 0; padding: 0; border-radius: 50%; }
+    }
 
     /* phones: three equal tabs that always fit (the third was cut off at 375px) */
     @media (max-width: 600px) {
@@ -2715,6 +2719,7 @@
       .tafsir-tab-btn { justify-content: center; padding: 8px 4px; gap: 4px; font-size: 0.76rem; white-space: nowrap; min-width: 0; overflow: hidden; }
       .tafsir-tab-btn > span:first-child { display: none; }      /* the emoji; the word is enough */
       .tafsir-tab-btn .tab-badge-pill { display: none !important; }   /* «معاني الكلمات» + count did not fit (JS sets an inline display) */
+      .tafsir-tab-btn #nuzulStatusBadge.asbab-found { display: inline-block !important; flex: none; }   /* the reason's dot */
     }
 
     .tafsir-tab-content {
@@ -2934,24 +2939,6 @@
     .revelation-meta-chip .chip-val {
       font-weight: 700;
       color: var(--text-main);
-    }
-
-    .revelation-meta-chip.chip-reason {
-      cursor: pointer;
-      background: var(--gold-bg);
-      border-color: var(--gold-primary);
-      color: var(--gold-ink);
-    }
-
-    .revelation-meta-chip.chip-reason:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 3px 10px var(--gold-bg);
-      filter: brightness(1.08);
-    }
-
-    .revelation-meta-chip.chip-reason .chip-val.has-asbab {
-      color: var(--gold-ink);
-      font-weight: 800;
     }
 
     .revelation-meta-chip .chip-action-arrow {
@@ -4126,12 +4113,6 @@
               <span>🔢</span>
               <span class="chip-val" id="chipVersesVal">7 آيات</span>
             </div>
-            <div class="revelation-meta-chip chip-reason" id="chipNuzulReason" onclick="switchTafsirTab('nuzul')" role="button" title="اضغط لمطالعة سبب النزول وموعده بالتفصيل">
-              <span>📜</span>
-              <span class="chip-label">سبب النزول:</span>
-              <span class="chip-val" id="chipReasonVal">متوفر بالرواية ✨</span>
-              <span class="chip-action-arrow">◀</span>
-            </div>
           </div>
         </div>
 
@@ -4472,8 +4453,6 @@
     const chipPlaceVal = document.getElementById('chipPlaceVal');
     const chipNuzulTiming = document.getElementById('chipNuzulTiming');
     const chipTimingVal = document.getElementById('chipTimingVal');
-    const chipNuzulReason = document.getElementById('chipNuzulReason');
-    const chipReasonVal = document.getElementById('chipReasonVal');
     const chipVersesVal = document.getElementById('chipVersesVal');
     const nuzulReasonBody = document.getElementById('nuzulReasonBody');
 
@@ -6748,10 +6727,6 @@
       const checked = asbabChecked(sura, aya);
 
       if (cards === null) {          // data/asbab_data.js has not arrived yet
-        if (chipReasonVal) {
-          chipReasonVal.textContent = 'جارٍ التحميل…';
-          chipReasonVal.classList.remove('has-asbab');
-        }
         if (nuzulStatusBadge) {
           nuzulStatusBadge.textContent = '…';
           nuzulStatusBadge.className = 'tab-badge-pill asbab-general';
@@ -6764,14 +6739,9 @@
 
       const hasSabab = cards.length > 0;
       const gradeNow = hasSabab ? asbabBestGrade(cards[0]) : '';
-      if (chipReasonVal) {
-        chipReasonVal.textContent = hasSabab
-          ? (gradeNow === 'لم يُحكم عليه' ? 'مذكور في الكتب' : gradeNow)
-          : 'لا سبب خاص';
-        chipReasonVal.classList.toggle('has-asbab', hasSabab);
-      }
       if (nuzulStatusBadge) {
-        nuzulStatusBadge.textContent = hasSabab ? (gradeNow === 'لم يُحكم عليه' ? 'مذكور' : gradeNow) : 'لا سبب خاص';
+        nuzulStatusBadge.textContent = hasSabab ? (gradeNow === 'لم يُحكم عليه' ? 'مذكور' : gradeNow) : '';
+        nuzulStatusBadge.title = hasSabab ? 'سبب النزول: ' + nuzulStatusBadge.textContent : '';
         nuzulStatusBadge.className = 'tab-badge-pill ' + (hasSabab ? 'asbab-found' : 'asbab-general');
       }
       // the surah's place / order / length live once, in the strip above the tabs;
