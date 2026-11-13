@@ -101,8 +101,10 @@
   }
 
   /* ---------------- one paragraph ---------------- */
+  var OPT = {};
   function quotes(s) {
     var pairs = pairStraight(s), stack = [];
+    if (OPT.parens) parenPairs(s).forEach(function (q) { pairs.push(q); });
     for (var i = 0; i < s.length; i++) {
       var ch = s[i];
       if (ch === '«' || ch === '“' || ch === '﴿' || ch === '{') stack.push(i);
@@ -116,7 +118,8 @@
     var top = [], end = -1;
     pairs.forEach(function (q) { if (q[0] > end) { top.push(q); end = q[1]; } });
     // the text of each narration (after its chain of narrators), around the quotes it holds
-    var matn = findMatn(s, top), html = '', at = 0;
+    // {allMatn: true}: the paragraph is the text of a narration whose chain ended the paragraph before
+    var matn = OPT.allMatn ? wholeMatn(s) : findMatn(s, top), html = '', at = 0;
     function region(from, to) {
       var h = '', pos = from;
       top.forEach(function (q) {
@@ -138,15 +141,28 @@
    * «حدثنا / أخبرنا / أنبأنا / سمعت» (or «روى/أخرج … عن») to the first colon that is not followed by more
    * of the chain; the narration's text runs from there to where the author speaks again («رواه…»,
    * «وهذا إسناد…», «وقال فلان:», «قلت:») or to the end of the paragraph. */
-  var CHAIN_START = /(^|[^ء-ي])و?(حدثنا|حدثني|أخبرنا|أخبرني|أنبأنا|أنبأني|ثنا|(?:روى|رواه|أخرج|أخرجه)(?![ء-ي])[^.:]{0,60}?عن)(?![ء-ي])/g;
-  var CHAIN_GOES_ON = /^\s*(\u0001\d+\u0002\s*)*(و?حدثنا|و?حدثني|و?أخبرنا|و?أخبرني|أنبأنا|ثنا|ثني|سمعت|عن|حدثه|أخبره)(?![ء-ي])/;
-  var AUTHOR_AGAIN = /^\s*(\u0001\d+\u0002\s*)*((و?رواه|و?أخرجه|[وف]?هذا|[وف]?هذه|[وف]?هكذا|و?اعلم|و?كذا رواه|و?إسناده|و?قد رواه|و?خرجه|و?ذكره|وذكر (?!لنا)|و?في رواية|و?في لفظ|تفرد|هذا حديث|و?قيل|و?المعنى|و?معنى|و?المراد|و?قد ذكر|و?في الحديث|و?في الصحيح|و?روى|و?أخرج)(?![ء-ي])|و?عن |و?قال (?:العلماء|المفسرون|علماؤنا)|ثم قال: (صحيح|حسن|غريب|هذا|إسناده)|وقال (?!رسول|النبي|لي|لهم|له|لها|لنا|الآخر|أحدهما|الرجل|رجل|الأعرابي|الملك|الغلام|المرأة|بعضهم)[^:.]{1,40}:|و?قال (?:الترمذي|البيهقي|الدارقطني|الحاكم|البخاري|النسائي|أبو داود|ابن ماجه|أبو زرعة|أبو حاتم|ابن المديني|علي بن المديني|ابن حبان|ابن عبد البر|أبو عمر|ابن العربي|النحاس|الأخفش|سيبويه|الفراء|الزجاج|القاضي|ابن عطية|الجوهري|القشيري|الأزهري|الزمخشري|ابن الأنباري|الطبري|ابن جرير|ابن عدي|العقيلي|الحافظ)|(?:الأولى|الثانية|الثالثة|الرابعة|الخامسة|السادسة|السابعة|الثامنة|التاسعة|العاشرة|الحادية|مسألة)\s*[-–:]|(?![^.:؟]{0,60}?قالوا:)[^.:؟]{0,60}:\s*(حدثنا|حدثني|أخبرنا|أخبرني|أنبأنا)\s+(?!ما|عن|بما|من|أي|كيف|لم|ب))/;
+  var CHAIN_START_STRICT = /(^|[^ء-ي])و?(حدثنا|حدثني|أخبرنا|أخبرني|أنبأنا|أنبأني|ثنا|(?:روى|رواه|أخرج|أخرجه)(?![ء-ي])[^.:]{0,60}?عن)(?![ء-ي])/g;
+  var CHAIN_START_LOOSE = new RegExp(CHAIN_START_STRICT.source.replace('{0,60}?', '{0,100}?'), 'g');
+  var CHAIN_GOES_ON = /^\s*(\u0001\d+\u0002\s*)*(و?حدثنا|و?حدثني|و?أخبرنا|و?أخبرني|أنبأنا|ثنا|ثني|سمعت|عن|حدثه|أخبره|و?أخبرتنا|و?حدثتنا|و?أخبرتني|و?حدثتني)(?![ء-ي])/;
+  var AUTHOR_AGAIN = /^\s*(\u0001\d+\u0002\s*)*((و?رواه|و?أخرجه|[وف]?هذا|[وف]?هذه|[وف]?هكذا|و?اعلم|و?كذا رواه|و?إسناده|و?قد رواه|و?خرجه|و?ذكره|وذكر (?!لنا)|و?في رواية|و?في لفظ|و?لفظ|تفرد|هذا حديث|و?قيل|و?المعنى|و?معنى|و?المراد|و?قد ذكر|و?في الحديث|و?في الصحيح|و?روى|و?أخرج)(?![ء-ي])|و?عن |و?قال (?:العلماء|المفسرون|علماؤنا)|ثم قال: (صحيح|حسن|غريب|هذا|إسناده)|وقال (?!رسول|النبي|لي|لهم|له|لها|لنا|الآخر|أحدهما|الرجل|رجل|الأعرابي|الملك|الغلام|المرأة|بعضهم)[^:.]{1,40}:|و?قال (?:الترمذي|البيهقي|الدارقطني|الحاكم|البخاري|النسائي|أبو داود|ابن ماجه|أبو زرعة|أبو حاتم|ابن المديني|علي بن المديني|ابن حبان|ابن عبد البر|أبو عمر|ابن العربي|النحاس|الأخفش|سيبويه|الفراء|الزجاج|القاضي|ابن عطية|الجوهري|القشيري|الأزهري|الزمخشري|ابن الأنباري|الطبري|ابن جرير|ابن عدي|العقيلي|الحافظ)|(?:الأولى|الثانية|الثالثة|الرابعة|الخامسة|السادسة|السابعة|الثامنة|التاسعة|العاشرة|الحادية|مسألة)\s*[-–:]|(?![^.:؟]{0,60}?قالوا:)[^.:؟]{0,60}:\s*(حدثنا|حدثني|أخبرنا|أخبرني|أنبأنا)\s+(?!ما|عن|بما|من|أي|كيف|لم|ب))/;
+  function wholeMatn(s) {
+    var a = 0, b = s.length;
+    while (a < b && /\s/.test(s[a])) a++;
+    while (b > a && /[\s.،]/.test(s[b - 1])) b--;
+    return b - a > 12 ? [[a, b]] : [];
+  }
+  // does this paragraph end on a chain of narrators, its narration in the next one? («… عن مجاهد قال:»)
+  function endsInChain(s) {
+    var P = plain(String(s || '')).replace(/\s+$/, '');
+    return /:$/.test(P) && /(حدثنا|حدثني|أخبرنا|أخبرني|أنبأنا|(^|\s)عن\s)/.test(P.slice(-260)) && !/[.؟!]\s/.test(P.slice(-120));
+  }
   function findMatn(s, top) {
     var P = plain(s), map = [], out = [];
     // plain text without tashkeel, with each plain index pointing back into s
     for (var i = 0, j = 0; i < s.length; i++) if (!/[ً-ْٰـ]/.test(s[i])) map[j++] = i;
     map[P.length] = s.length;
     var inPair = function (x) { return top.some(function (q) { return x > q[0] && x < q[1]; }); };
+    var CHAIN_START = OPT.loose ? CHAIN_START_LOOSE : CHAIN_START_STRICT;
     CHAIN_START.lastIndex = 0;
     var m, from = 0;
     while ((m = CHAIN_START.exec(P))) {
@@ -167,8 +183,12 @@
       // «عن أبي هريرة، أن رسول الله ﷺ كان…» — a chain may end in «أن» instead of a colon
       var an = /\sعن\s[^:.؟]{2,70}?،?\s(?=(أن|أنه|أنها|أنهم)\s)/.exec(P.slice(at0, at0 + 320));
       if (an && (start < 0 || at0 + an.index + an[0].length < start)) start = at0 + an.index + an[0].length;
+      if (OPT.loose) {                                                   // no colon at all: «… عن ابن عباس قال كان…»
+        var lq = /\sعن\s[^:.؟]{2,60}?\s(قال|قالت|يقول|قالا)\s/.exec(P.slice(at0, at0 + 260));
+        if (lq && (start < 0 || at0 + lq.index + lq[0].length < start)) start = at0 + lq.index + lq[0].length;
+      }
       // a sentence ends inside the «chain»: it was not a chain (or it is over), and what follows is the author's
-      if (start < 0 || /[^\d]\.\s/.test(P.slice(at0, start).replace(/\d+/g, ''))) { CHAIN_START.lastIndex = at0 + 2; continue; }
+      if (start < 0 || /[^\d]\.\s/.test(P.slice(at0, start).replace(/\u0001\d+\u0002/g, ''))) { CHAIN_START.lastIndex = at0 + 2; continue; }
       if (/^(أخبرنا|حدثنا)/.test(P.slice(at0, at0 + 6)) &&
           (/^\S+\s*(بذلك|بهذا|به|بأن|أن|أنه|الله|ربنا|،\s*ف)/.test(P.slice(at0, at0 + 20)) || /(الذي|التي|لقد|قد|كما|ما|لا|الله)\s*$/.test(P.slice(Math.max(0, at0 - 8), at0)))) {
         CHAIN_START.lastIndex = at0 + 2; continue;                                   // «لأنه هو الذي أخبرنا بذلك» is not a chain
@@ -193,8 +213,13 @@
         dot.lastIndex = start + 20;
         while ((d = dot.exec(P)) && d.index < end) if (!inPair(map[d.index])) { end = d.index + 1; break; }
       }
+      if (OPT.loose) {                                                                // al-Suyuti moves on without a full stop
+        var lz = /\s(وأخرج|وأخرجه|وروى|ورواه|وله شاهد|هذا مرسل|هذا حديث|إسناده|وفي لفظ|ولفظه|وقال عبد الرزاق|ثم أخرج|وعن|قلت|قاله|صحيح الإسناد|مرسل صحيح|مرسل|بسند|سنده|حديث حسن|حديث صحيح|واه)(?![ء-ي])|\s\|\s|\s\([^\s()]{1,3}\)/g, z;
+        lz.lastIndex = start;
+        while ((z = lz.exec(P)) && z.index < end) if (!inPair(map[z.index])) { end = z.index; break; }
+      }
       // «…عن ابن عباس قال: كذا، وقد روى ابن أبي حاتم في هذا حديثا…» — the author takes over mid-sentence
-      var cm = /،\s*(وقد روى|وقد رواه|ورواه|وأخرجه|وقد أخرجه|وهذا إسناد|وهذا حديث|وروى)(?![ء-ي])/g, k;
+      var cm = /،\s*(وقد روى|وقد رواه|ورواه|وأخرجه|وقد أخرجه|وهذا إسناد|وهذا حديث|وروى)(?![ء-ي])|\s(رواه|ورواه|أخرجه|وأخرجه) (البخاري|مسلم|الترمذي|النسائي|أبو داود|ابن ماجه|أحمد|الحاكم|البيهقي|الطبراني|ابن جرير|ابن أبي حاتم)(?![ء-ي])/g, k;
       cm.lastIndex = start;
       while ((k = cm.exec(P)) && k.index < end) if (!inPair(map[k.index])) { end = k.index; break; }
       // a grading on its own («صحيح على شرطهما») is not a narration
@@ -213,9 +238,27 @@
     return out;
   }
 
+  /* «(…)» is a quotation only in the asbab books, and only when it is a verse or follows a colon:
+     «فأنزل الله: (قد نرى تقلب وجهك في السماء)», «قال الطبري: (وذكر أنه…)» */
+  function parenPairs(s) {
+    var st = [], out = [];
+    for (var i = 0; i < s.length; i++) {
+      if (s[i] === '(') st.push(i);
+      else if (s[i] === ')' && st.length) {
+        var a = st.pop(), inner = s.slice(a + 1, i), words = plain(inner).trim().split(/\s+/).length;
+        if (/^[\s\d٠-٩\/\-،.]*$/.test(inner) || words < 2) continue;
+        var colon = /:\s*$/.test(s.slice(Math.max(0, a - 3), a));
+        if ((words >= 2 && isQuran(inner)) || (colon && words >= 4)) out.push([a, i]);
+      }
+    }
+    return out;
+  }
+
   function classify(s, a, b) {
     var open = s[a], inner = s.slice(a + 1, b);
+    if (!/[ء-ي]/.test(inner)) return '';                                 // «{١٤٢}» is a verse number
     if (open === '﴿' || open === '{') return 'q';
+    if (open === '(' && isQuran(inner)) return 'q';
     var words = plain(inner).trim().split(/\s+/).filter(Boolean).length;
     if (!words) return '';
     var after = s.slice(b + 1, b + 40);
@@ -284,5 +327,11 @@
   }
 
   // quranTexts: set by the page — a function returning every ayah's text (read once, on first use)
-  G.TafsirRich = { html: html, legend: legend, isQuran: isQuran, quranTexts: null, _pair: pairStraight, _classify: classify };
+  // one paragraph as HTML, with options: {parens: true} «(…)» may be a quote, {loose: true} chains without colons
+  function inline(text, opts) {
+    OPT = opts || {};
+    try { return quotes(String(text || '')); } finally { OPT = {}; }
+  }
+
+  G.TafsirRich = { html: html, inline: inline, endsInChain: endsInChain, legend: legend, isQuran: isQuran, quranTexts: null, _pair: pairStraight, _classify: classify };
 })(typeof window !== 'undefined' ? window : globalThis);

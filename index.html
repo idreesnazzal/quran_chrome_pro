@@ -6552,6 +6552,18 @@
         .replace(/\{([^{}]{2,400})\}/g, '<span class="asb-q">﴿$1﴾</span>')
         .replace(/﴿([^﴿﴾]{2,400})﴾/g, '<span class="asb-q">﴿$1﴾</span>');
     }
+    // the narrations of the asbab books, marked like the tafsir (tafsir-rich.js): the text of each report
+    // after its chain, quoted sayings, verses — al-Muharrar quotes in «(…)», al-Suyuti writes without stops
+    let asbabPartBook = '', asbabChainBefore = false;   // al-Wahidi often ends a part on «… قال:» and the report is the next part
+    function asbabRich(s) {
+      if (!window.TafsirRich || !TafsirRich.inline) return asbabInline(s);
+      // line by line: al-Muharrar lists «١ - أخرج البخاري… ٢ - أخرج أبو داود…» on separate lines of one part
+      // (its other line breaks are the printed page's, mid-sentence: they stay spaces)
+      return String(s).replace(/\{([^{}]*[ء-ي][^{}]*)\}/g, (m, v) => v.length <= 400 ? '﴿' + v + '﴾' : m).split(/\n(?=\s*[٠-٩0-9]+\s*-\s)/).filter((line) => line.trim()).map((line) => {
+        const whole = asbabChainBefore; asbabChainBefore = TafsirRich.endsInChain(line);
+        return TafsirRich.inline(line, { parens: true, loose: asbabPartBook === 'suyuti', allMatn: whole });
+      }).join('<br>');
+    }
     function asbabPartHtml(p) {
       let s = String(p || '').replace(/(\s*\*\s*){3,}/g, '\n').replace(/^[\s*]+|[\s*]+$/g, '');
       if (!s) return '';
@@ -6561,10 +6573,10 @@
                   /^(سبب النزول|دراسة السبب|النتيجة)\s*:/.exec(plainHead);
       if (sec) {
         const rest = s.replace(/^[^\n:]*:\s*/, '');
-        return `<div class="asb-sec">${sec[1]}</div><p class="asb-par">${asbabInline(rest)}</p>`;
+        return `<div class="asb-sec">${sec[1]}</div><p class="asb-par">${asbabRich(rest)}</p>`;
       }
       if (/^[٠-٩0-9]+\s*-\s*قال الله تعالى/.test(plainHead)) return `<p class="asb-head">${asbabInline(s)}</p>`;
-      return `<p class="asb-par">${asbabInline(s)}</p>`;
+      return `<p class="asb-par">${asbabRich(s)}</p>`;
     }
     const ASBAB_BOOK_ORDER = ['460', '2919', 'suyuti'];
     function asbabBooksOf(card) {
@@ -6605,11 +6617,13 @@
       (v.ed || []).forEach((e) => {
         if (e.q) why.push(`<div class="asb-why asb-why-ed"><b>حكم المحقق${e.g ? ' (' + asbabEsc(e.g) + ')' : ''}:</b> «${asbabEsc(e.q)}»</div>`);
       });
-      const text = blocks.map((x) => `
+      asbabPartBook = b; asbabChainBefore = false;
+      let text = blocks.map((x) => `
           <div class="asb-block">
             ${x.page ? `<div class="asb-page">ص ${asbabEsc(x.page[1])}</div>` : ''}
             ${(x.t || []).map(asbabPartHtml).join('')}
           </div>`).join('');
+      if (window.TafsirRich) text = TafsirRich.legend(text) + text;
       return `
         <details class="asb-src"${open ? ' open' : ''}>
           <summary>
