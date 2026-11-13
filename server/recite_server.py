@@ -53,6 +53,74 @@ if sys.stderr is None:
 MODEL = None
 MODEL_NAME = ""
 
+# ---- the Quran CTC ear (Tilawi FastConformer, CC-BY-4.0): POST /ctc ----
+# Raw 16 kHz mono float32 PCM in, {"text", "ms"} out. Runs natively with onnxruntime (pip install
+# onnxruntime): 10 s of recitation in ~0.5 s on 8 threads, vs ~6 s in the browser's WASM. Loaded on
+# first use from assets/models/tilawi/ (downloaded from Hugging Face once if missing).
+CTC = {"session": None, "vocab": None, "error": None}
+CTC_FILES = ("fastconformer_full_mixed.onnx", "vocab.json")
+CTC_URL = "https://huggingface.co/muhdur/tilawi-fastconformer-quran/resolve/main/"
+CTC_SHA = {"fastconformer_full_mixed.onnx": "4767182cd92975869f81a7e32700b14ca2b04e8dc97a15ff220a8697f4639488",
+           "vocab.json": "c55877f3bff8bc3aaefc160e8c2fb88cb349088d092513d40210ccfe535e671b"}
+import threading
+CTC_LOCK = threading.Lock()
+
+
+def ctc_load():
+    """-> True when the CTC session is ready (loads it once, thread-safe)."""
+    if CTC["session"] is not None:
+        return True
+    with CTC_LOCK:
+        if CTC["session"] is not None:
+            return True
+        try:
+            import hashlib
+            import urllib.request
+            import numpy  # noqa: F401  (onnxruntime needs it)
+            import onnxruntime as ort
+            d = os.path.join(APP_ROOT, "assets", "models", "tilawi")
+            os.makedirs(d, exist_ok=True)
+            for f in CTC_FILES:
+                path = os.path.join(d, f)
+                if not os.path.exists(path):
+                    print("[recite] downloading the Quran ear:", f, flush=True)
+                    tmp = path + ".part"
+                    urllib.request.urlretrieve(CTC_URL + f, tmp)
+                    h = hashlib.sha256(open(tmp, "rb").read()).hexdigest()
+                    if h != CTC_SHA[f]:
+                        os.remove(tmp)
+                        raise RuntimeError("checksum mismatch for " + f)
+                    os.replace(tmp, path)
+            so = ort.SessionOptions()
+            so.intra_op_num_threads = max(1, min(8, (os.cpu_count() or 2) - 1))
+            CTC["session"] = ort.InferenceSession(os.path.join(d, CTC_FILES[0]), so,
+                                                  providers=["CPUExecutionProvider"])
+            with open(os.path.join(d, "vocab.json"), encoding="utf-8") as fh:
+                v = json.load(fh)
+            CTC["vocab"] = [v.get(str(i), "") for i in range(len(v))]
+            CTC["error"] = None
+            print("[recite] Quran ear ready (Tilawi FastConformer, %d threads)" % so.intra_op_num_threads, flush=True)
+            return True
+        except Exception as e:  # missing onnxruntime / offline / bad file
+            CTC["error"] = str(e)
+            return False
+
+
+def ctc_transcribe(pcm_bytes):
+    import time
+    import numpy as np
+    x = np.frombuffer(pcm_bytes, dtype="<f4").astype(np.float32)[None, :]
+    t0 = time.time()
+    out = CTC["session"].run(None, {"audio_signal": x, "length": np.array([x.shape[1]], dtype=np.int64)})[0][0]
+    ids = out.argmax(axis=-1)
+    blank, vocab, text, prev = len(CTC["vocab"]) - 1, CTC["vocab"], [], -1
+    for i in ids.tolist():
+        if i != prev and i != blank:
+            text.append(vocab[i])
+        prev = i
+    s = "".join(text).replace("▁", " ")
+    return " ".join(s.split()), int((time.time() - t0) * 1000)
+
 # App root = parent of this script's folder (quran-mushaf-app/).
 APP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -85,6 +153,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path.rstrip("/") == "/ctc":   # is the Quran ear here? (loads it: the first answer may take a few s)
+            ok = ctc_load()
+            return self._json(200, {"ok": ok, "error": CTC["error"]})
         if parsed.path == "/health" or parsed.path == "/health/":
             body = json.dumps({"ok": MODEL is not None,
                                "model": MODEL_NAME or None,
@@ -159,6 +230,16 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path.startswith("/debug-save"):
             return self._debug_save()
+        if self.path.rstrip("/") == "/ctc":
+            if not ctc_load():
+                return self._json(503, {"error": "Quran ear unavailable: " + str(CTC["error"]) +
+                                        " (pip install onnxruntime numpy)", "text": ""})
+            n = int(self.headers.get("Content-Length") or 0)
+            data = self.rfile.read(n) if n else b""
+            if len(data) < 3200 or len(data) % 4:
+                return self._json(400, {"error": "need float32 PCM, 16 kHz, >= 50 ms", "text": ""})
+            text, ms = ctc_transcribe(data)
+            return self._json(200, {"text": text, "ms": ms})
         if self.path.rstrip("/") != "/recite-chunk":
             self.send_response(404)
             self._cors()

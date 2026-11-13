@@ -122,8 +122,14 @@
       '</section>' +
 
       '<section class="st-sec"><h3>🎙️ التسميع بالمايك</h3>' +
-        '<div class="st-row"><span><b>التعرّف على الصوت</b><small>' + (ears === 'quran' ? 'النموذج القرآني داخل المتصفح (تجريبي، أبطأ)' : 'تعرّف Chrome (الأدق لصوتك)') + '</small></span>' +
-          seg('ears', [['browser', '🎧 Chrome'], ['quran', '🧠 القرآني']], ears) + '</div>' +
+        '<div class="st-row st-col"><span><b>الأذن (التعرّف على التلاوة)</b><small>' + ({
+            browser: 'تعرّف Chrome: سريع، لكنه غير مدرَّب على التلاوة فيكتب بعض الكلمات خطأً',
+            rescue: 'Chrome يقود، والأذن القرآنية (Tilawi) تعيد سماع كل كلمة يوشك أن يحمّرها: تبرّئها إن سمعتها صحيحة، ولا تتّهم',
+            ctc: 'الأذن القرآنية (Tilawi FastConformer) وحدها: مدرَّبة على التلاوة، تعمل دون Chrome؛ سريعة على الخادم المحلي، أبطأ داخل المتصفح',
+            quran: 'Whisper القرآني (Tarteel) داخل المتصفح: تجريبي وأبطأ'
+          }[ears] || '') + '</small></span>' +
+          seg('ears', [['browser', '🎧 Chrome'], ['rescue', '🎧+🧠 إنقاذ'], ['ctc', '🧠 Tilawi'], ['quran', '🧠 Whisper']], ears) + '</div>' +
+        '<p class="st-note">الأذن القرآنية: نموذج <a href="https://huggingface.co/muhdur/tilawi-fastconformer-quran" target="_blank" rel="noopener">Tilawi FastConformer</a> (CC BY 4.0، مبني على NVIDIA FastConformer)، يعمل على الخادم المحلي إن وُجد وإلا داخل المتصفح (حوالي 90 ميغابايت مرة واحدة).</p>' +
         sw('autoTurn', 'قلب الصفحة تلقائيًا', p.autoTurn, 'ينتقل المصحف إلى صفحة الآية التي تتلوها') +
         sw('karaoke', 'شريط كلمات الآية', p.karaoke, 'كلمات الآية الحالية كلمةً كلمة في شريط التسميع') +
         sw('heard', 'إظهار ما التقطه المايك', p.heard, 'النص الذي سمعه التعرّف') +
@@ -217,7 +223,7 @@
         if (name === 'tsmLevel' && window.Tasmee) window.Tasmee.setPref('level', v);
         if (name === 'tsmReveal' && window.Tasmee) window.Tasmee.setPref('reveal', +v);
         if (name === 'match') { var t = document.querySelector('.match-tag[data-match=' + v + ']'); if (t) t.click(); else try { localStorage.setItem('search_match', v); } catch (x) {} }
-        if (name === 'ears' && v !== ls('recite_ears', 'browser')) { var eb = document.getElementById('dockEarsBtn'); if (eb) eb.click(); }
+        if (name === 'ears' && v !== ls('recite_ears', 'browser') && window.ReciteByMic && window.ReciteByMic.setEars) window.ReciteByMic.setEars(v);
         setTimeout(render, 30); return;
       }
     };

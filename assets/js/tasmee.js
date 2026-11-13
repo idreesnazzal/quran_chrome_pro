@@ -646,7 +646,7 @@
     var ws = st.skipIv ? words.slice(st.skipIv) : words;
     if (final) {
       st.skipIv = 0;
-      var before = clone(st.T);
+      var before = clone(st.T), startedAt = st.lastFinalAt || st.seg0;
       if (ws.length) feed(st.T, st.X, ws, true);
       st.shown = st.T;
       if (st.T.i > before.i) st.stall = null;
@@ -655,9 +655,57 @@
         st.stall.toks = st.stall.toks.concat(ws).slice(-30);
         if (jumpTo(st.stall)) { afterChange(); return; }
       }
+      maybeRescue(before, before.pendAt === before.i && st.prevFinalAt ? st.prevFinalAt : startedAt);
+      st.prevFinalAt = startedAt; st.lastFinalAt = Date.now();
     }
     else st.shown = ws.length ? feed(clone(st.T), st.X, ws, false) : st.T;
     afterChange();
+  }
+  // the rescue ear (⚙️ «Chrome + إنقاذ قرآني»): a word this final turned into a mistake is heard again by the
+  // Quran-trained model (Tilawi) on the same stretch of audio; its words are fed to the state BEFORE this
+  // final, and every word that comes out right there is cleared here — it can only clear, never accuse
+  function maybeRescue(before, from) {
+    var rb = R();
+    if (!rb || !rb.rescueOn || !rb.rescueOn() || !st || !st.X) return;
+    var T = st.T, hit = -1, end = Math.min(T.i, st.X.N - 1);
+    for (var k = before.i; k <= end; k++) if (T.ty[k] && !before.ty[k]) { hit = k; break; }
+    if (hit < 0) return;
+    var secs = Math.max(6, Math.min(20, (Date.now() - (from || Date.now() - 8000)) / 1000 + 1.5));   // more is harmless: earlier words are a repeat
+    var seg = st.seg0, base = clone(before), X = st.X;
+    st.rescuing = (st.rescuing || 0) + 1;
+    rb.rescueHear(secs).then(function (r) {
+      if (st) st.rescuing = Math.max(0, (st.rescuing || 1) - 1);
+      if (st) st.lastRescue = { secs: secs, text: r && r.text, ms: r && r.ms, at: hit };
+      if (!st || st.X !== X || st.seg0 !== seg || !r || !r.text) return;
+      var toks = rb.tokenize(r.text), alt = feed(base, X, toks, true), T = st.T, cleared = [];
+      for (var q = before.i; q < Math.min(Math.max(alt.i, T.i + 1), X.N); q++) {
+        if (!T.ty[q]) continue;
+        // right in the Quran ear's reading from the same start, or heard right beside a right neighbour
+        // anywhere in it («… ماء ثجاجا»: the window may cut the first words)
+        if ((q < alt.i && !alt.ty[q] && (alt.st[q] === S_OK || alt.st[q] === S_UNS)) || heardIn(X, toks, q)) {
+          T.ty[q] = 0; T.tries[q] = 0; T.st[q] = S_OK; cleared.push(q);
+        }
+      }
+      if (!cleared.length) return;
+      if (cleared.indexOf(T.i) >= 0) {             // still waiting on a word it cleared: go on
+        var to = Math.max(T.i + 1, alt.i);
+        for (q = T.i; q < to; q++) if (T.st[q] === S_HID || T.st[q] === S_ERR) { T.st[q] = S_OK; T.ty[q] = 0; T.tries[q] = 0; }
+        T.i = to; T.run = -1; T.pendAt = -1;
+      }
+      st.shown = st.T; st.acc.rescued = (st.acc.rescued || 0) + cleared.length;
+      toast('🧠 الأذن القرآنية سمعت «' + cleared.map(wordAt).join(' ') + '» صحيحة');
+      afterChange();
+    });
+  }
+  // the expected word q among heard tokens, next to its own neighbour (before or after it)
+  function heardIn(X, toks, q) {
+    var E = X.E;
+    for (var p = 0; p < toks.length; p++) {
+      if (!X.eq(E[q], toks[p])) continue;
+      if (q > 0 && p > 0 && confirms(X, E[q - 1], toks[p - 1])) return true;
+      if (q + 1 < X.N && p + 1 < toks.length && confirms(X, E[q + 1], toks[p + 1])) return true;
+    }
+    return false;
   }
   function afterChange() {
     if (!st || !st.X) { renderBar(); return; }

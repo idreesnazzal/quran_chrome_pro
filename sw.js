@@ -9,9 +9,9 @@
  *  - everything else (recitation audio, online tafsir, the local server's
  *    endpoints, POSTs): straight to the network, never cached
  */
-const VERSION = 'mushaf-v96';
+const VERSION = 'mushaf-v97';
 const CODE = VERSION + '-code', ASSETS = VERSION + '-assets', PAGES = 'mushaf-pages';   // pages survive version bumps
-const PRECACHE_CODE = ['./', 'index.html', 'manifest.webmanifest', 'assets/js/recite-by-mic.js', 'assets/js/ayah-lists.js', 'assets/js/ayah-list-icons.js', 'assets/js/tafsir-rich.js',
+const PRECACHE_CODE = ['./', 'index.html', 'manifest.webmanifest', 'assets/js/recite-by-mic.js', 'assets/js/ayah-lists.js', 'assets/js/ayah-list-icons.js', 'assets/js/tafsir-rich.js', 'assets/js/ctc-worker.js',
   'assets/js/settings.js', 'assets/js/reader-plus.js', 'assets/js/reading-stats.js', 'assets/css/ayah-lists.css', 'assets/css/settings.css', 'assets/css/reader-plus.css',
   'assets/css/reading-stats.css', 'assets/js/tasmee.js', 'assets/css/tasmee.css'];
 const PRECACHE_ASSETS = ['data/quran_data.js', 'data/word_boxes.js', 'data/quran_meta.js', 'data/asbab_data.js', 'data/word_meanings.js', 'data/quran_tashkeel.js',

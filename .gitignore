@@ -12,3 +12,6 @@ _debug/
 
 # exact pre-rebuild app for side-by-side comparison
 _old_version/
+
+# dev lab pages (Quran ear experiments)
+_lab/

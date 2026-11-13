@@ -1332,7 +1332,7 @@ function startVoiceRecitation() {
   if (!TRACKER) { try { showToast('بيانات المصحف لم تُحمّل بعد'); } catch (e) {} return; }
   var SR = G.SpeechRecognition || G.webkitSpeechRecognition;
   var useServer = CFG.whisper.enabled && CFG.whisper.endpoint;
-  if (!SR && !useServer && !(earsPref() === 'quran' && lwSupported())) {
+  if (!SR && !useServer && !(isLocalPref(earsPref()) && lwSupported())) {
     try { showToast('المتصفح لا يدعم التعرف الصوتي المباشر، يمكنك استخدام لوحة المحاكاة'); } catch (e) {}
     try { if (typeof toggleDockSim === 'function') toggleDockSim(); } catch (e) {}
     return;
@@ -1361,10 +1361,11 @@ function startVoiceRecitation() {
   setStatus('ابدأ التلاوة من أي موضع...');
   // ONE ears at a time: the in-browser Quran model if chosen, else the
   // Whisper server if it is up, else the browser recogniser
-  if (earsPref() === 'quran' && lwSupported()) { localStart(); return; }
+  if (isLocalPref(earsPref()) && lwSupported()) { localStart(); return; }
   if (useServer) { S.ears = 'server'; serverStart(); return; }
   S.ears = 'browser';
   browserStart(SR);
+  if (earsPref() === 'rescue' && lwSupported()) { lwLoad(null); ringStart(); }   // Chrome + the Quran ear's second hearing
 }
 
 function browserStart(SR) {
@@ -1462,6 +1463,7 @@ function stopVoiceRecitation() {
   try { if (S.rec) S.rec.stop(); } catch (e) {}
   serverStop();
   lwStopCapture();
+  ringStop();
   micMonitorStop();
   evlogStop();
   try { updateVoiceReciteUI(false); } catch (e) {}
@@ -1573,6 +1575,11 @@ function earsPref() {
     return localStorage.getItem('recite_ears') || 'browser';
   } catch (e) { return 'browser'; }
 }
+// the ears: 'browser' (Chrome), 'quran' (Tarteel Whisper in the browser), 'ctc' (Tilawi FastConformer, a
+// Quran CTC model: on the local server when there is one, else in the browser), 'rescue' (Chrome leads; the
+// Tilawi ear re-hears a word Chrome is about to make red, and can only clear it — وضع التسميع)
+function isLocalPref(p) { return p === 'quran' || p === 'ctc'; }
+function earsEngine() { var p = earsPref(); return p === 'ctc' || p === 'rescue' ? 'ctc' : 'whisper'; }
 function lwSupported() {
   return HAS_DOM && typeof Worker !== 'undefined' && location.protocol !== 'file:' &&
     !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) &&
@@ -1586,7 +1593,7 @@ function lwStatus(text) {
 function lwButton() {
   var b = HAS_DOM && document.getElementById('dockEarsBtn');
   if (!b) return;
-  var on = earsPref() === 'quran';
+  var on = isLocalPref(earsPref());
   b.classList.toggle('on', on);
   b.classList.toggle('loading', LW.loading);
   b.title = on ? '🧠 النموذج القرآني التجريبي مفعّل — اضغط لإيقافه والعودة إلى تعرّف Chrome'
@@ -1594,12 +1601,19 @@ function lwButton() {
 }
 
 function lwLoad(done) {
+  var engine = earsEngine();
+  if (LW.worker && LW.engine !== engine) {   // the other model was loaded: drop it
+    try { LW.worker.terminate(); } catch (e) {}
+    LW.worker = null; LW.ready = false; LW.loading = false; LW.pending = {}; LW.busy = false; LW.queue = [];
+  }
   if (LW.ready) { if (done) done(); return; }
   LW.afterReady = done || LW.afterReady;
   if (LW.loading) return;
   LW.loading = true; lwButton();
   try {
-    LW.worker = new Worker(new URL('whisper-worker.js', ENGINE_SRC), { type: 'module' });
+    LW.engine = engine;
+    LW.worker = engine === 'ctc' ? new Worker(new URL('ctc-worker.js', ENGINE_SRC))      // classic: importScripts(ort)
+                                 : new Worker(new URL('whisper-worker.js', ENGINE_SRC), { type: 'module' });
   } catch (e) {
     LW.loading = false; lwButton();
     try { showToast('تعذّر تشغيل النموذج القرآني في هذا المتصفح'); } catch (x) {}
@@ -1625,7 +1639,8 @@ function lwOnMessage(ev) {
   } else if (m.type === 'ready') {
     LW.ready = true; LW.loading = false; LW.device = m.device; LW.dtype = m.dtype; lwButton();
     try { localStorage.setItem('recite_model_ok', '1'); } catch (e) {}
-    try { showToast('النموذج القرآني جاهز (' + (m.device === 'cpu' ? 'المعالج' : 'كرت الشاشة + المعالج') + ')'); } catch (e) {}
+    try { showToast(LW.engine === 'ctc' ? '🧠 الأذن القرآنية (Tilawi) جاهزة — ' + (m.device === 'server' ? 'على الخادم المحلي' : 'داخل المتصفح')
+                                        : 'النموذج القرآني جاهز (' + (m.device === 'cpu' ? 'المعالج' : 'كرت الشاشة + المعالج') + ')'); } catch (e) {}
     lwStatus('النموذج القرآني جاهز — تابع التلاوة');
     var f = LW.afterReady; LW.afterReady = null;
     if (f) f();
@@ -1634,6 +1649,8 @@ function lwOnMessage(ev) {
   } else if (m.type === 'result') {
     lwOnResult(m);
   } else if (m.type === 'error') {
+    var rq = LW.pending[m.id];
+    if (rq && rq.kind === 'rescue') { delete LW.pending[m.id]; rq.resolve(null); return; }
     LW.busy = false;
     if (!LW.ready) {
       LW.loading = false; lwButton();
@@ -1792,8 +1809,10 @@ function lcpLen(a, b) {
 }
 
 function lwOnResult(m) {
+  var req = LW.pending[m.id];
+  if (req && req.kind === 'rescue') { delete LW.pending[m.id]; req.resolve({ text: m.text || '', ms: m.ms }); return; }
   clearTimeout(LW.busyT); LW.busy = false;
-  var req = LW.pending[m.id]; delete LW.pending[m.id];
+  delete LW.pending[m.id];
   LW.lastMs = m.ms;
   (LW.msLog = LW.msLog || []).push(m.ms); if (LW.msLog.length > 300) LW.msLog.shift();
   if (req && S.active && S.ears === 'local') {
@@ -1822,7 +1841,7 @@ function localStart() {
   var SR = G.SpeechRecognition || G.webkitSpeechRecognition;
   if (SR) { S.ears = 'browser'; browserStart(SR); }
   lwLoad(function () {
-    if (!S.active || earsPref() !== 'quran') return;
+    if (!S.active || !isLocalPref(earsPref())) return;
     switchEars('local');
   });
 }
@@ -1838,18 +1857,21 @@ function switchEars(to) {
 }
 
 function setEars(pref) {
-  try { localStorage.setItem('recite_ears', pref); } catch (e) {}
+  try { localStorage.setItem('recite_ears', pref); if (isLocalPref(pref)) localStorage.setItem('recite_ears_local', pref); } catch (e) {}
   lwButton();
-  if (pref === 'quran') {
+  if (isLocalPref(pref)) {
+    ringStop();
     if (!S.active) { lwLoad(null); return; } // preload now, used at the next start
-    if (LW.ready) switchEars('local'); else localStart();
-  } else if (S.active && S.ears === 'local') {
-    switchEars('browser');
+    if (S.ears === 'local') { lwStopCapture(); S.ears = 'browser'; }   // the other model may be running
+    if (LW.ready && LW.engine === earsEngine()) switchEars('local'); else localStart();
+  } else {
+    if (S.active && S.ears === 'local') switchEars('browser');
+    if (pref === 'rescue') { lwLoad(null); if (S.active) ringStart(); } else ringStop();
   }
 }
 
 function onEarsButton() {
-  if (earsPref() === 'quran') { setEars('browser'); lwPanel('🎧 عاد التسميع إلى تعرّف Chrome — تابع التلاوة'); try { showToast('🧠 أُوقف — التعرف الآن عبر Chrome'); } catch (e) {} return; }
+  if (isLocalPref(earsPref())) { setEars('browser'); lwPanel('🎧 عاد التسميع إلى تعرّف Chrome — تابع التلاوة'); try { showToast('🧠 أُوقف — التعرف الآن عبر Chrome'); } catch (e) {} return; }
   if (!lwSupported()) {
     try { showToast(location.protocol === 'file:' ? 'افتح التطبيق عبر الخادم المحلي (http://127.0.0.1:8001) لتفعيل النموذج القرآني'
                                                   : 'المتصفح لا يدعم تشغيل النموذج القرآني'); } catch (e) {}
@@ -1857,8 +1879,75 @@ function onEarsButton() {
   }
   var known = false;
   try { known = localStorage.getItem('recite_model_ok') === '1'; } catch (e) {}
-  if (!known && !G.confirm('ميزة تجريبية: النموذج القرآني داخل المتصفح (حوالي 100–120 ميغابايت تُحمَّل مرة واحدة). مدرَّب على تلاوات القرّاء المحترفين وقد لا يفهم صوتك جيدًا؛ تعرّف Chrome يبقى الافتراضي. متابعة؟')) return;
-  setEars('quran');
+  if (!known && !G.confirm('الأذن القرآنية: نموذج مدرَّب على التلاوة (حوالي 90 ميغابايت تُحمَّل مرة واحدة، أو يعمل على الخادم المحلي إن وُجد). تعرّف Chrome يبقى الافتراضي. متابعة؟')) return;
+  var last = 'ctc'; try { last = localStorage.getItem('recite_ears_local') || 'ctc'; } catch (e) {}
+  setEars(last);
+}
+
+/* ---------- the rescue ear (وضع التسميع, ears = 'rescue') ----------
+ * While Chrome recognises, a second capture keeps the last 24 s of mic audio at 16 kHz. When the tasmee
+ * engine is about to make a word red it asks rescueHear(seconds): the Tilawi model re-hears that
+ * stretch, and the engine may only CLEAR words with what it hears (tasmee.js), never accuse. */
+var RING = { buf: new Float32Array(16000 * 24), pos: 0, n: 0, ctx: null, stream: null, src: null, node: null, rate: 16000, frac: 0, on: false };
+function ringPush(v) { RING.buf[RING.pos] = v; RING.pos = (RING.pos + 1) % RING.buf.length; if (RING.n < RING.buf.length) RING.n++; }
+function ringFeed(x) {
+  var step = RING.rate / 16000;
+  if (step === 1) { for (var i = 0; i < x.length; i++) ringPush(x[i]); return; }
+  for (var t = RING.frac; t < x.length; t += step) ringPush(x[Math.floor(t)]);
+  RING.frac = t - x.length;
+}
+function ringStart() {
+  if (RING.on || !HAS_DOM || !navigator.mediaDevices || CFG.testNoCapture) return;
+  RING.on = true; RING.pos = RING.n = 0;
+  navigator.mediaDevices.getUserMedia(micConstraints({ channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: true })).then(function (stream) {
+    if (!RING.on) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+    RING.stream = stream;
+    var AC = G.AudioContext || G.webkitAudioContext;
+    try { RING.ctx = new AC({ sampleRate: 16000 }); RING.src = RING.ctx.createMediaStreamSource(stream); }
+    catch (e) { try { RING.ctx.close(); } catch (x) {} RING.ctx = new AC(); RING.src = RING.ctx.createMediaStreamSource(stream); }
+    RING.rate = RING.ctx.sampleRate; RING.frac = 0;
+    var sink = RING.ctx.createGain(); sink.gain.value = 0; sink.connect(RING.ctx.destination);
+    var code = "class R extends AudioWorkletProcessor{process(i){var c=i[0]&&i[0][0];if(c)this.port.postMessage(c.slice(0));return true}}registerProcessor('ring-tap',R)";
+    if (RING.ctx.audioWorklet && typeof AudioWorkletNode !== 'undefined') {
+      RING.ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: 'application/javascript' }))).then(function () {
+        if (!RING.on) return;
+        RING.node = new AudioWorkletNode(RING.ctx, 'ring-tap');
+        RING.node.port.onmessage = function (e) { ringFeed(e.data); };
+        RING.src.connect(RING.node); RING.node.connect(sink);
+      });
+    } else {
+      RING.node = RING.ctx.createScriptProcessor(2048, 1, 1);
+      RING.node.onaudioprocess = function (e) { ringFeed(e.inputBuffer.getChannelData(0).slice(0)); };
+      RING.src.connect(RING.node); RING.node.connect(sink);
+    }
+  }).catch(function () { RING.on = false; });
+}
+function ringStop() {
+  RING.on = false;
+  try { if (RING.node) RING.node.disconnect(); } catch (e) {}
+  try { if (RING.src) RING.src.disconnect(); } catch (e) {}
+  try { if (RING.stream) RING.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+  try { if (RING.ctx) RING.ctx.close(); } catch (e) {}
+  RING.node = RING.src = RING.stream = RING.ctx = null;
+}
+function ringLast(sec) {
+  var n = Math.min(RING.n, Math.floor(sec * 16000)), L = RING.buf.length, out = new Float32Array(n);
+  var start = (RING.pos - n + L) % L;
+  for (var i = 0; i < n; i++) out[i] = RING.buf[(start + i) % L];
+  return out;
+}
+function rescueOn() { return earsPref() === 'rescue' && S.ears === 'browser' && (RING.on || CFG.testNoCapture); }
+// -> Promise {text, ms} | null (not ready, too little audio, an error, or 20 s without an answer)
+function rescueHear(sec) {
+  if (!rescueOn() || !LW.ready || LW.engine !== 'ctc') return Promise.resolve(null);
+  var audio = ringLast(sec);
+  if (audio.length < 8000) return Promise.resolve(null);
+  return new Promise(function (resolve) {
+    var id = ++LW.reqId;
+    LW.pending[id] = { kind: 'rescue', resolve: resolve };
+    LW.worker.postMessage({ type: 'transcribe', id: id, audio: audio }, [audio.buffer]);
+    setTimeout(function () { if (LW.pending[id]) { delete LW.pending[id]; resolve(null); } }, 20000);
+  });
 }
 
 /* ---------- 🩺 diagnostic recording ----------
@@ -2032,7 +2121,7 @@ function initVoiceRecitation() {
   on('dockDiagBtn', 'click', diagRun);
   lwButton();
   // chosen before and already downloaded: warm the model up in the background
-  try { if (earsPref() === 'quran' && localStorage.getItem('recite_model_ok') === '1' && lwSupported()) lwLoad(null); } catch (e) {}
+  try { if ((isLocalPref(earsPref()) || earsPref() === 'rescue') && localStorage.getItem('recite_model_ok') === '1' && lwSupported()) lwLoad(null); } catch (e) {}
   var sim = function () {
     var inp = document.getElementById('dockSimInput');
     var v = inp ? inp.value.trim() : '';
@@ -2072,7 +2161,8 @@ var API = {
   normalize: normalizeArabic, tokenize: tokenize, wordSim: wordSim, levenshtein: lev,
   buildCorpus: buildCorpus, Tracker: Tracker, openerState: openerState, openerPush: openerPush,
   // live-path hooks (tests drive these with fake SpeechRecognition events)
-  _onSpeechResult: onSpeechResult, _session: S, _lw: LW, _lwCfg: LW_CFG, setEars: setEars,
+  _onSpeechResult: onSpeechResult, _session: S, _lw: LW, _lwCfg: LW_CFG, setEars: setEars, earsPref: earsPref,
+  rescueOn: rescueOn, rescueHear: rescueHear, _ring: RING, _ringPush: ringPush, _lwLoad: lwLoad,
   _mic: MIC, diag: diagRun,
   _lwFeed: function (f32) { LW.rate = 16000; lwFeed(f32); }, _ui: UI, _decide: decide, lastShown: null,
   buildIndex: buildVoiceRecitationIndex, match: matchRecitedSpeech,
