@@ -117,7 +117,8 @@
   // took}; a later word said here (a skip) or a و / ف more or less stays a
   // mistake. The words heard at this word just before a pause count too
   // (credit). null = a mistake, -2 = cannot tell yet
-  var UNS_TRY = [[1, 0], [2, 0], [1, 1], [1, 2], [2, 2]];
+  // [2, 1]: two words written as one other word («من ذا» -> «عند», 2:255, fast recitation)
+  var UNS_TRY = [[1, 0], [2, 0], [1, 1], [2, 1], [1, 2], [2, 2]];
   // a particle said instead of another («في» for «بـ», «من» for «في») is the reciter's, not Chrome's
   var PARTICLES = ['في', 'من', 'على', 'الى', 'عن', 'ب', 'ل', 'ك', 'و', 'ف', 'لا', 'ما', 'ان', 'قد', 'لم', 'لن', 'ثم', 'او', 'بل'];
   function unsure(T, X, i, toks, j, final) {
@@ -139,12 +140,59 @@
       for (q = 0; q < need; q++) {
         var x = j + b + q, tk = toks[x];
         if (tk == null || (!final && x === toks.length - 1)) { if (!final) wait = true; break; }
-        if (!X.eq(E[i + a + q], tk)) { got = -1; break; }
+        if (!confirms(X, E[i + a + q], tk)) { got = -1; break; }
         got++; len += tk.length;
       }
       if (got === need || (final && got > 0 && len >= 4 && toks[j + b + got] == null)) return { a: a, b: b };
     }
+    // nothing heard for one or two words, and the next THREE go on exactly: in fast recitation Chrome
+    // drops words it heard («the reciter said it, Chrome did not write it»). Yellow, never red: a red
+    // word nobody misread stopped the reader for nothing (2026-11-13, al-Kursi read at speed)
+    for (a = 1; a <= 2; a++) {
+      if (i + a + 3 > X.N) break;
+      var ok3 = true;
+      for (q = 0; q < 3 && ok3; q++) {
+        x = j + q; tk = toks[x];
+        if (tk == null || (!final && x === toks.length - 1)) { if (!final) wait = true; ok3 = false; break; }
+        if (!X.eq(E[i + a + q], tk)) ok3 = false;
+      }
+      if (ok3) return { a: a, b: 0 };
+    }
     return wait ? -2 : null;
+  }
+  // going back to repeat, Chrome writing the FIRST repeated word otherwise («فيما كانوا يكذبون» repeating
+  // «بما كانوا يكذبون», «وما يشعرون» repeating «لا يشعرون», 2:10-12): the words after it repeat words
+  // already said, up to the cursor or for two words -> k, the start of the repetition; -1 none, -2 wait
+  function repeatFrom(X, T, i, toks, j, final) {
+    var E = X.E, wait = false;
+    for (var k = i - 1; k >= Math.max(T.base || 0, i - 20); k--) {
+      var m = 0;
+      for (var x = j + 1; k + 1 + m < i; x++, m++) {
+        var tk = toks[x];
+        if (tk == null) break;
+        if (!final && x === toks.length - 1) { wait = true; break; }
+        if (!X.eq(E[k + 1 + m], tk)) { m = -1; break; }
+      }
+      if (m >= 2 || (m >= 1 && k + 1 + m === i && (final || toks[j + 1 + m] != null))) return k;
+    }
+    return wait ? -2 : -1;
+  }
+  // after a red word the reader went on: the next three words follow it exactly -> the test follows the
+  // reader (the word stays a mistake, shown) instead of waiting there while the reading runs away
+  function goesOn(X, i, toks, j, final) {
+    if (i + 4 > X.N) return false;
+    for (var q = 0; q < 3; q++) {
+      var x = j + q, tk = toks[x];
+      if (tk == null || (!final && x === toks.length - 1)) return false;
+      if (!X.eq(X.E[i + 1 + q], tk)) return false;
+    }
+    return true;
+  }
+  // a word that CONFIRMS the reader went on (never the word judged): also Chrome's usual slips on it —
+  // an added «وا» («امنوا» for «امن») or the first letter among ا / و / ف («ولا» for «الا», 2:13)
+  function confirms(X, e, t) {
+    if (X.eq(e, t) || t === e + 'وا') return true;
+    return e.length >= 3 && e.length === t.length && e.slice(1) === t.slice(1) && 'اوف'.indexOf(e[0]) >= 0 && 'اوف'.indexOf(t[0]) >= 0;
   }
   function markUns(T, k) {
     if (T.st[k] === S_ERR && T.tries[k] <= 1 && !(T.ty[k] & ~T_SUB)) { T.ty[k] = 0; T.tries[k] = 0; }
@@ -162,6 +210,11 @@
       if (!t) continue;
       if (T.shadow >= 0) {                       // repeating words already said
         if (X.eq(E[T.shadow], t)) { if (T.st[T.shadow] === S_UNS) T.st[T.shadow] = S_OK; T.shadow++; if (T.shadow >= T.i) T.shadow = -1; T.run = -1; continue; }
+        // a repeated word Chrome wrote otherwise («بعنده» for «عنده», 2:255): the repetition goes on after it,
+        // so it is not judged (repeating is never graded) and it may not break the repetition
+        if (X.uns && nx != null && T.shadow + 1 < X.N && (X.eq(E[T.shadow + 1], nx) || T.shadow + 1 === T.i)) {
+          T.shadow++; if (T.shadow >= T.i) T.shadow = -1; T.run = -1; continue;
+        }
         T.shadow = -1;
       }
       var i = T.i, m = matchAt(X, i, t, nx);
@@ -188,6 +241,11 @@
       var o = -1;
       for (var z = 0; z < OPT.length && o < 0; z++) if (OPT[z][0] === t) o = z;
       if (o >= 0) { T.opt = o; T.optJ = 1; continue; }
+      if (X.uns && i > (T.base || 0)) {
+        var rk = repeatFrom(X, T, i, toks, j, final);
+        if (rk === -2) break;
+        if (rk >= 0) { T.shadow = rk + 1 < i ? rk + 1 : -1; T.run = -1; continue; }   // repeating: not judged
+      }
       if (X.uns && T.run !== i) {
         var u = unsure(T, X, i, toks, j, final);
         if (u === -2) break;
@@ -196,6 +254,10 @@
           T.i = i + u.a; j += u.b - 1; T.run = -1; T.opt = -1; T.pendAt = -1;
           continue;
         }
+      }
+      if (X.uns && T.st[i] === S_ERR && goesOn(X, i, toks, j, final)) {
+        T.st[i] = S_REV; T.i = i + 1; T.run = -1; T.pendAt = -1; j--;   // the token is the next word: judge it there
+        continue;
       }
       if (!final) break;                         // interim words may still change: a mistake waits for the final ones
       if (T.run !== i) {                         // a new attempt at this word

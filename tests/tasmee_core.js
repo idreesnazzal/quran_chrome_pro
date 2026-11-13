@@ -85,9 +85,26 @@ Core.feed(t.T, t.X, tok('الحمد'), true);
 for (let k = 0; k < 5; k++) Core.feed(t.T, t.X, tok('للناس'), true);
 ok('«never»: 5 attempts, still waiting', t.T.i === 1 && t.T.st[1] === S.ERR && t.T.tries[1] === 5, { i: t.T.i, tries: t.T.tries[1] });
 // one long wrong stretch without a pause is ONE attempt
+t = test(ayahIdx(1, 2, 4), { reveal: 3, level: 'very' });
+Core.feed(t.T, t.X, tok('الحمد رب العالمين الرحمن الرحيم مالك يوم'), true);
+ok('very strict: reciting on past a skipped word = 1 attempt, not 6', t.T.i === 1 && t.T.tries[1] === 1, { i: t.T.i, tries: t.T.tries[1] });
+// strict (2026-11-13): a word not heard while the next THREE go on exactly is what Chrome drops in fast
+// recitation -> yellow, and the test goes on with the reader
 t = test(ayahIdx(1, 2, 4), { reveal: 3 });
 Core.feed(t.T, t.X, tok('الحمد رب العالمين الرحمن الرحيم مالك يوم'), true);
-ok('reciting on past a skipped word = 1 attempt, not 6', t.T.i === 1 && t.T.tries[1] === 1, { i: t.T.i, tries: t.T.tries[1] });
+ok('strict: «لله» not heard, the next three right -> yellow, no mistake, cursor goes on', t.T.st[1] === S.UNS && Core.summary(t.T, t.X).err === 0 && t.T.i === 8, { i: t.T.i, st: states(t) });
+// a real mistake (a particle for a word), then the reader goes on: the word stays red-counted, the test follows
+t = test(ayahIdx(1, 2, 4), { reveal: 3 });
+Core.feed(t.T, t.X, tok('الحمد في رب العالمين الرحمن الرحيم'), true);
+ok('strict: «في» for «لله», then three right words -> «لله» a mistake, but the cursor follows the reader', (t.T.ty[1] & TY.SUB) && t.T.st[1] === S.REV && t.T.i === 6 && Core.summary(t.T, t.X).err === 1, { i: t.T.i, st: states(t), ty: t.T.ty[1] });
+// interim words: the cursor does not freeze on a missed word while the reader goes on
+t = test(ayahIdx(1, 2, 4), { reveal: 3 });
+const shD = Core.feed(Core.clone(t.T), t.X, tok("الحمد رب العالمين الرحمن الرحيم"), false);
+ok('interim: a dropped word does not freeze the cursor', shD.i === 6 && shD.st[1] === S.UNS, { i: shD.i, st: Array.from(shD.st) });
+// 2:255 at speed (the reader's session, 2026-11-13): «له ما» as «لهما», «من ذا» as «عند»
+t = test(ayahIdx(2, 255));
+Core.feed(t.T, t.X, tok('الله لا اله الا هو الحي القيوم لا تاخذه سنه ولا نوم لهما في السماوات وما في الارض عند الذي يشفع عنده الا باذنه'), true);
+ok('al-Kursi at speed: «عند» for «من ذا» is yellow, no red, the cursor at «يعلم»', Core.summary(t.T, t.X).err === 0 && t.T.st[19] === S.UNS && t.T.st[20] === S.UNS && t.T.i === 26, { i: t.T.i, st: states(t, 27), sum: Core.summary(t.T, t.X) });
 // the reciter went on after the 3rd: the word that revealed it counts at its place
 t = test(ayahIdx(1, 2), { reveal: 3 });
 Core.feed(t.T, t.X, tok('الحمد رب'), true); Core.feed(t.T, t.X, tok('رب'), true); Core.feed(t.T, t.X, tok('رب العالمين'), true);
@@ -213,6 +230,18 @@ Core.feed(t.T, t.X, tok('الحمد للحق رب العالمين'), true);
 ok('strict: «للحق» for «لله», then right = yellow', t.T.st[1] === S.UNS && t.T.i === 4, { st: states(t) });
 sh = Core.feed(Core.clone(test(ayahIdx(1, 2)).T), t.X, tok('الحمد للحق رب'), false);
 ok('interim: not yellow yet while the confirming word may change', sh.i === 1 && sh.st[1] === S.HID, { i: sh.i, st: Array.from(sh.st) });
+
+// the reader's own Chrome sessions at speed (2026-11-13), every final replayed
+function replay(file, s, a1, a2) {
+  const t = test(ayahIdx(s, a1, a2));
+  require('./data/' + file).events.forEach(([, kind, txt]) => { if (kind === 'final' && txt.trim()) Core.feed(t.T, t.X, tok(txt), true); });
+  return { t, bad: t.E.map((w, k) => (t.T.ty[k] ? w : null)).filter(Boolean) };
+}
+let rp = replay('tasmee_real_kursi.json', 2, 255, 255);
+ok('al-Kursi at speed (real): no mistake at all, to the end', rp.bad.length === 0 && rp.t.T.i === rp.t.X.N, rp.bad);
+rp = replay('tasmee_real_baqara_1_16.json', 2, 1, 16);
+ok('2:1-16 (real): only the reader\'s own two slips («اليم» for «عظيم», «وما يشعرون» left out); repeats Chrome misheard are no mistake',
+  JSON.stringify(rp.bad) === JSON.stringify(['عظيم', 'وما']), rp.bad);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
