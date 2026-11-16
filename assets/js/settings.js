@@ -122,13 +122,10 @@
       '</section>' +
 
       '<section class="st-sec"><h3>🎙️ التسميع بالمايك</h3>' +
-        '<div class="st-row st-col"><span><b>الأذن (التعرّف على التلاوة)</b><small>' + ({
-            browser: 'تعرّف Chrome: سريع، لكنه غير مدرَّب على التلاوة فيكتب بعض الكلمات خطأً',
-            rescue: 'Chrome يقود، والأذن القرآنية (Tilawi) تعيد سماع كل كلمة يوشك أن يحمّرها: تبرّئها إن سمعتها صحيحة، ولا تتّهم',
-            ctc: 'الأذن القرآنية (Tilawi FastConformer) وحدها: مدرَّبة على التلاوة، تعمل دون Chrome؛ سريعة على الخادم المحلي، أبطأ داخل المتصفح',
-            quran: 'Whisper القرآني (Tarteel) داخل المتصفح: تجريبي وأبطأ'
-          }[ears] || '') + '</small></span>' +
-          seg('ears', [['browser', '🎧 Chrome'], ['rescue', '🎧+🧠 إنقاذ'], ['ctc', '🧠 Tilawi'], ['quran', '🧠 Whisper']], ears) + '</div>' +
+        '<div class="st-row st-col"><span><b>الأذن (التعرّف على التلاوة)</b><small>' + (ears === 'ctc' || ears === 'quran'
+            ? 'الأذن القرآنية (Tilawi): مدرَّبة على التلاوة، تعمل على جهازك؛ سريعة مع الخادم المحلي، أبطأ داخل المتصفح'
+            : 'تعرّف Chrome: سريع ويعمل على كل جهاز، لكنه غير مدرَّب على التلاوة') + '</small></span>' +
+          seg('ears', [['browser', '🎧 Chrome'], ['ctc', '🧠 الأذن القرآنية']], ears === 'quran' ? 'ctc' : ears === 'rescue' ? 'browser' : ears) + '</div>' +
         '<p class="st-note">الأذن القرآنية: نموذج <a href="https://huggingface.co/muhdur/tilawi-fastconformer-quran" target="_blank" rel="noopener">Tilawi FastConformer</a> (CC BY 4.0، مبني على NVIDIA FastConformer)، يعمل على الخادم المحلي إن وُجد وإلا داخل المتصفح (حوالي 90 ميغابايت مرة واحدة).</p>' +
         sw('autoTurn', 'قلب الصفحة تلقائيًا', p.autoTurn, 'ينتقل المصحف إلى صفحة الآية التي تتلوها') +
         sw('karaoke', 'شريط كلمات الآية', p.karaoke, 'كلمات الآية الحالية كلمةً كلمة في شريط التسميع') +
@@ -138,10 +135,12 @@
       (window.Tasmee ? '<section class="st-sec"><h3>🧠 وضع التسميع</h3>' +
         '<div class="st-row"><span><b>الطريقة</b><small>زر 🧠 في الأعلى يبدأ التسميع بها مباشرةً، واضغطه مرة أخرى للإنهاء</small></span>' +
           seg('tsmMode', [['voice', '🎙️ بالصوت'], ['eye', '👁 بالعين (بلا صوت)']], window.Tasmee.prefs().mode) + '</div>' +
-        '<div class="st-row"><span><b>الصرامة</b><small>' + (window.Tasmee.prefs().level === 'very' ? 'كل حرف، و«و» و«ف» التي لم يكتبها Chrome تُحسب خطأً' : 'يتسامح فقط مع ما يكتبه Chrome خطأً لقراءة صحيحة') + '</small></span>' +
-          seg('tsmLevel', [['strict', 'صارم'], ['very', 'صارم جدًا']], window.Tasmee.prefs().level) + '</div>' +
-        '<div class="st-row"><span><b>عند الخطأ</b><small>الكلمة الحمراء تنتظر حتى تقرأها صحيحة</small></span>' +
-          seg('tsmReveal', [['3', 'اكشفها بعد 3 محاولات'], ['0', 'لا تكشفها أبدًا']], String(window.Tasmee.prefs().reveal)) + '</div>' +
+        '<div class="st-row"><span><b>اختيار الأذن عند كل بدء</b><small>بطاقتان: 🎧 Chrome و🧠 الأذن القرآنية، ومعهما جدول يقارن بينهما على قراءتك</small></span>' +
+          seg('tsmAsk', [['1', 'اسألني'], ['0', 'لا تسأل']], window.Tasmee.prefs().ask === false ? '0' : '1') + '</div>' +
+        '<div class="st-row"><span><b>الحكم</b><small>' + (window.Tasmee.prefs().level === 'very' ? 'القديم: يقف عند كل كلمة حتى تُسمع بحروفها، فيحمّر ما يخطئ السمع فيه' : 'يتبعك حيث تقرأ: أحمر للترك والإبدال الواضحين فقط، وأصفر لما لم يُسمع كما هو') + '</small></span>' +
+          seg('tsmLevel', [['strict', 'ذكي'], ['very', 'صارم جدًا']], window.Tasmee.prefs().level) + '</div>' +
+        (window.Tasmee.prefs().level === 'very' || window.Tasmee.prefs().engine === 'v1' ? '<div class="st-row"><span><b>عند الخطأ</b><small>الكلمة الحمراء تنتظر حتى تقرأها صحيحة</small></span>' +
+          seg('tsmReveal', [['3', 'اكشفها بعد 3 محاولات'], ['0', 'لا تكشفها أبدًا']], String(window.Tasmee.prefs().reveal)) + '</div>' : '') +
         '<div class="st-btns"><button class="st-btn" data-act="tasmee">' + (window.Tasmee.isOn() ? '✕ إنهاء التسميع' : '🧠 ابدأ التسميع') + '</button><button class="st-btn" data-act="tasmeelog">📋 سجل الأخطاء</button></div>' +
       '</section>' : '') +
 
@@ -221,6 +220,7 @@
         if (name === 'fit') setUi('fit', v === '1');
         if (name === 'tsmMode' && window.Tasmee) window.Tasmee.setPref('mode', v);
         if (name === 'tsmLevel' && window.Tasmee) window.Tasmee.setPref('level', v);
+        if (name === 'tsmAsk' && window.Tasmee) window.Tasmee.setPref('ask', v === '1');
         if (name === 'tsmReveal' && window.Tasmee) window.Tasmee.setPref('reveal', +v);
         if (name === 'match') { var t = document.querySelector('.match-tag[data-match=' + v + ']'); if (t) t.click(); else try { localStorage.setItem('search_match', v); } catch (x) {} }
         if (name === 'ears' && v !== ls('recite_ears', 'browser') && window.ReciteByMic && window.ReciteByMic.setEars) window.ReciteByMic.setEars(v);

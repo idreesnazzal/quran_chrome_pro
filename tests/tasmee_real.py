@@ -12,7 +12,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SPEED = 3.0
 INIT = """window.SpeechRecognition = window.webkitSpeechRecognition = function () {
   window.__rec = this; this.start = () => { setTimeout(() => this.onstart && this.onstart(), 0); }; this.stop = () => {}; this.abort = () => {}; };
-try { localStorage.setItem('recite_ears', 'browser'); localStorage.setItem('recite_ears_v', '3'); } catch (e) {}"""
+try { localStorage.setItem('recite_ears', 'browser'); localStorage.setItem('recite_ears_v', '4'); } catch (e) {}
+try { var p = JSON.parse(localStorage.getItem('tasmee_prefs') || '{}'); if (!('ask' in p)) { p.ask = false; localStorage.setItem('tasmee_prefs', JSON.stringify(p)); } } catch (e) {}"""   # (the ear is asked at every start: not in these tests)
 SEND = """(e) => { const rs = e.res.map(r => { const o = [{ transcript: r.t }]; o.isFinal = r.fin; return o; });
   window.__rec.onresult({ resultIndex: e.ri, results: rs }); }"""
 STATE = """() => { const st = Tasmee._state(), T = st.T, X = st.X; if (!X) return null;
@@ -25,7 +26,9 @@ def events(S):
     groups, order, evs, finals = {}, [], [], []
     for t, kind, txt in S["events"]:
         if kind not in ("interim", "final"): continue
-        if order and t - order[-1] <= 3: t = order[-1]   # one onresult logged across a millisecond tick
+        # one onresult (its stable + its unstable interim) logged across a millisecond tick; an interim and
+        # the final that follows it a millisecond later are two events, never one
+        if order and 0 < t - order[-1] <= 3 and kind == "interim" and all(k == "interim" for k, _ in groups[order[-1]]): t = order[-1]
         if t not in groups: groups[t] = []; order.append(t)
         groups[t].append((kind, txt))
     for t in order:

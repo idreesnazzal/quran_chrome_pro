@@ -14,7 +14,9 @@
 .tsm-w.tsm-fix { background: var(--tsm-red-soft); box-shadow: inset 0 -3px 0 rgba(200, 30, 30, 0.85); }
 /* Chrome wrote it otherwise, the words after it were right: not a mistake; a tap = «أخطأت» */
 .tsm-w.tsm-uns { background: rgba(234, 179, 8, 0.26); box-shadow: inset 0 -3px 0 rgba(202, 138, 4, 0.9); }
-body.tsm-voice .tsm-w.tsm-uns, body.tsm-voice .tsm-w.tsm-fix { pointer-events: auto; cursor: pointer; }
+body.tsm-voice .tsm-w.tsm-uns, body.tsm-voice .tsm-w.tsm-fix, body.tsm-voice .tsm-w.tsm-over { pointer-events: auto; cursor: pointer; }
+/* a red word the reader cleared («not a mistake»): a thin green line, and a tap puts the verdict back */
+.tsm-w.tsm-over { box-shadow: inset 0 -2px 0 rgba(16, 185, 129, 0.7); }
 .tsm-flash { position: absolute; z-index: 13; border-radius: 6px; pointer-events: none; animation: tsmFlash 2.6s ease-out forwards;
   box-shadow: 0 0 0 3px var(--tsm-cur); background: rgba(230, 180, 80, 0.25); }
 @keyframes tsmFlash { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
@@ -137,3 +139,23 @@ html:has(.tsm-modal) { overflow: hidden; }
   .tsm-lr { grid-template-columns: auto 1fr; grid-template-areas: 'w p' 't t' 'n l'; gap: 4px 10px; }
   .tsm-lw { grid-area: w; } .tsm-lp { grid-area: p; } .tsm-lt { grid-area: t; } .tsm-ln { grid-area: n; } .tsm-ll { grid-area: l; text-align: left; }
 }
+
+/* the two ears, chosen at every start, and the table that compares them */
+.tsm-card.tsm-choose { width: min(560px, 100%); }
+.tsm-techs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tsm-tech { font-family: inherit; text-align: right; display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; cursor: pointer;
+  border: 2px solid var(--border-color); background: var(--bg-card); color: var(--text-main); transition: border-color 0.15s, transform 0.1s; }
+.tsm-tech:hover:not([disabled]), .tsm-tech:focus-visible { border-color: var(--gold-primary); outline: none; }
+.tsm-tech:active:not([disabled]) { transform: scale(0.98); }
+.tsm-tech.on { border-color: var(--gold-primary); box-shadow: inset 0 0 0 1px var(--gold-primary); }
+.tsm-tech[disabled] { opacity: 0.5; cursor: not-allowed; }
+.tsm-tech-ic { font-size: 1.6rem; line-height: 1; }
+.tsm-tech b { font-size: 1rem; color: var(--gold-ink); }
+.tsm-tech small { font-size: 0.76rem; line-height: 1.6; color: var(--text-muted); }
+.tsm-tech i { font-style: normal; font-size: 0.72rem; font-weight: 700; color: var(--text-main); margin-top: auto; padding-top: 6px; font-variant-numeric: tabular-nums; }
+.tsm-cmp { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.tsm-cmp th, .tsm-cmp td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); text-align: center; }
+.tsm-cmp tbody th { text-align: right; font-weight: 600; color: var(--text-muted); }
+.tsm-cmp thead th { color: var(--gold-ink); font-size: 0.82rem; }
+.tsm-foot-note { margin-inline-start: auto; align-self: center; font-size: 0.72rem; color: var(--text-muted); }
+@media (max-width: 460px) { .tsm-techs { grid-template-columns: 1fr; } .tsm-foot-note { flex-basis: 100%; } }

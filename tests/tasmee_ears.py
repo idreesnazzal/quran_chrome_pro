@@ -34,9 +34,9 @@ STATE = """() => { const st = Tasmee._state(); if (!st || !st.X) return null; co
   return { at: A.sura + ":" + A.aya + ":" + (at.w + 1), err: s.err, accErr: st.acc.err, rescued: st.acc.rescued || 0, last: st.lastRescue,
            red: Array.from(T.st).filter((x) => x === 2).length }; }"""
 
-def page(br, ears, force=""):
+def page(br, ears, force="", engine="v2"):
     ctx = br.new_context(viewport={"width": 1366, "height": 900})
-    ctx.add_init_script(FAKE_SR + f"""try {{ localStorage.setItem('recite_ears', '{ears}'); localStorage.setItem('recite_ears_v', '3');
+    ctx.add_init_script(FAKE_SR + f"""try {{ localStorage.setItem('recite_ears', '{ears}'); localStorage.setItem('recite_ears_v', '4'); localStorage.setItem('tasmee_prefs', JSON.stringify({{ask: false, engine: '{engine}'}}));
       localStorage.setItem('recite_model_ok', '1'); localStorage.setItem('recite_whisper_force', '{force}'); }} catch (e) {{}}""")
     pg = ctx.new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -65,7 +65,7 @@ with sync_playwright() as p:
     ctx.close()
 
     # B. Chrome leads, the Quran ear rescues
-    ctx, pg, errs = page(br, "rescue")
+    ctx, pg, errs = page(br, "rescue", engine="v1")
     pg.click("#tasmeeBtn")
     pg.wait_for_function("ReciteByMic._lw.ready", timeout=120000)
     finals = ["عم يتساءلون عن النبا العظيم الذي هم فيه مختلفون", "كلا سيعلمون ثم كلا سيعلمون", "الم نجعل الارض مهادا والجبال اوتادا",
@@ -88,7 +88,7 @@ with sync_playwright() as p:
     ctx.close()
 
     # C. the rescue never clears what it did not hear: the ring holds 78:13, not «ثجاجا» -> it stays a mistake
-    ctx, pg, errs = page(br, "rescue")
+    ctx, pg, errs = page(br, "rescue", engine="v1")
     pg.click("#tasmeeBtn")
     pg.wait_for_function("ReciteByMic._lw.ready", timeout=120000)
     for i, t in enumerate(finals):

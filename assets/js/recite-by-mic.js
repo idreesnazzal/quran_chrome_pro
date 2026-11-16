@@ -878,6 +878,7 @@ function emit(res, transcript, tentative) {
   if (!res) return;
   API.lastResult = res;
   var d = decide(res, tentative);
+  if (d.m) S.placedAt = Date.now();
   API.lastShown = d.m || API.lastShown;
   if (!HAS_DOM) return;
   // several speech events can land in one frame: a later "no change" must
@@ -1359,6 +1360,14 @@ function startVoiceRecitation() {
     });
   }
   setStatus('ابدأ التلاوة من أي موضع...');
+  S.placedAt = Date.now();
+  clearInterval(S.idleT);
+  S.idleT = setInterval(function () {                  // (seen 2026-11: sessions of 1.8 h and 5.4 h writing down the room's talk)
+    if (!S.active || (G.Tasmee && G.Tasmee.isOn && G.Tasmee.isOn())) return;   // the tasmee mode has its own watch
+    if (Date.now() - S.placedAt < 600000) return;
+    stopVoiceRecitation();
+    try { showToast('🎙️ أُوقف المايك: لا تلاوة منذ 10 دقائق'); } catch (e) {}
+  }, 30000);
   // ONE ears at a time: the in-browser Quran model if chosen, else the
   // Whisper server if it is up, else the browser recogniser
   if (isLocalPref(earsPref()) && lwSupported()) { localStart(); return; }
@@ -1425,6 +1434,7 @@ function browserStart(SR) {
     };
     rec.onend = function () {
       evlog('end');
+      if (G.Tasmee && G.Tasmee.gap) G.Tasmee.gap();     // audio between two recogniser sessions may be lost
       S.running = false;
       if (!S.active) { S.lastInterim = []; S.lastInterimRaw = []; try { updateVoiceReciteUI(false); } catch (x) {} return; }
       clearTimeout(S.restartT);
@@ -1464,6 +1474,7 @@ function stopVoiceRecitation() {
   serverStop();
   lwStopCapture();
   ringStop();
+  clearInterval(S.idleT);
   micMonitorStop();
   evlogStop();
   try { updateVoiceReciteUI(false); } catch (e) {}
@@ -1568,9 +1579,11 @@ var ENGINE_SRC = (HAS_DOM && document.currentScript && document.currentScript.sr
 
 function earsPref() {
   try {
-    if (localStorage.getItem('recite_ears_v') !== '3') {
-      localStorage.setItem('recite_ears_v', '3');
-      localStorage.setItem('recite_ears', 'browser');
+    var v = localStorage.getItem('recite_ears_v');
+    if (v !== '4') {                                   // v4 (2026-11-16): two ears to choose from, Chrome and Tilawi
+      var old = v === '3' ? localStorage.getItem('recite_ears') : 'browser';
+      localStorage.setItem('recite_ears_v', '4');
+      localStorage.setItem('recite_ears', old === 'ctc' || old === 'quran' ? 'ctc' : 'browser');
     }
     return localStorage.getItem('recite_ears') || 'browser';
   } catch (e) { return 'browser'; }

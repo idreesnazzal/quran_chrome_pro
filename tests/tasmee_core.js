@@ -20,7 +20,7 @@ function test(list, o) {
     C.ayahs[ai].words.forEach((w) => { E.push(w); as.push(start); pas.push(ps); });
     prev = start; last = ai;
   });
-  const X = Core.makeCtx(E, as, pas, Object.assign({ sim: RM.wordSim }, o));
+  const X = Core.makeCtx(E, as, pas, Object.assign({ sim: RM.wordSim, engine: 'v1' }, o));   // these are the tests of the v1 cursor («صارم جدًا»); v2: tests/tasmee_v2.js
   return { X, T: Core.create(E.length), E };
 }
 const tok = (s) => RM.tokenize(s);

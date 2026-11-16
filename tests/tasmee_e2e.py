@@ -12,7 +12,10 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else None
 URL = f"http://127.0.0.1:{PORT}/"
 INIT = """window.SpeechRecognition = window.webkitSpeechRecognition = function () {
   window.__rec = this; this.start = () => { setTimeout(() => this.onstart && this.onstart(), 0); }; this.stop = () => {}; this.abort = () => {}; };
-try { localStorage.setItem('recite_ears', 'browser'); localStorage.setItem('recite_ears_v', '3'); } catch (e) {}"""
+try { localStorage.setItem('recite_ears', 'browser'); localStorage.setItem('recite_ears_v', '4'); } catch (e) {}
+try { var p = JSON.parse(localStorage.getItem('tasmee_prefs') || '{}'); if (!('ask' in p)) { p.ask = false; p.engine = 'v1'; localStorage.setItem('tasmee_prefs', JSON.stringify(p)); } } catch (e) {}"""
+# (the ear is asked at every start: not here. engine v1: this file is the mode's screens and the old cursor's
+#  flow, red-and-waiting; the v2 engine and the chooser are tests/tasmee_v2.js and tests/tasmee_v2_e2e.py)
 # each phrase = one utterance: interim grows word by word, then the final
 FEED = """async (phrases) => {
   for (const w of phrases) {

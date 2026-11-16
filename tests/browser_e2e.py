@@ -34,7 +34,8 @@ PASSAGES = [  # (open page, sura, first aya, last aya)
 INIT = """window.SpeechRecognition = window.webkitSpeechRecognition = function () {
   window.__rec = this; this.start = () => { setTimeout(() => this.onstart && this.onstart(), 0); };
   this.stop = () => {}; this.abort = () => {}; };
-try { localStorage.setItem('recite_ears', 'browser'); localStorage.setItem('recite_ears_v', '3'); } catch (e) {}"""
+try { localStorage.setItem('recite_ears', 'browser'); localStorage.setItem('recite_ears_v', '4'); } catch (e) {}
+try { var p = JSON.parse(localStorage.getItem('tasmee_prefs') || '{}'); if (!('ask' in p)) { p.ask = false; localStorage.setItem('tasmee_prefs', JSON.stringify(p)); } } catch (e) {}"""   # (the ear is asked at every start: not in these tests)
 
 
 def timeline(sura, a0, a1):
