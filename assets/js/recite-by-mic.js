@@ -1764,15 +1764,19 @@ function lwBlock(b) {
   LW.seg.push(b);
   LW.silenceMs = speech ? 0 : LW.silenceMs + 100;
   var dur = LW.seg.length * 0.1;
-  if (LW.silenceMs >= LW_CFG.END_SILENCE_MS || dur >= LW_CFG.MAX_SEG_S) {
-    var cut = dur >= LW_CFG.MAX_SEG_S && LW.silenceMs < LW_CFG.END_SILENCE_MS;
+  // the Quran ear: wait longer before closing a segment — a reciter's madd can be quiet enough to look like a
+  // pause and cut a word in two. (Re-hearing faster than every 0.7 s was tried: on <0.7 s of audio the model
+  // hears letters, not words, and the two-pass agreement then commits them — slower, not faster.)
+  var fast = false, endMs = LW.engine === 'ctc' ? 1000 : LW_CFG.END_SILENCE_MS;
+  if (LW.silenceMs >= endMs || dur >= LW_CFG.MAX_SEG_S) {
+    var cut = dur >= LW_CFG.MAX_SEG_S && LW.silenceMs < endMs;
     lwEndSegment();
     if (cut) { // no pause yet: keep listening in a fresh segment
       LW.voiced = true; LW.segId++; LW.segs[LW.segId] = { committed: 0, lastHyp: [] };
       LW.lastInterimAt = Date.now(); lwWave(true);
     }
-  } else if (!LW.busy && !LW.queue.length && dur >= LW_CFG.MIN_INTERIM_S &&
-             Date.now() - LW.lastInterimAt >= LW_CFG.INTERIM_MS) {
+  } else if (!LW.busy && !LW.queue.length && dur >= (fast ? 0.3 : LW_CFG.MIN_INTERIM_S) &&
+             Date.now() - LW.lastInterimAt >= (fast ? 250 : LW_CFG.INTERIM_MS)) {
     LW.lastInterimAt = Date.now();
     lwSend('interim', LW.segId, lwConcat(LW.seg, 0), LW.seg.length);
   }

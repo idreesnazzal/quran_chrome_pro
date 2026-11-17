@@ -528,7 +528,10 @@
   function placed(T, X, toks, R) {
     var E = X.E, m = toks.length, hit = 0, atCursor = false, run = 0, bestRun = 0;
     R.path.forEach(function (s) {
-      var ok = s.o === 2 || s.o === 3 || s.o === 4 || (s.o === 1 && wkind(X, E[s.k], toks[s.j]) === 0);
+      var h = s.o === 1 ? toks[s.j] : '', e = E[s.k];
+      // the word itself, or its first letters at the cursor when the utterance ended inside it («يتساء» of a long madd)
+      var ok = s.o === 2 || s.o === 3 || s.o === 4 || (s.o === 1 && (wkind(X, e, h) === 0 ||
+        (s.k === T.i && s.j === m - 1 && h.length >= 3 && h.length * 2 >= e.length && e.indexOf(h) === 0)));
       if (ok) { hit += s.o === 3 || s.o === 4 ? 2 : 1; run++; if (run > bestRun) bestRun = run; if (s.k === T.i) atCursor = true; }
       else if (s.o === 1 || s.o === 6) run = 0;
     });
