@@ -3177,7 +3177,10 @@
       .mushaf-stage.study > .book-spread { grid-column: 1; grid-row: 1; max-width: none; }
       .mushaf-stage.study > .study-panel {
         grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--app-header-h, 0px) + 10px);
-        max-height: calc(100vh - var(--app-header-h, 0px) - 20px);
+        /* the recite dock is sticky at the window's bottom across both columns: the list ends above it
+           (--dock-h = its height + 14, 0 while hidden; settings.js watchDock) */
+        max-height: calc(100vh - var(--app-header-h, 0px) - 20px - var(--dock-h, 0px));
+        transition: max-height 0.2s ease;
       }
       .mushaf-stage.study > :not(.book-spread):not(.study-panel):not(.study-switch) { grid-column: 1 / -1; }
       .mushaf-stage.study .sp-list { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
