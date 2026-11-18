@@ -45,6 +45,7 @@
     new ResizeObserver(function () {
       var h = d.offsetParent ? d.getBoundingClientRect().height + 14 : 0;
       document.documentElement.style.setProperty('--dock-h', Math.round(h) + 'px');
+      document.body.classList.toggle('ui-dock', h > 0);   // the bar is up: the whole page fits above it (settings.css)
     }).observe(d);
   }
 

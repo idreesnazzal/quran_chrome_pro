@@ -14,6 +14,19 @@ body.ui-fit .book-spread.double-page .mushaf-card { width: min(48%, 620px, calc(
   body.ui-fit .book-spread.double-page .mushaf-card { width: min(100%, calc((100vh - 112px - var(--dock-h, 0px)) * 700 / 1100)); }
 }
 body.ui-fit .book-spread.double-page { justify-content: center; }
+/* the recite bar is up (settings.js watchDock), in every view: the whole page fits between the sticky header
+   (--app-header-h, measured) and the bar (--dock-h), so its last lines are never under the bar */
+body.ui-dock .book-spread.single-page .mushaf-card.right-page,
+body.ui-dock .book-spread .mushaf-card {
+  width: min(100%, 680px, calc((100vh - var(--app-header-h, 112px) - var(--dock-h, 0px) - 18px) * 700 / 1100));
+  min-height: 0;
+  flex: 0 0 auto;
+}
+body.ui-dock .book-spread.double-page .mushaf-card { width: min(48%, 620px, calc((100vh - var(--app-header-h, 112px) - var(--dock-h, 0px) - 18px) * 700 / 1100)); }
+@media (max-width: 860px) {
+  body.ui-dock .book-spread.double-page .mushaf-card { width: min(100%, calc((100vh - var(--app-header-h, 112px) - var(--dock-h, 0px) - 18px) * 700 / 1100)); }
+}
+body.ui-dock .book-spread.double-page, body.ui-dock .book-spread.single-page { justify-content: center; }
 body.ui-no-navtop #topControlsBar { display: none !important; }
 body:not(.ui-navbottom) #bottomControlsBar { display: none !important; }
 body.ui-no-floatnav .floating-nav-btn { display: none !important; }
