@@ -520,6 +520,7 @@
       rev +
       '<div class="al-card-foot"><button class="al-btn gold" data-do="go">📖 في المصحف</button>' +
       '<button class="al-btn ghost" data-do="tafsir">التفسير</button>' +
+      '<button class="al-btn ghost" data-do="irab" title="إعراب الآية">الإعراب</button>' +
       '<button class="al-btn ghost" data-do="play">' + (ui.playing === key ? '⏸ إيقاف' : '🎧 استماع') + '</button>' +
       '<button class="al-btn ghost" data-do="save" title="نسخ/نقل إلى قوائم أخرى">🔖 القوائم</button>' +
       '<button class="al-btn ghost danger" data-do="remove" title="إزالة من هذه القائمة">إزالة</button></div></article>';
@@ -729,6 +730,7 @@
         var d = b.getAttribute('data-do'), r = ayahRow(s, a);
         if (d === 'go') { close(); var sr = g('selectResult'); if (typeof sr === 'function' && r) sr(r[2], s, a, r[3]); }
         if (d === 'tafsir') { close(); var ot = g('openAyahTafsir'); if (typeof ot === 'function') ot(s, a); }
+        if (d === 'irab') { close(); var oi = g('openAyahTafsir'), st = g('switchTafsirTab'); if (typeof oi === 'function') { oi(s, a); if (typeof st === 'function') st('irab'); } }
         if (d === 'play') togglePlay(s, a);
         if (d === 'save') openSaver(s, a, b);
         if (d === 'remove') { removeItem(l, s, a); toast('أُزيلت من «' + l.name + '»'); renderModal(); }

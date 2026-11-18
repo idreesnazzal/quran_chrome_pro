@@ -148,6 +148,7 @@
         '<div class="st-row"><span><b>التفسير الافتراضي</b></span>' + cloneSelect('tafsirSourceSelect', 'tafsir', g('currentTafsirSource')) + '</div>' +
         '<div class="st-row"><span><b>البحث بعدة كلمات</b></span>' + seg('match', [['any', 'كلمات متفرقة'], ['exact', 'عبارة متصلة']], match) + '</div>' +
         '<p class="st-note">نص الآيات بالتشكيل والرسم العثماني من <a href="https://tanzil.net" target="_blank" rel="noopener">مشروع تنزيل (Tanzil)</a>، برخصة CC BY 3.0، دون أي تعديل.</p>' +
+        '<p class="st-note">إعراب الآيات (تبويب «الإعراب»): إعراب القرآن الكريم لأحمد عبيد الدعاس وأحمد محمد حميدان وإسماعيل محمود القاسم (دار المنير ودار الفارابي، دمشق 1425هـ)، بنصه، من رقمنة <a href="https://quranpedia.net" target="_blank" rel="noopener">الموسوعة القرآنية</a>.</p>' +
       '</section>' +
 
       '<section class="st-sec"><h3>⌨️ اختصارات لوحة المفاتيح</h3><div class="st-keys">' +

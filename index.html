@@ -2713,13 +2713,16 @@
       #nuzulStatusBadge { font-size: 0; width: 8px; height: 8px; min-width: 0; padding: 0; border-radius: 50%; }
     }
 
-    /* phones: three equal tabs that always fit (the third was cut off at 375px) */
+    /* phones: four equal tabs that always fit (the third was cut off at 375px); a narrow phone: two rows of two */
     @media (max-width: 600px) {
-      .tafsir-tabs-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .tafsir-tabs-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
       .tafsir-tab-btn { justify-content: center; padding: 8px 4px; gap: 4px; font-size: 0.76rem; white-space: nowrap; min-width: 0; overflow: hidden; }
       .tafsir-tab-btn > span:first-child { display: none; }      /* the emoji; the word is enough */
       .tafsir-tab-btn .tab-badge-pill { display: none !important; }   /* «معاني الكلمات» + count did not fit (JS sets an inline display) */
       .tafsir-tab-btn #nuzulStatusBadge.asbab-found { display: inline-block !important; flex: none; }   /* the reason's dot */
+    }
+    @media (max-width: 400px) {
+      .tafsir-tabs-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     .tafsir-tab-content {
@@ -3434,6 +3437,7 @@
   <link rel="stylesheet" href="assets/css/reader-plus.css">
   <link rel="stylesheet" href="assets/css/reading-stats.css">
   <link rel="stylesheet" href="assets/css/tasmee.css">
+  <link rel="stylesheet" href="assets/css/irab.css">
   <!-- installable app (PWA): manifest + icons; sw.js registered by assets/js/reader-plus.js -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0f1522">
@@ -3847,6 +3851,7 @@
             <button type="button" data-k="tafsir" role="tab">📖 التفسير</button>
             <button type="button" data-k="words" role="tab">📚 معاني الكلمات</button>
             <button type="button" data-k="nuzul" role="tab">📜 سبب النزول</button>
+            <button type="button" data-k="irab" role="tab">🧩 الإعراب</button>
           </div>
           <select id="studyTafsirSource" class="tafsir-select sp-source" title="اختر التفسير"></select>
           <div class="sp-hint">المس آية في الصفحة لتنتقل إليها هنا، واضغط عليها مطوّلًا لفتح نافذتها.</div>
@@ -4132,6 +4137,10 @@
             <span>سبب النزول</span>
             <span id="nuzulStatusBadge" class="tab-badge-pill asbab-general">عام</span>
           </button>
+          <button class="tafsir-tab-btn" id="tabBtnIrab" onclick="switchTafsirTab('irab')" title="إعراب الآية (إعراب القرآن الكريم للدعاس وحميدان والقاسم)">
+            <span>🧩</span>
+            <span>الإعراب</span>
+          </button>
         </div>
 
         <!-- Tab 1: Tafsir Content -->
@@ -4161,6 +4170,11 @@
                this tab is only the reason: a book filter, then one card per event -->
           <div class="asb-panel" id="nuzulReasonBody"></div>
         </div>
+
+        <!-- Tab 4: إعراب الآية (assets/js/irab.js; data/irab/SSS.js is fetched when the tab is opened) -->
+        <div class="tafsir-tab-content" id="irabTabContent">
+          <div class="ir-panel" id="irabBody"></div>
+        </div>
       </div>
 
       <div class="tafsir-modal-footer">
@@ -4187,6 +4201,7 @@
   <script src="data/word_boxes.js"></script>
     <script src="assets/js/recite-by-mic.js"></script>
     <script src="assets/js/tafsir-rich.js"></script>
+    <script src="assets/js/irab.js"></script>
     <script src="assets/js/ayah-list-icons.js"></script>
     <script src="assets/js/ayah-lists.js"></script>
     <script src="assets/js/settings.js"></script>
@@ -4440,6 +4455,8 @@
     const tafsirTabContent = document.getElementById('tafsirTabContent');
     const wordsTabContent = document.getElementById('wordsTabContent');
     const nuzulTabContent = document.getElementById('nuzulTabContent');
+    const tabBtnIrab = document.getElementById('tabBtnIrab');
+    const irabTabContent = document.getElementById('irabTabContent');
     const tafsirSourceTitle = document.getElementById('tafsirSourceTitle');
     const tafsirAuthorSub = document.getElementById('tafsirAuthorSub');
     const wordsCardsList = document.getElementById('wordsCardsList');
@@ -4518,7 +4535,7 @@
     let currentTafsirIndex = -1;
     let ayaIndexMap = new Map();
     let currentTafsirSource = localStorage.getItem('chosen_tafsir_source') || 'muyassar';
-    let currentActiveTab = 'tafsir'; // 'tafsir' or 'words'
+    let currentActiveTab = 'tafsir'; // 'tafsir' | 'words' | 'nuzul' | 'irab'
     let tafsirSurahCache = {}; // Cache: { 'slug_sura': [ {ayah: 1, text: "..."}, ... ] }
 
     function showToast(msg) {
@@ -4769,6 +4786,10 @@
             copyText = `سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${text} ﴾\n\nمعاني الكلمات:\n${wordsText}`;
           } else if (currentActiveTab === 'nuzul') {
             copyText = asbabCopyText(sura, aya, suraName, page, text);
+          } else if (currentActiveTab === 'irab') {
+            Irab.copyText(sura, aya).then((t) => navigator.clipboard.writeText(`سورة ${suraName} (آية ${aya}) - صفحة ${page}\n﴿ ${text} ﴾\n\n${t}`))
+              .then(() => showToast('تم نسخ الإعراب 📋'), () => showToast('تعذّر النسخ'));
+            return;
           } else {
             const tfCopy = tafsirModalExplanation.cloneNode(true);   // the colour key is not part of the tafsir
             tfCopy.querySelectorAll('.tf-legend').forEach((n) => n.remove());
@@ -4986,7 +5007,12 @@
       const viewModeSelect = document.getElementById('viewModeSelect');
       if (viewModeSelect) viewModeSelect.addEventListener('change', () => setViewMode(viewModeSelect.value));
       document.querySelectorAll('#studySwitch button').forEach((b) =>
-        b.addEventListener('click', () => studySetPhoneView(b.dataset.view)));
+        b.addEventListener('click', () => {
+          studySetPhoneView(b.dataset.view);
+          // the list opened while the mic is on: show the ayah being read
+          if (b.dataset.view === 'list' && isVoiceReciteActive && currentHighlightedAyah)
+            studyFocus(currentHighlightedAyah.sura, currentHighlightedAyah.aya, true);
+        }));
       initStudyPanel();
 
       // Initialize view mode based on saved preference
@@ -5814,6 +5840,9 @@
       // Update the word karaoke ribbon
       updateWordKaraokeRibbon(bestAyah, activeWordIdx);
 
+      // «صفحة وآيات»: the list on the left follows the ayah being read, as a tap would
+      studyFollowVoice(bestAyah.sura, bestAyah.aya);
+
       // the last word of the LAST visible page: turn now, before the first word there
       maybeTurnAfterPageEnd(bestAyah, activeWordIdx, bestIdx);
 
@@ -6165,7 +6194,9 @@
       const list = document.getElementById('studyList');
       if (list) list.addEventListener('click', (e) => {
         const btn = e.target.closest('.sp-open');
-        if (btn) openAyahTafsir(Number(btn.dataset.s), Number(btn.dataset.a));
+        if (btn) { openAyahTafsir(Number(btn.dataset.s), Number(btn.dataset.a)); if (studyContent === 'irab') switchTafsirTab('irab'); }
+        const go = e.target.closest('[data-goto]');
+        if (go) { const t = document.getElementById(go.dataset.goto); if (t) t.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
       });
     }
 
@@ -6229,6 +6260,7 @@
           return `<div class="sp-sabab">${meta ? `<div class="asb-meta">${meta}</div>` : ''}<p>${asbabEsc(c.s || '')}</p></div>`;
         }).join('');
       }
+      if (studyContent === 'irab') return '<p class="ir-wait">جارٍ تحميل الإعراب…</p>';
       // tafsir: الميسر is in the app; the other sources arrive per surah and fill in below
       if (studySource === 'muyassar' || (TAFSIR_CONFIG[studySource] || {}).isLocal) {
         return `<div class="sp-text tf-rich">${tafsirRichHtml(r[5] || 'لا يوجد تفسير متاح لهذه الآية.')}</div>`;
@@ -6277,6 +6309,25 @@
       const waiting = (studyContent === 'nuzul' && !window.ASBAB_DATA) || (studyContent === 'words' && !window.WORD_MEANINGS);
       if (studyWaitTimer) { clearTimeout(studyWaitTimer); studyWaitTimer = null; }
       if (waiting) studyWaitTimer = setTimeout(() => { if (seq === studyRenderSeq) renderStudyPanel(); }, 700);
+      studyKeepInView();
+
+      // الإعراب: a passage on several ayat is shown once, in the first of them on this page; the others say so
+      if (studyContent === 'irab' && window.Irab) {
+        const firstOf = {};
+        rows.forEach((r) => Irab.passage(r[0], r[1]).then((p) => {
+          if (seq !== studyRenderSeq) return;
+          const el = document.querySelector(`#sp-${r[0]}-${r[1]} .sp-body`);
+          if (!el) return;
+          const id = p ? r[0] + ':' + p[0] : '';
+          if (p && p[1] > p[0] && firstOf[id] && firstOf[id] !== r[1]) {
+            const lead = firstOf[id];
+            el.innerHTML = `<p class="ir-with">إعرابها مع الآيات ${p[0]}–${p[1]} — <button type="button" data-goto="sp-${r[0]}-${lead}">في الآية ${lead} أعلاه</button></p>`;
+            return;
+          }
+          if (p) firstOf[id] = r[1];
+          Promise.resolve(Irab.render(el, r[0], r[1], { compact: true })).then(() => { if (seq === studyRenderSeq) studyKeepInView(); }, () => {});
+        }, () => { const el = document.querySelector(`#sp-${r[0]}-${r[1]} .sp-body`); if (el) el.innerHTML = '<p class="ir-wait">تعذّر تحميل الإعراب.</p>'; }));
+      }
 
       // another tafsir source: one request per surah on the page, then fill each ayah
       if (studyContent === 'tafsir' && studySource !== 'muyassar' && !(TAFSIR_CONFIG[studySource] || {}).isLocal) {
@@ -6291,7 +6342,36 @@
             el.innerHTML = t ? `<div class="sp-text tf-rich">${tafsirRichHtml(t.trim())}</div>`
               : `<p class="sp-none">تعذّر جلب ${asbabEsc((TAFSIR_CONFIG[studySource] || {}).name || 'التفسير')} — هذا التفسير الميسر:</p><div class="sp-text tf-rich">${tafsirRichHtml(r[5] || '')}</div>`;
           });
+          studyKeepInView();                          // the cards above grew: the marked one moved
         });
+      }
+    }
+
+    // the mic reached another ayah: the same as a tap on it, once per ayah (not per word).
+    // A phone showing the page stays on the page; the card is marked for when the list opens.
+    let studyFollowKey = '';
+    function studyFollowVoice(sura, aya) {
+      if (!isStudyMode) return;
+      const key = sura + ':' + aya;
+      if (key === studyFollowKey && document.querySelector(`#sp-${sura}-${aya}.on`)) return;
+      studyFollowKey = key;
+      const narrow = window.matchMedia('(max-width: 899px)').matches;
+      studyFocus(sura, aya, !narrow || studyPhone === 'list');
+    }
+
+    // after the list is rebuilt (page turn, another tab) or a card grows (a tafsir arrives):
+    // while the mic is on, keep the marked card in view, inside the list only
+    function studyKeepInView() {
+      if (!isStudyMode || !isVoiceReciteActive) return;
+      const list = document.getElementById('studyList'), el = list && list.querySelector('.sp-item.on');
+      if (!el) return;
+      if (window.matchMedia('(max-width: 899px)').matches) {
+        if (studyPhone !== 'list') return;
+        const hdr = document.querySelector('header'), sw = document.getElementById('studySwitch');
+        const off = (hdr ? hdr.offsetHeight : 0) + (sw ? sw.offsetHeight : 0) + 18;
+        window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - off), behavior: 'auto' });
+      } else {
+        list.scrollTo({ top: el.offsetTop - list.offsetTop - 12, behavior: 'auto' });
       }
     }
 
@@ -6401,10 +6481,13 @@
       tabBtnTafsir.classList.toggle('active', tab === 'tafsir');
       tabBtnWords.classList.toggle('active', tab === 'words');
       tabBtnNuzul.classList.toggle('active', tab === 'nuzul');
+      tabBtnIrab.classList.toggle('active', tab === 'irab');
 
       tafsirTabContent.classList.toggle('active', tab === 'tafsir');
       wordsTabContent.classList.toggle('active', tab === 'words');
       nuzulTabContent.classList.toggle('active', tab === 'nuzul');
+      irabTabContent.classList.toggle('active', tab === 'irab');
+      if (tab === 'irab') renderIrabTab();
 
       if (tab === 'tafsir') {
         tafsirCopyBtn.textContent = '📋 نسخ التفسير';
@@ -6412,7 +6495,20 @@
         tafsirCopyBtn.textContent = '📋 نسخ معاني الكلمات';
       } else if (tab === 'nuzul') {
         tafsirCopyBtn.textContent = '📋 نسخ سبب النزول';
+      } else if (tab === 'irab') {
+        tafsirCopyBtn.textContent = '📋 نسخ الإعراب';
       }
+    }
+
+    // إعراب الآية: drawn only while its tab is open (its surah file is fetched then, never on page load)
+    let irabShownFor = '';
+    function renderIrabTab() {
+      if (currentTafsirIndex < 0 || !activeData[currentTafsirIndex] || !window.Irab) return;
+      const [sura, aya] = activeData[currentTafsirIndex], key = sura + ':' + aya;
+      const body = document.getElementById('irabBody');
+      if (!body || (irabShownFor === key && body.childElementCount)) return;
+      irabShownFor = key;
+      Irab.render(body, sura, aya);
     }
 
     // Word meanings: data/word_meanings.js (loaded after the page, see reader-plus.js) gives per ayah
@@ -6939,6 +7035,7 @@
 
       // Render active Tafsir
       loadSelectedTafsirContent(sura, aya);
+      if (currentActiveTab === 'irab') renderIrabTab();
 
       // Sync Modal Reciter, Repeat, Speed, and Audio status
       if (modalReciterSelect) modalReciterSelect.value = currentReciterKey;
@@ -7150,6 +7247,7 @@
               <button class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px; color: var(--gold-ink); border-color: var(--gold-primary);" onclick="openAyahTafsir(${suraNum}, ${ayaNum}); switchTafsirTab('nuzul');">
                 📜 سبب وموعد النزول
               </button>
+              <button class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;" title="إعراب الآية" onclick="openAyahTafsir(${suraNum}, ${ayaNum}); switchTafsirTab('irab');">🧩 الإعراب</button>
               <button class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;" title="حفظ في قائمة" onclick="AyahLists.openSaver(${suraNum}, ${ayaNum}, this)">🔖 حفظ</button>
               <button class="btn btn-gold" style="font-size: 0.8rem; padding: 4px 10px;" onclick="selectResult(${pageNum}, ${suraNum}, ${ayaNum}, '${suraName}')">
                 عرض وتظليل في المصحف ◀

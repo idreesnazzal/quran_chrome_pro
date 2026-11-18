@@ -15,3 +15,6 @@ _old_version/
 
 # dev lab pages (Quran ear experiments)
 _lab/
+
+# إعراب الآية: the downloaded source dump (re-fetched and sha-checked by build.py)
+tools/irab/raw/

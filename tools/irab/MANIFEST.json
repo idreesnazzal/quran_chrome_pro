@@ -1,0 +1,20 @@
+{
+ "book": "إعراب القرآن الكريم",
+ "authors": "أحمد عبيد الدعاس، أحمد محمد حميدان، إسماعيل محمود القاسم",
+ "publisher": "دار المنير ودار الفارابي، دمشق",
+ "edition": "الأولى 1425هـ",
+ "digitised_by": "https://quranpedia.net",
+ "source": {
+  "url": "https://api.quranpedia.net/dumps/e3rab-book-316.json.gz",
+  "file": "C:\\Users\\idree\\OneDrive - Technion\\Documents\\Default Project\\quran-mushaf-app\\tools\\irab\\raw\\e3rab-book-316.json.gz",
+  "sha256": "2e8ce313524f720e7a7c389d819d1bbbcf7924f96ca6291725fbf2dc5a9fbd68",
+  "dump_version": "2026-11-16"
+ },
+ "headings": 3639,
+ "ayat": 6236,
+ "passages": 3639,
+ "shared": 1174,
+ "pointers": 66,
+ "markers": "2223/2597",
+ "inline_refs_linked": "198/347"
+}

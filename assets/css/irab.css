@@ -1,0 +1,58 @@
+/* إعراب الآية (assets/js/irab.js): the ayah window's tab, the study panel's cards, the small buttons */
+.ir-panel { display: flex; flex-direction: column; gap: 12px; }
+.ir-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 2px 4px; }
+.ir-shared {
+  background: var(--gold-bg); border: 1px solid var(--gold-primary); color: var(--gold-ink);
+  font-size: 0.76rem; font-weight: 700; padding: 2px 10px; border-radius: 12px; white-space: nowrap;
+}
+.ir-text {
+  background: var(--bg-card); border: 1px solid var(--border-color); border-right: 4px solid var(--gold-primary);
+  border-radius: var(--radius-sm); padding: 16px 20px;
+  font-size: 1.04rem; line-height: 2.15; color: var(--text-main); text-align: justify;
+  overflow-wrap: anywhere;
+}
+.ir-text.ir-compact { background: none; border: 0; padding: 0; font-size: 0.97rem; line-height: 2.05; }
+.ir-w { font-family: 'Amiri', serif; font-size: 1.08em; font-weight: 700; color: var(--gold-ink); }
+.ir-text strong { font-weight: 700; }
+.ir-text strong .ir-w { text-decoration: underline; text-decoration-color: var(--gold-bg); text-underline-offset: 6px; }
+.ir-fn { display: block; margin-top: 0.4em; font-size: 0.8em; line-height: 1.8; color: var(--text-muted); }
+/* a passage on several ayat: each ayah's part starts with its number; the opened one is lit */
+.ir-seg { border-radius: 6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; transition: background 0.2s; }
+.ir-seg.ir-cur { background: var(--gold-subtle); box-shadow: inset 0 -2px 0 var(--gold-bg); padding: 0.1em 0.15em; }
+.ir-n {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 1.55em; height: 1.55em; padding: 0 0.3em;
+  margin-inline-end: 0.35em; border-radius: 999px; vertical-align: 0.1em;
+  font-family: 'Cairo', sans-serif; font-size: 0.68em; font-weight: 700; line-height: 1;
+  color: var(--text-muted); border: 1px solid var(--border-color); background: var(--bg-secondary);
+}
+.ir-seg + .ir-seg .ir-n { margin-inline-start: 0.25em; }
+.ir-cur .ir-n { color: var(--btn-gold-text); background: var(--gold-primary); border-color: var(--gold-primary); }
+/* the book says «سبق إعرابها»: what it points to, set apart */
+.ir-ref { display: flex; flex-direction: column; gap: 6px; }
+.ir-ref-h { font-size: 0.82rem; font-weight: 700; color: var(--text-muted); padding: 0 4px; }
+.ir-ref-t { border-right-color: var(--border-color); background: var(--bg-secondary); }
+.ir-ref-p + .ir-ref-p { margin-top: 0.6em; padding-top: 0.6em; border-top: 1px dashed var(--border-color); }
+.ir-text.ir-compact + .ir-ref .ir-ref-t { padding: 10px 14px; font-size: 0.93rem; }
+.ir-link {
+  font: inherit; color: var(--gold-ink); background: none; border: 0; padding: 0 0.1em; margin: 0; cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 5px; border-radius: 4px;
+}
+.ir-link::after { content: ' ↩'; font-size: 0.8em; opacity: 0.8; }
+.ir-link:hover, .ir-link[aria-expanded="true"] { background: var(--gold-subtle); }
+.ir-link:focus-visible, .ir-peek-x:focus-visible, .ir-with button:focus-visible { outline: 2px solid var(--gold-primary); outline-offset: 2px; }
+.ir-peek .ir-ref-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ir-peek-x {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-color);
+  background: var(--bg-card); color: var(--text-muted); cursor: pointer; font-size: 0.75rem; line-height: 1;
+}
+.ir-src { margin: 0; padding: 0 4px; font-size: 0.72rem; color: var(--text-muted); opacity: 0.85; }
+.ir-wait { margin: 0; font-size: 0.86rem; color: var(--text-muted); }
+.ir-with { margin: 0; font-size: 0.84rem; color: var(--text-muted); }
+.ir-with button {
+  font: inherit; color: var(--gold-ink); background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .ir-text { padding: 12px 14px; font-size: 1rem; line-height: 2.05; text-align: right; }
+  .ir-shared { font-size: 0.72rem; }
+}
