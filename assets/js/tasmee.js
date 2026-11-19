@@ -61,8 +61,9 @@
   // ayah / of the ayah before it (-1 = none)
   function makeCtx(E, as, pas, o) {
     o = o || {};
-    return { E: E, N: E.length, as: as, pas: pas, eq: o.level === 'very' ? eqVery : eqStrict, uns: o.level !== 'very',
-      engine: o.engine || (o.level === 'very' ? 'v1' : 'v2'), bi: o.bi || null,   // bi(a, b): is «a b» a phrase of the Qur'an?
+    var very = o.level === 'very' && !o.smooth;
+    return { E: E, N: E.length, as: as, pas: pas, eq: very ? eqVery : eqStrict, uns: !very,
+      engine: o.smooth ? 'smooth' : o.engine || (very ? 'v1' : 'v2'), bi: o.bi || null,   // bi(a, b): is «a b» a phrase of the Qur'an?
       reveal: o.reveal == null ? 3 : o.reveal, pauseOnFinal: o.pauseOnFinal !== false,
       sim: o.sim || function (a, b) { return a === b ? 1 : 0; } };
   }
@@ -455,10 +456,12 @@
     R.path.forEach(function (s) { if (s.o === 2 || s.o === 3) n++; else if (s.o === 4) n += 2; else if (s.o === 1 && X.eq(X.E[s.k], toks[s.j])) n++; });
     return n;
   }
-  function feed2(T, X, toks, final) {
+  // where an utterance goes in the text (v2 and the smooth engine): -> {A: the alignment, toks: the words it
+  // aligned (held words first when they were needed), dirty: noise or lost audio before it}, or null = not placed
+  function place2(T, X, toks, final) {
     var E = X.E;
     toks = toks.filter(Boolean);
-    if (!toks.length || T.i >= X.N) return T;
+    if (!toks.length || T.i >= X.N) return null;
     // the rest of a word the last utterance ended inside («يتساء» | «لون»)
     if (T.pfx && toks.length && (toks[0] === T.pfx || (T.pfx.length > toks[0].length && T.pfx.slice(-toks[0].length) === toks[0]))) toks = toks.slice(1);
     if (final) T.pfx = '';
@@ -468,7 +471,7 @@
       while (n < p.length && n < toks.length && p[n] === toks[n]) n++;
       if (n === p.length && !(T.i < X.N && X.eq(E[T.i], p[0]) && T.i + 1 < X.N && X.eq(E[T.i + 1], p[1]))) { toks = toks.slice(n); break; }
     }
-    if (!toks.length) return T;
+    if (!toks.length) return null;
     var held = T.held || [], tries = held.length ? [toks, held.concat(toks)] : [toks], A = null, used = null;
     for (var a = 0; a < tries.length && !A; a++) {
       var R = align2(T, X, tries[a], final), ok = R && placed(T, X, tries[a], R);
@@ -476,10 +479,16 @@
       if (F && (!ok || F.hits > hitsOf(X, tries[a], R))) { A = F; used = tries[a]; }
       else if (ok) { A = R; used = tries[a]; }
     }
-    if (!A) { if (final) { T.held = held.concat(toks).slice(-V2.HELD); T.tail = T.held.length; } return T; }   // not placed yet: wait for more
+    if (!A) { if (final) { T.held = held.concat(toks).slice(-V2.HELD); T.tail = T.held.length; } return null; }   // not placed yet: wait for more
     var dirty = !!(T.tail || T.gap || used !== toks);   // noise or lost audio before this utterance
     if (final) { T.held = []; T.gap = false; var tn = 0; for (var u = A.path.length - 1; u >= 0 && A.path[u].o === 6; u--) tn++; T.tail = tn; }
-    toks = used;
+    return { A: A, toks: used, dirty: dirty };
+  }
+  function feed2(T, X, toks, final) {
+    var P = place2(T, X, toks, final);
+    if (!P) return T;
+    var E = X.E, A = P.A, dirty = P.dirty;
+    toks = P.toks;
     var c0 = T.i, m = toks.length, path = A.path, exact = function (s) { return s && (s.o === 2 || s.o === 3 || s.o === 4 || (s.o === 1 && X.eq(E[s.k], toks[s.j]))); };
     var maxK = T.i;
     for (var q = 0; q < path.length; q++) {
@@ -539,7 +548,48 @@
     if (atCursor && hit >= 1 && hit * 2 >= m) return true;
     return hit >= 2 && hit >= 0.34 * m && (bestRun >= 2 || atCursor);
   }
-  function feed(T, X, toks, final) { return X.engine === 'v1' ? feed1(T, X, toks, final) : feed2(T, X, toks, final); }
+  /* ------------------- the smooth engine: «تسميع سلس» (2026-11-19) -------------------
+   * The reader's wish: no red, no verdict — the covers just open as the words are recited, fast, and the test
+   * never stops. The place comes from v2's alignment (place2), so the two never disagree about where the
+   * reader is. Then every word up to the LAST one the ear really heard opens: the word itself, Chrome's
+   * spelling of it, or its first letters at the end of what was heard so far. Words passed on the way open
+   * too (Chrome dropped or garbled them, or the reader said them otherwise: nothing is judged). A word after
+   * the last one heard does not open (a wrong last word, a cough, talk): it waits for the next words, so
+   * nothing is shown before it is recited. A move far ahead (more than 30 words) leaves the words between
+   * covered: they were not recited. */
+  function heardAs(X, e, h, lastTok) {
+    return wkind(X, e, h) <= 1 || (lastTok && h.length >= 3 && h.length * 2 >= e.length && e.indexOf(h) === 0);
+  }
+  function openWord(T, k) { if (T.st[k] === S_HID || T.st[k] === S_UNS) T.st[k] = S_OK; }
+  function feedS(T, X, toks, final) {
+    var P = place2(T, X, toks, final);
+    if (!P) return T;
+    var E = X.E, path = P.A.path, m = P.toks.length, last = -1, q, s;
+    toks = P.toks;
+    for (q = 0; q < path.length; q++) {
+      s = path[q];
+      if (s.o === 2 || s.o === 3 || s.o === 4 || (s.o === 1 && heardAs(X, E[s.k], toks[s.j], s.j === m - 1))) last = q;
+    }
+    var maxK = T.i;
+    for (q = 0; q <= last; q++) {
+      s = path[q];
+      if (s.o === 5) {                                     // words not heard, passed on the way
+        var r = q; while (r <= last && path[r].o === 5) r++;
+        if (r - q <= 30) for (var y = q; y < r; y++) openWord(T, path[y].k);
+        maxK = Math.max(maxK, path[r - 1].k + 1); q = r - 1;
+        continue;
+      }
+      if (s.o !== 1 && s.o !== 2 && s.o !== 3 && s.o !== 4) continue;   // noise, going back
+      var n = s.o === 2 || s.o === 4 ? 2 : 1;
+      for (var z = 0; z < n; z++) openWord(T, s.k + z);
+      maxK = Math.max(maxK, s.k + n);
+      // the utterance ended inside this word («يتساء»): its rest may open the next one
+      if (final && s.o === 1 && q === last && s.j === m - 1 && wkind(X, E[s.k], toks[s.j]) && E[s.k].indexOf(toks[s.j]) === 0) T.pfx = E[s.k].slice(toks[s.j].length);
+    }
+    if (maxK > T.i) T.i = Math.min(maxK, X.N);
+    return T;
+  }
+  function feed(T, X, toks, final) { return X.engine === 'v1' ? feed1(T, X, toks, final) : X.engine === 'smooth' ? feedS(T, X, toks, final) : feed2(T, X, toks, final); }
 
   var Core = { create: create, clone: clone, feed: feed, align2: align2, makeCtx: makeCtx, hint: hint, eyeNext: eyeNext, eyeBack: eyeBack,
     eyeMark: eyeMark, summary: summary, eqVery: eqVery, eqStrict: eqStrict, TYPES: TYPES,
@@ -619,7 +669,7 @@
       for (var w = 0; w < a.words.length; w++) { E.push(a.words[w]); as.push(start); pas.push(ps); at.push({ ai: ai, w: w }); }
       prevStart = start; lastAi = ai;
     });
-    st.X = makeCtx(E, as, pas, { level: prefs.level, reveal: +prefs.reveal, sim: R().wordSim, bi: quranPhrase,
+    st.X = makeCtx(E, as, pas, { level: prefs.level, reveal: +prefs.reveal, sim: R().wordSim, bi: quranPhrase, smooth: !!st.smooth,
       engine: prefs.engine === 'v1' ? 'v1' : undefined });   // (prefs.engine = 'v1': the old cursor with «صارم»'s spelling, kept to measure against)
     st.over = {};
     st.T = st.shown = create(E.length, base || 0);
@@ -654,15 +704,18 @@
     }
     st = { mode: mode, X: null, T: null, shown: null, at: null, first: null, pre: [], heard: [], lastHeard: '', warn: '',
       acc: newAcc(), fixed: o.ayahs && o.ayahs.length ? o.ayahs.slice() : null, over: {}, movedAt: Date.now(), lastI: -1,
-      tech: mode !== 'voice' ? '' : (['ctc', 'quran'].indexOf(R() && R().earsPref ? R().earsPref() : '') >= 0 ? 'tilawi' : 'chrome') };
+      tech: mode !== 'voice' ? '' : (['ctc', 'quran'].indexOf(R() && R().earsPref ? R().earsPref() : '') >= 0 ? 'tilawi' : 'chrome'),
+      // «تسميع سلس»: the covers open as the words are recited, no verdict (voice only: the eye mode is self-paced)
+      smooth: mode === 'voice' && (o.smooth != null ? !!o.smooth : !!prefs.smooth), peek: {} };
     if (mode === 'voice') st.idleT = setInterval(idleWatch, 15000);
-    st.acc.fixed = st.fixed;
+    st.acc.fixed = st.fixed; st.acc.smooth = st.smooth;
     if (st.fixed) buildTest(st.fixed, 0);
     else if (o.at) anchorAt(o.at.ai, o.at.w);
     else if (mode === 'eye') anchorPageTop();
     document.body.classList.add('tsm-on');
     document.body.classList.toggle('tsm-voice', mode === 'voice');
     document.body.classList.toggle('tsm-eye', mode === 'eye');
+    document.body.classList.toggle('tsm-smooth', st.smooth);
     headerBtn();
     if (st.X) followCursor();
     buildLayers();
@@ -700,7 +753,7 @@
     if (s.mode === 'voice' && !s.dockWas && !(alert && alert.style.display === 'flex')) call('minimizeVoiceDock');
     document.querySelectorAll('.tsm-layer').forEach(function (el) { el.remove(); });
     var bar = document.getElementById('tsmBar'); if (bar) bar.remove();
-    document.body.classList.remove('tsm-on', 'tsm-voice', 'tsm-eye');
+    document.body.classList.remove('tsm-on', 'tsm-voice', 'tsm-eye', 'tsm-smooth');
     headerBtn();
     lastAcc = s.acc;
     if (silent) return;
@@ -719,7 +772,7 @@
   function techLoad() { var d = readJSON(TECH_KEY, {}); if (!d || typeof d !== 'object') d = {}; TECHS.forEach(function (t) { d[t[0]] = Object.assign({ n: 0, words: 0, red: 0, cleared: 0, yellow: 0, marked: 0, hints: 0, secs: 0 }, d[t[0]]); }); return d; }
   function techAdd(s) {
     var A = s.acc;
-    if (s.mode !== 'voice' || !s.tech || !A || A.reached < 5) return;      // a few words are not a session
+    if (s.mode !== 'voice' || !s.tech || !A || A.reached < 5 || s.smooth) return;   // a few words are not a session; the smooth mode judges nothing to compare
     var d = techLoad(), t = d[s.tech], marked = A.types[T_MARK] || 0, hints = A.types[T_HINT] || 0, cleared = A.cleared || 0;
     t.n++; t.words += A.reached; t.red += Math.max(0, A.err - marked - hints) + cleared; t.cleared += cleared;
     t.yellow += A.uns + marked; t.marked += marked; t.hints += hints; t.secs += Math.round((Date.now() - A.t0) / 1000);
@@ -745,8 +798,14 @@
     var canLocal = !!(G.Worker && navigator.mediaDevices && navigator.mediaDevices.getUserMedia && location.protocol !== 'file:');
     var canChrome = !!(G.SpeechRecognition || G.webkitSpeechRecognition);
     var d = techLoad();
+    var sm = !!prefs.smooth, style = function (v, ic, name, txt) {
+      return '<button class="' + ((v === 'smooth') === sm ? 'on' : '') + '" data-style="' + v + '" role="radio" aria-checked="' + ((v === 'smooth') === sm) + '">' +
+        '<b>' + ic + ' ' + name + '</b><small>' + txt + '</small></button>'; };
     var m = openModal('<div class="tsm-head"><b>🧠 بأي أذن تسمّع الآن؟</b><button class="tsm-x" data-c="x" title="إغلاق">✕</button></div>' +
-      '<div class="tsm-body"><div class="tsm-techs">' + TECHS.map(function (t) {
+      '<div class="tsm-body"><div class="tsm-style" role="radiogroup" aria-label="طريقة التسميع">' +
+        style('judge', '🎯', 'يحكم', 'أحمر للترك والإبدال الواضحين، وسجل للأخطاء') +
+        style('smooth', '🌊', 'سلس', 'تنكشف الكلمات وأنت تقرأ، بلا أحمر ولا توقف') + '</div>' +
+      '<div class="tsm-techs">' + TECHS.map(function (t) {
         var ok = t[0] === 'chrome' ? canChrome : canLocal, x = d[t[0]];
         return '<button class="tsm-tech' + (t[0] === last ? ' on' : '') + '" data-tech="' + t[0] + '"' + (ok ? '' : ' disabled') + '>' +
           '<span class="tsm-tech-ic">' + t[1] + '</span><b>' + t[2] + '</b><small>' + (ok ? t[3] : 'غير متاحة في هذا المتصفح') + '</small>' +
@@ -754,6 +813,12 @@
       techTable() + '</div>' +
       '<div class="tsm-foot"><button class="tsm-b" data-c="eye">👁 بالعين (بلا صوت)</button><span class="tsm-foot-note">يُسأل عند كل بدء · يُلغى من ⚙️ الإعدادات</span></div>', 'tsm-choose');
     m.addEventListener('click', function (e) {
+      var sb = e.target.closest('[data-style]');
+      if (sb) {   // the way to recite: remembered, the window stays open for the ear
+        prefs.smooth = sb.getAttribute('data-style') === 'smooth'; savePrefs();
+        m.querySelectorAll('[data-style]').forEach(function (x) { var on = x === sb; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); });
+        return;
+      }
       var b = e.target.closest('[data-tech], [data-c]'); if (!b || b.disabled) return;
       var tech = b.getAttribute('data-tech'), c = b.getAttribute('data-c');
       closeModal();
@@ -785,7 +850,12 @@
     if (!st || !st.X) return;
     st.T = st.shown = st.T;   // drop an interim replay
     var n = summary(st.T, st.X);
-    if (n.reached) {
+    if (n.reached && st.smooth) {   // no verdict: nothing for the error log or «أخطاء التسميع»
+      st.acc.reached += n.reached; st.acc.ok += n.ok;
+      var a0 = C().ayahs[st.at[st.T.base].ai], a1 = C().ayahs[st.at[Math.min(st.X.N - 1, st.T.i)].ai];
+      var rg = a0.suraName + ' ' + a0.aya + (a1 !== a0 ? ' – ' + (a1.sura !== a0.sura ? a1.suraName + ' ' : '') + a1.aya : '');
+      st.acc.range = st.acc.range ? st.acc.range + '، ' + rg : rg;
+    } else if (n.reached) {
       var r = record(), A = st.acc;
       A.reached += n.reached; A.ok += n.ok; A.err += n.err; A.uns += n.uns; A.added += r.added;
       Object.keys(n.types).forEach(function (t) { A.types[t] = (A.types[t] || 0) + n.types[t]; });
@@ -859,7 +929,7 @@
     // words heard before an ayah's 2nd/3rd word: its first words, written otherwise by Chrome («ان يتساءلون»)
     var snap = w0 >= 1 && w0 <= 2 && hit.from >= w0;
     anchorAt(c.ayahOf[pos], snap ? 0 : w0);
-    if (snap) { for (var q = 0; q < w0; q++) st.T.st[q] = S_UNS; st.T.i = w0; }
+    if (snap) { for (var q = 0; q < w0; q++) st.T.st[q] = st.smooth ? S_OK : S_UNS; st.T.i = w0; }
     var cm = committed.slice(Math.min(skipped, committed.length));
     if (cm.length) feed(st.T, st.X, cm, true);
     st.shown = st.T;
@@ -1005,6 +1075,10 @@
     if (!st) return;
     if (st.mode === 'eye') return doNext();
     if (!st.X) { anchorPageTop(); followCursor(); buildLayers(); }
+    if (st.X && st.smooth) {                    // smooth: the next word opens, marked as help, not a mistake
+      var T = st.T; if (T.i >= st.X.N) return;
+      T.st[T.i] = S_HINT; T.i++; st.acc.help = (st.acc.help || 0) + 1; st.shown = T; afterChange(); return;
+    }
     if (st.X && hint(st.T, st.X)) { st.shown = st.T; afterChange(); }
   }
   function doNext(ayah) {
@@ -1083,12 +1157,15 @@
     paint();
   }
   var CLS = ['', ' tsm-ok', ' tsm-err', ' tsm-fix', ' tsm-fix', ' tsm-fix', ' tsm-fix', ' tsm-uns'];
+  // smooth: open or covered, nothing else (help = a thin gold line, never red)
+  var CLS_SMOOTH = ['', ' tsm-ok', ' tsm-ok', ' tsm-ok', ' tsm-ok', ' tsm-ok tsm-hinted', ' tsm-ok', ' tsm-ok'];
   function paint() {
     if (!st) return;
-    var T = st.shown;
+    var T = st.shown, cls = st.smooth ? CLS_SMOOTH : CLS;
     document.querySelectorAll('.tsm-w').forEach(function (el) {
       var k = +el.getAttribute('data-k');
-      var c = T && k >= 0 ? 'tsm-w' + CLS[T.st[k]] + (k === T.i ? ' tsm-cur' : '') + (st.over && st.over[k] ? ' tsm-over' : '') : 'tsm-w';
+      var c = T && k >= 0 ? 'tsm-w' + cls[T.st[k]] + (k === T.i ? ' tsm-cur' : '') + (st.over && st.over[k] ? ' tsm-over' : '') +
+        (st.peek[k] && !T.st[k] ? ' tsm-peek' : '') : 'tsm-w';
       if (el.className !== c) el.className = c;
     });
     renderBar();
@@ -1135,22 +1212,25 @@
     var errNow = X && T.i < X.N && T.st[T.i] === S_ERR;
     var place = X ? where(T.i) : 'ص ' + visiblePages().join('–');
     var status = st.warn && voice ? st.warn : st.status;
+    var sm = st.smooth, read = A.reached + n.reached, help = A.help || 0;
     bar.innerHTML =
       '<div class="tsm-row">' +
-        '<span class="tsm-title">' + (voice ? '🎙️' : '👁') + ' التسميع<small>' + esc(place) + '</small></span>' +
-        '<span class="tsm-c tsm-c-ok" title="صحيحة من أول مرة">✓ ' + ok + '</span>' +
-        '<span class="tsm-c tsm-c-err" title="كلمات فيها خطأ">✗ ' + err + '</span>' +
+        '<span class="tsm-title">' + (sm ? '🌊 تسميع سلس' : (voice ? '🎙️' : '👁') + ' التسميع') + '<small>' + esc(place) + '</small></span>' +
+        (sm ? '<span class="tsm-c tsm-c-read" title="كلمات قرأتها">📖 ' + read + '</span>' + (help ? '<span class="tsm-c" title="كلمات كشفتها مساعدةً">💡 ' + help + '</span>' : '')
+          : '<span class="tsm-c tsm-c-ok" title="صحيحة من أول مرة">✓ ' + ok + '</span>' +
+            '<span class="tsm-c tsm-c-err" title="كلمات فيها خطأ">✗ ' + err + '</span>') +
         '<span class="tsm-sp"></span>' +
         (voice ? '<button class="tsm-b" data-tsm="mic" title="' + (micOn() ? 'أوقف المايك مؤقتًا' : 'شغّل المايك') + '">' + (micOn() ? '⏸' + lbl('إيقاف مؤقت') : '▶' + lbl('متابعة')) + '</button>' +
-          '<button class="tsm-b" data-tsm="hint" title="اكشف الكلمة التالية (Home) — تُسجَّل خطأً">💡' + lbl('مساعدة') + '</button>'
+          '<button class="tsm-b" data-tsm="hint" title="' + (sm ? 'اكشف الكلمة التالية (Home)' : 'اكشف الكلمة التالية (Home) — تُسجَّل خطأً') + '">💡' + lbl('مساعدة') + '</button>'
         : '<button class="tsm-b" data-tsm="back" title="الكلمة السابقة (End)">→' + lbl('السابقة') + '</button>' +
           '<button class="tsm-b tsm-gold" data-tsm="next" title="الكلمة التالية (Home)">التالية ←</button>' +
           '<button class="tsm-b tsm-red" data-tsm="mark" title="أخطأت في الكلمة التي كشفتها (Delete)">✗' + lbl('أخطأت') + '</button>') +
-        '<button class="tsm-b" data-tsm="log" title="سجل الأخطاء">📋</button>' +
+        (sm ? '' : '<button class="tsm-b" data-tsm="log" title="سجل الأخطاء">📋</button>') +
         '<button class="tsm-b tsm-end" data-tsm="end" title="إنهاء التسميع (Esc)">✕' + lbl('إنهاء') + '</button>' +
       '</div>' +
       '<div class="tsm-status' + (errNow ? ' tsm-status-err' : '') + (/^(🟡|✗) «/.test(status) ? ' tsm-status-wrap' : '') + (st.warn && voice ? ' tsm-status-warn' : '') + '">' +
-        '<span class="tsm-cm"><i class="tsm-cm-ok">✓' + ok + '</i> <i class="tsm-cm-err">✗' + err + '</i></span>' + esc(status) +
+        (sm ? '<span class="tsm-cm"><i class="tsm-cm-read">📖' + read + '</i></span>'
+          : '<span class="tsm-cm"><i class="tsm-cm-ok">✓' + ok + '</i> <i class="tsm-cm-err">✗' + err + '</i></span>') + esc(status) +
         (voice && st.lastHeard ? '<span class="tsm-heard">سمعت: «' + esc(st.lastHeard) + '»</span>' : '') + '</div>';
   }
 
@@ -1204,6 +1284,22 @@
     var pct = A.reached ? Math.round(100 * A.ok / A.reached) : 0;
     var d = document.createElement('div');
     d.id = 'tsmDone'; d.className = 'tsm-done'; d.setAttribute('dir', 'rtl'); d.setAttribute('role', 'status');
+    if (A.smooth) {   // no score, no mistakes: what was read, how long, how much help
+      var mins = Math.max(1, Math.round((Date.now() - A.t0) / 60000));
+      d.innerHTML = '<b>🌊 انتهى التسميع</b><span>' + wordsTxt(A.reached) + (A.range ? ' · ' + esc(A.range) : '') + ' · ' +
+        (mins === 1 ? 'دقيقة' : mins === 2 ? 'دقيقتان' : mins + (mins <= 10 ? ' دقائق' : ' دقيقة')) +
+        (A.help ? ' · 💡 ' + A.help : '') + '</span>' +
+        '<button class="tsm-b tsm-gold" data-d="again">⟲ من جديد</button><button class="tsm-x" data-d="x" title="إغلاق">✕</button>';
+      d.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-d]'); if (!b) return;
+        closeDone();
+        if (b.getAttribute('data-d') === 'again') start(A.fixed ? { ayahs: A.fixed, smooth: true } : A.first ? { at: A.first, smooth: true } : { smooth: true });
+      });
+      d.addEventListener('mouseenter', function () { clearTimeout(doneT); });
+      document.body.appendChild(d);
+      doneT = setTimeout(closeDone, 12000);
+      return;
+    }
     d.innerHTML = '<b>🧠 انتهى التسميع</b><span>' + wordsTxt(A.reached) + ' · <i class="tsm-d-ok">✓ ' + A.ok + '</i> · <i class="tsm-d-err">✗ ' + A.err + '</i>' +
       (A.uns ? ' · <i class="tsm-d-uns" title="كتبها Chrome على غير ما قرأت، فلم تُحسب خطأً">🟡 ' + A.uns + '</i>' : '') + ' · ' + pct + '%</span>' +
       '<button class="tsm-b tsm-gold" data-d="res">النتيجة</button><button class="tsm-x" data-d="x" title="إغلاق">✕</button>';
@@ -1401,7 +1497,14 @@
     e.stopPropagation(); e.preventDefault();
     if (st.mode === 'eye') { doNext(); return; }
     var w = e.target.closest('.tsm-w'), k = w ? +w.getAttribute('data-k') : -1;
+    if (k >= 0 && st.T && st.smooth) { peek(k); return; }
     if (k >= 0 && st.T) toggleUns(k);
+  }
+  // smooth: a tap on a covered word shows it for a moment; the test does not move (counted as help)
+  function peek(k) {
+    if (!st || !st.T || st.T.st[k] !== S_HID || st.peek[k]) return;
+    st.peek[k] = 1; st.acc.help = (st.acc.help || 0) + 1; paint();
+    setTimeout(function () { if (st && st.peek) { delete st.peek[k]; paint(); } }, 1800);
   }
   // voice: a yellow word tapped = «أخطأت» (counted), tapped again = yellow
   function toggleUns(k) {

@@ -159,3 +159,24 @@ html:has(.tsm-modal) { overflow: hidden; }
 .tsm-cmp thead th { color: var(--gold-ink); font-size: 0.82rem; }
 .tsm-foot-note { margin-inline-start: auto; align-self: center; font-size: 0.72rem; color: var(--text-muted); }
 @media (max-width: 460px) { .tsm-techs { grid-template-columns: 1fr; } .tsm-foot-note { flex-basis: 100%; } }
+
+/* «تسميع سلس» (2026-11-19): no verdict colours. A cover just fades away as its word is recited; help is a thin
+   gold line, never red; a tap on a covered word shows it for a moment (peek) */
+body.tsm-smooth .tsm-w.tsm-ok { animation: tsmGone 0.3s ease-out; }
+@keyframes tsmGone { from { background: var(--tsm-cover); } to { background: transparent; } }
+body.tsm-smooth .tsm-w.tsm-hinted { box-shadow: inset 0 -2px 0 rgba(230, 180, 80, 0.8); }
+body.tsm-smooth .tsm-w:not(.tsm-ok) { pointer-events: auto; cursor: help; }
+.tsm-w.tsm-peek { background: rgba(74, 85, 104, 0.14); }
+.tsm-c-read { color: var(--gold-ink); border-color: color-mix(in srgb, var(--gold-primary) 50%, transparent); }
+.tsm-cm .tsm-cm-read { color: var(--gold-ink); }
+@media (prefers-reduced-motion: reduce) { body.tsm-smooth .tsm-w.tsm-ok { animation: none; } }
+/* the way to recite, at the top of the start window */
+.tsm-style { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; padding: 4px; border-radius: 14px;
+  background: color-mix(in srgb, var(--border-color) 45%, transparent); }
+.tsm-style button { font-family: inherit; display: flex; flex-direction: column; align-items: flex-start; text-align: right; gap: 2px; padding: 8px 12px;
+  border-radius: 10px; border: 0; background: transparent; color: var(--text-main); cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+.tsm-style button b { font-size: 0.92rem; }
+.tsm-style button small { font-size: 0.72rem; line-height: 1.5; color: var(--text-muted); }
+.tsm-style button.on { background: var(--bg-card); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), inset 0 0 0 1.5px var(--gold-primary); }
+.tsm-style button.on b { color: var(--gold-ink); }
+.tsm-style button:focus-visible { outline: 2px solid var(--gold-primary); outline-offset: 1px; }

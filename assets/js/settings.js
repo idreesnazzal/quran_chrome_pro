@@ -142,10 +142,12 @@
           seg('tsmMode', [['voice', '🎙️ بالصوت'], ['eye', '👁 بالعين (بلا صوت)']], window.Tasmee.prefs().mode) + '</div>' +
         '<div class="st-row"><span><b>اختيار الأذن عند كل بدء</b><small>بطاقتان: 🎧 Chrome و🧠 الأذن القرآنية، ومعهما جدول يقارن بينهما على قراءتك</small></span>' +
           seg('tsmAsk', [['1', 'اسألني'], ['0', 'لا تسأل']], window.Tasmee.prefs().ask === false ? '0' : '1') + '</div>' +
-        '<div class="st-row"><span><b>الحكم</b><small>' + (window.Tasmee.prefs().level === 'very' ? 'القديم: يقف عند كل كلمة حتى تُسمع بحروفها، فيحمّر ما يخطئ السمع فيه' : 'يتبعك حيث تقرأ: أحمر للترك والإبدال الواضحين فقط، وأصفر لما لم يُسمع كما هو') + '</small></span>' +
+        '<div class="st-row"><span><b>طريقة التسميع</b><small>' + (window.Tasmee.prefs().smooth ? 'سلس: تنكشف الكلمات وأنت تقرأ، بلا أحمر ولا أصفر ولا توقف، ولا يُسجَّل خطأ. المس كلمة مغطاة لتلمحها' : 'يحكم: يتبعك ويحمّر الترك والإبدال الواضحين، ويحفظ سجلًا للأخطاء') + '</small></span>' +
+          seg('tsmStyle', [['judge', '🎯 يحكم'], ['smooth', '🌊 سلس']], window.Tasmee.prefs().smooth ? 'smooth' : 'judge') + '</div>' +
+        (window.Tasmee.prefs().smooth ? '' : '<div class="st-row"><span><b>الحكم</b><small>' + (window.Tasmee.prefs().level === 'very' ? 'القديم: يقف عند كل كلمة حتى تُسمع بحروفها، فيحمّر ما يخطئ السمع فيه' : 'يتبعك حيث تقرأ: أحمر للترك والإبدال الواضحين فقط، وأصفر لما لم يُسمع كما هو') + '</small></span>' +
           seg('tsmLevel', [['strict', 'ذكي'], ['very', 'صارم جدًا']], window.Tasmee.prefs().level) + '</div>' +
         (window.Tasmee.prefs().level === 'very' || window.Tasmee.prefs().engine === 'v1' ? '<div class="st-row"><span><b>عند الخطأ</b><small>الكلمة الحمراء تنتظر حتى تقرأها صحيحة</small></span>' +
-          seg('tsmReveal', [['3', 'اكشفها بعد 3 محاولات'], ['0', 'لا تكشفها أبدًا']], String(window.Tasmee.prefs().reveal)) + '</div>' : '') +
+          seg('tsmReveal', [['3', 'اكشفها بعد 3 محاولات'], ['0', 'لا تكشفها أبدًا']], String(window.Tasmee.prefs().reveal)) + '</div>' : '')) +
         '<div class="st-btns"><button class="st-btn" data-act="tasmee">' + (window.Tasmee.isOn() ? '✕ إنهاء التسميع' : '🧠 ابدأ التسميع') + '</button><button class="st-btn" data-act="tasmeelog">📋 سجل الأخطاء</button></div>' +
       '</section>' : '') +
 
@@ -212,7 +214,7 @@
           var rc = g('RECITERS_CONFIG'); call('setReciter', rc && rc.minshawi_murattal ? 'minshawi_murattal' : Object.keys(rc || {})[0]);
           call('setAudioSpeed', 1); call('setAudioRepeatTarget', '1');
           call('setAudioPanel', window.innerWidth >= 768);   // the panel's default: open, closed on a phone
-          if (window.Tasmee) { window.Tasmee.setPref('mode', 'voice'); window.Tasmee.setPref('level', 'strict'); window.Tasmee.setPref('reveal', 3); }
+          if (window.Tasmee) { window.Tasmee.setPref('mode', 'voice'); window.Tasmee.setPref('level', 'strict'); window.Tasmee.setPref('reveal', 3); window.Tasmee.setPref('smooth', false); }
           var ts = document.getElementById('tafsirSourceSelect'); if (ts && ts.value !== 'muyassar') { ts.value = 'muyassar'; ts.dispatchEvent(new Event('change')); }
           var m = document.querySelector('.match-tag[data-match=any]'); if (m) m.click();
           render(); call('showToast', 'أُعيدت الإعدادات الافتراضية');
@@ -227,6 +229,7 @@
         if (name === 'darkPage') { setUi('darkPage', v); call('applyPageLighting'); }
         if (name === 'tsmMode' && window.Tasmee) window.Tasmee.setPref('mode', v);
         if (name === 'tsmLevel' && window.Tasmee) window.Tasmee.setPref('level', v);
+        if (name === 'tsmStyle' && window.Tasmee) window.Tasmee.setPref('smooth', v === 'smooth');
         if (name === 'tsmAsk' && window.Tasmee) window.Tasmee.setPref('ask', v === '1');
         if (name === 'tsmReveal' && window.Tasmee) window.Tasmee.setPref('reveal', +v);
         if (name === 'match') { var t = document.querySelector('.match-tag[data-match=' + v + ']'); if (t) t.click(); else try { localStorage.setItem('search_match', v); } catch (x) {} }
