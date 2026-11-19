@@ -6264,7 +6264,8 @@
         if (!items.length) return '<p class="sp-none">لا كلمات تحتاج بيانًا في هذه الآية.</p>';
         return '<div class="sp-words">' + items.map(([term, meaning, , books]) => {
           const m = meaning || (books && books[0] && books[0][2]) || '';
-          return `<div class="sp-w"><b>${asbabEsc(term)}</b><span>${asbabEsc(m)}</span></div>`;
+          // the space matters: with none, Arabic joins across the two and the term's last letter runs into the meaning
+          return `<div class="sp-w"><b>${asbabEsc(term)}</b> <span>${asbabEsc(m)}</span></div>`;
         }).join('') + '</div>';
       }
       if (studyContent === 'nuzul') {
