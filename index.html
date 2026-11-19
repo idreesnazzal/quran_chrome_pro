@@ -2075,6 +2075,10 @@
       }
     }
 
+    /* a black page (applyPageLighting): the inverted image is laid on the card with «screen», so the card's
+       colour is the paper's; in the day themes the card turns dark for it */
+    body.page-dark .mushaf-card { isolation: isolate; }
+    body.page-dark[data-theme="light"] .mushaf-card, body.page-dark[data-theme="sepia"] .mushaf-card { background: #121822; }
     .mushaf-card {
       background: var(--mushaf-card-bg);
       border-radius: 12px;
@@ -4610,7 +4614,15 @@
       const bright = localStorage.getItem('mushaf_brightness') || '100';
       const eyeComfort = localStorage.getItem('mushaf_eye_comfort') === 'true';
 
-      let filters = [];
+      // «لون صفحة المصحف» (⚙️ الإعدادات, mushaf_ui.darkPage): auto = black page with white letters in the night
+      // themes. The image is inverted and turned back round the colour wheel (tajweed inks keep their hue), then
+      // laid on the card with «screen», so the paper takes the card's own night colour instead of pure black.
+      let darkPref = 'auto';
+      try { darkPref = (JSON.parse(localStorage.getItem('mushaf_ui') || '{}') || {}).darkPage || 'auto'; } catch (e) { /* default */ }
+      const darkPage = darkPref === 'on' || (darkPref === 'auto' && (currentTheme === 'dark' || currentTheme === 'oled'));
+      document.body.classList.toggle('page-dark', darkPage);
+
+      let filters = darkPage ? ['invert(1) hue-rotate(180deg) brightness(0.93) saturate(1.3)'] : [];
       if (bright !== '100') {
         filters.push(`brightness(${bright}%)`);
       }
@@ -4619,8 +4631,11 @@
       }
 
       const filterVal = filters.length > 0 ? filters.join(' ') : 'none';
-      if (mushafImgRight) mushafImgRight.style.filter = filterVal;
-      if (mushafImgLeft) mushafImgLeft.style.filter = filterVal;
+      [mushafImgRight, mushafImgLeft].forEach((im) => {
+        if (!im) return;
+        im.style.filter = filterVal;
+        im.style.mixBlendMode = darkPage ? 'screen' : '';
+      });
     }
 
     function setViewMode(mode, silent = false) {

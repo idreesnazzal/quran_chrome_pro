@@ -11,11 +11,13 @@
  *   autoTurn  recitation turns pages by itself (read by index.html)
  *   karaoke   the recite dock's word ribbon
  *   heard     the recite dock's «ما التقطه المايك» row
+ *   darkPage  the mushaf page: 'auto' = black with white letters in the night themes, 'on' always, 'off' never
+ *             (index.html applyPageLighting reads it)
  */
 (function () {
   'use strict';
   var UI_KEY = 'mushaf_ui';
-  var DEF = { fit: false, navTop: true, navBottom: false, floatNav: true, autoTurn: true, karaoke: true, heard: true };
+  var DEF = { fit: false, navTop: true, navBottom: false, floatNav: true, autoTurn: true, karaoke: true, heard: true, darkPage: 'auto' };
   var THEMES = [['dark', '🌙', 'ليلي'], ['light', '☀️', 'نهاري'], ['sepia', '📜', 'ورقي دافئ'], ['oled', '🖤', 'داكن OLED']];
 
   function g(name) { try { return (0, eval)(name); } catch (e) { return undefined; } }
@@ -101,6 +103,8 @@
         }).join('') + '</div>' +
         '<div class="st-row"><span><b>سطوع صفحة المصحف</b><small>يخفّف بياض الصفحة في الإضاءة الخافتة</small></span><output class="st-val">' + bright + '%</output></div>' +
         '<input class="st-range" type="range" min="50" max="100" step="5" value="' + bright + '" data-range="bright">' +
+        '<div class="st-row"><span><b>لون صفحة المصحف</b><small>«مع المظهر»: سوداء بحروف بيضاء في الليلي وOLED، بيضاء في النهاري والورقي</small></span>' +
+          seg('darkPage', [['auto', 'مع المظهر'], ['on', '⚫ سوداء'], ['off', '⚪ بيضاء']], p.darkPage || 'auto') + '</div>' +
         sw('eye', '🛡️ فلتر راحة العين', eye, 'لون دافئ لصفحات المصحف') +
       '</section>' +
 
@@ -202,7 +206,7 @@
         }
         if (a === 'reset' && confirm('إعادة كل الإعدادات إلى الافتراضي؟ (القوائم والملاحظات تبقى)')) {
           try { ['mushaf_ui', 'mushaf_theme', 'mushaf_brightness', 'mushaf_eye_comfort', 'search_match'].forEach(function (k) { localStorage.removeItem(k); }); } catch (x) {}
-          call('setTheme', 'dark'); call('setBrightness', '100'); call('setEyeComfort', false); applyUi();
+          applyUi(); call('setTheme', 'dark'); call('setBrightness', '100'); call('setEyeComfort', false);
           // every setting the drawer shows: view mode, reciter, speed, repeat, tafsir
           call('setViewMode', 'single', true);
           var rc = g('RECITERS_CONFIG'); call('setReciter', rc && rc.minshawi_murattal ? 'minshawi_murattal' : Object.keys(rc || {})[0]);
@@ -220,6 +224,7 @@
         var name = b.parentNode.getAttribute('data-seg'), v = b.getAttribute('data-v');
         if (name === 'view') call('setViewMode', v);
         if (name === 'fit') setUi('fit', v === '1');
+        if (name === 'darkPage') { setUi('darkPage', v); call('applyPageLighting'); }
         if (name === 'tsmMode' && window.Tasmee) window.Tasmee.setPref('mode', v);
         if (name === 'tsmLevel' && window.Tasmee) window.Tasmee.setPref('level', v);
         if (name === 'tsmAsk' && window.Tasmee) window.Tasmee.setPref('ask', v === '1');
